@@ -1,66 +1,49 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
+# Development harness only. The ici product is the Rust workspace in Cargo.toml
+# (ADR-0008); this file builds no package and nothing in it is distributed.
+#
+# The harness environment (`uv sync --frozen --python 3.10`, `.venv/bin/python`)
+# is the *project* Python some Rust CLI tests run as an external tool (pytest,
+# coverage, mypy, ruff), plus the interpreter for the Python left in this
+# repository: the migration ledger, the candidate Merge Gate audit, the
+# tests/rust-parity capture drivers and the Quality Zoo runner.
 [project]
-name = "ici"
-description = "Multi-language static analysis with attributable diagnostics and offline reports"
-readme = "README.md"
+name = "ici-dev-harness"
+version = "0.0.0"
+description = "Development harness for the ici Rust workspace (not distributed)"
 requires-python = ">=3.10"
-dynamic = ["version"]
-dependencies = [
-    # 전부 py3-none-any 순수 파이썬 휠이어야 한다 (build-pyz.sh 가 검사한다).
-    "typer>=0.12",
-    "rich>=13.7",
-    "tomli>=2.0",
-    "tomli-w>=1.0",
-    "packaging>=24.0",
-]
-
-[project.scripts]
-ici = "ici.__main__:main"
+dependencies = []
 
 [dependency-groups]
 dev = [
     "pytest>=8.0",
-    "shiv>=1.0.6",
     "mypy>=1.10",
     "coverage>=7.0",
-    # lint 엔진은 PATH 또는 프로젝트 venv 에서 ruff 를 찾는다(engines/lint.py:_find_ruff_command).
-    # dev 의존성으로 선언해야 CI 의 .venv 에 들어가고, 엔진이 AST 폴백으로 내려가지 않는다.
-    # 상한을 두는 이유: ruff format 규칙이 마이너 버전에서 바뀌면 --check 가 갑자기 깨진다.
+    # Rust CLI tests resolve .venv/bin/ruff as the project's own Ruff, and the
+    # harness Python is linted with it. Upper bound: ruff format rules change
+    # between minor versions and `--check` would break without a code change.
     "ruff>=0.16,<0.17",
-]
-package = [
-    # Packaging tools are locked separately from the shipped runtime graph.
-    # build-pyz.sh uses only this group while constructing the wheel/ZipApp.
-    "hatchling>=1.27,<2",
-    "shiv==1.0.8",
+    # scripts/tests reads the TOML fixture register on Python 3.10.
+    "tomli>=2.0",
 ]
 
-[tool.hatch.version]
-path = "src/ici/__init__.py"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/ici"]
+[tool.uv]
+package = false
 
 [tool.ruff]
-target-version = "py310"          # 3.11+ 문법을 lint 실패로 만든다
+target-version = "py310"          # harness는 Python 3.10에서 돈다. 3.11+ 문법을 lint 실패로 만든다
 line-length = 100
-src = ["src", "tests"]
+src = ["scripts"]
 # quality-zoo 는 ici 소유의 known-answer corpus다. 시나리오 소스는 의도적으로
 # 린트 위반·결함을 포함하므로 lint/format 대상에서 제외한다. corpus 자체의
 # runner/tests 코드 품질은 quality-zoo/tests 계약 테스트가 담당한다.
-# defect_bed 도 같은 이유로 제외한다 — cross-path differential 테스트가
-# 기대하는 결함(eval, 삼킨 except, 미폐쇄 핸들, 과잉 라인)을 심어둔 시드다.
-extend-exclude = ["quality-zoo", "examples/python-fixtures/defect_bed"]
+extend-exclude = ["quality-zoo"]
 
 [tool.ruff.format]
 # Markdown prose is not source. ruff formats fenced Python blocks inside .md,
 # and design docs quote class methods in context — reformatting strips their
 # indentation and turns a method into a module-level function, so the document
 # ends up describing something that would not compile.
-exclude = ["*.md", "quality-zoo", "examples/python-fixtures/defect_bed"]
+exclude = ["*.md", "quality-zoo"]
 
 [tool.ruff.lint]
 select = [
@@ -74,12 +57,18 @@ select = [
 ]
 ignore = ["E501"]
 
+[tool.ruff.lint.isort]
+# tests/rust-parity capture drivers import the frozen v0.13.0 `ici` package from
+# an oracle checkout; it stays first-party so their import blocks are unchanged.
+known-first-party = ["ici"]
+
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
-"tomllib".msg = "tomllib 은 3.11+ 다. 폐쇄망은 3.10 이므로 tomli 를 쓴다."
+"tomllib".msg = "tomllib 은 3.11+ 다. harness 는 3.10 에서 돌므로 tomli 를 쓴다."
 "requests".msg = "certifi 번들 CA 때문에 사내 TLS 인터셉션 환경에서 깨진다. stdlib urllib 을 쓴다."
 "httpx".msg = "certifi 번들 CA 때문에 사내 TLS 인터셉션 환경에서 깨진다. stdlib urllib 을 쓴다."
 "certifi".msg = "시스템 CA 를 써야 한다. ssl.create_default_context()."
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# The repository-asset suites are stdlib unittest; pytest can collect them too.
+testpaths = ["scripts/tests"]
 addopts = "-q"

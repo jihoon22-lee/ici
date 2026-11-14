@@ -1,0 +1,806 @@
+{
+  "oracle_revision": "6fe3e405",
+  "oracle_file": "src/ici/analysis/_python_dead_code.py",
+  "oracle_file_sha256": "3200f4c690163221023ee0095deef19b3c90355041abbcd5277abb436595c1e9",
+  "cases": [
+    {
+      "id": "private-use-and-unused",
+      "sources": {
+        "main.py": "def _used():\n    pass\ndef _unused():\n    return 1\n_used()\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "main.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_used()",
+          "status": "PASS",
+          "message": "Private function '_used' is referenced",
+          "snippet": "def _used():\n    pass"
+        },
+        {
+          "file_path": "main.py",
+          "start_line": 3,
+          "end_line": 4,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_unused()",
+          "status": "WARN",
+          "message": "Private module-level function '_unused' is never referenced",
+          "snippet": "def _unused():\n    return 1"
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "public-dunder-method-nested",
+      "sources": {
+        "main.py": "def public():\n    def _nested():\n        pass\n    return 1\ndef __special():\n    pass\nclass C:\n    def _method(self):\n        pass\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "main.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "exports-and-decorators",
+      "sources": {
+        "main.py": "__all__: list[str] = [\"_list\"]\ndef _list():\n    pass\n@decorator\ndef _decorated():\n    pass\nasync def _async():\n    pass\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "main.py",
+          "start_line": 7,
+          "end_line": 8,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_async()",
+          "status": "WARN",
+          "message": "Private module-level function '_async' is never referenced",
+          "snippet": "async def _async():\n    pass"
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "recursive-async",
+      "sources": {
+        "main.py": "async def _recursive():\n    return await _recursive()\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "main.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_recursive()",
+          "status": "PASS",
+          "message": "Private function '_recursive' is referenced",
+          "snippet": "async def _recursive():\n    return await _recursive()"
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "named-import-alias",
+      "sources": {
+        "a.py": "def _f():\n    pass\n",
+        "b.py": "from a import _f as local\nlocal()\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "a.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "PASS",
+          "message": "Private function '_f' is referenced",
+          "snippet": "def _f():\n    pass"
+        },
+        {
+          "file_path": "b.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "module-import-alias",
+      "sources": {
+        "a.py": "def _f():\n    pass\n",
+        "b.py": "import a as local\nlocal._f()\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "a.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "PASS",
+          "message": "Private function '_f' is referenced",
+          "snippet": "def _f():\n    pass"
+        },
+        {
+          "file_path": "b.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "unused-import",
+      "sources": {
+        "a.py": "def _f():\n    pass\n",
+        "b.py": "from a import _f\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "a.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "WARN",
+          "message": "Private module-level function '_f' is never referenced",
+          "snippet": "def _f():\n    pass"
+        },
+        {
+          "file_path": "b.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "qualified-package",
+      "sources": {
+        "pkg/__init__.py": "",
+        "pkg/a.py": "def _f():\n    pass\n",
+        "b.py": "import pkg.a\npkg.a._f()\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "pkg/__init__.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        },
+        {
+          "file_path": "pkg/a.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "PASS",
+          "message": "Private function '_f' is referenced",
+          "snippet": "def _f():\n    pass"
+        },
+        {
+          "file_path": "b.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "relative-package",
+      "sources": {
+        "pkg/__init__.py": "from .a import _f\n_f()\n",
+        "pkg/a.py": "def _f():\n    pass\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "pkg/__init__.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        },
+        {
+          "file_path": "pkg/a.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "PASS",
+          "message": "Private function '_f' is referenced",
+          "snippet": "def _f():\n    pass"
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "package-module-alias",
+      "sources": {
+        "pkg/__init__.py": "",
+        "pkg/a.py": "def _f():\n    pass\n",
+        "b.py": "from pkg import a as local\nlocal._f()\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "pkg/__init__.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        },
+        {
+          "file_path": "pkg/a.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "PASS",
+          "message": "Private function '_f' is referenced",
+          "snippet": "def _f():\n    pass"
+        },
+        {
+          "file_path": "b.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "root-precedence",
+      "sources": {
+        "one/a.py": "def _f():\n    pass\n",
+        "two/a.py": "def _f():\n    pass\n",
+        "b.py": "from a import _f\n_f()\n"
+      },
+      "source_roots": [
+        "one",
+        "two",
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "one/a.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "PASS",
+          "message": "Private function '_f' is referenced",
+          "snippet": "def _f():\n    pass"
+        },
+        {
+          "file_path": "two/a.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "WARN",
+          "message": "Private module-level function '_f' is never referenced",
+          "snippet": "def _f():\n    pass"
+        },
+        {
+          "file_path": "b.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "unreachable-bodies",
+      "sources": {
+        "main.py": "def f():\n    if x:\n        return 1\n        hidden()\n    else:\n        raise ValueError()\n        hidden_else()\n    try:\n        return 2\n        hidden_try()\n    finally:\n        cleanup()\n    for x in values:\n        break\n        hidden_break()\n    while ready:\n        continue\n        hidden_continue()\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "main.py",
+          "start_line": 4,
+          "end_line": 4,
+          "start_column": 9,
+          "end_column": 16,
+          "target_name": "UnreachableCode",
+          "status": "WARN",
+          "message": "Unreachable code statement detected after terminal return/raise",
+          "snippet": ""
+        },
+        {
+          "file_path": "main.py",
+          "start_line": 7,
+          "end_line": 7,
+          "start_column": 9,
+          "end_column": 21,
+          "target_name": "UnreachableCode",
+          "status": "WARN",
+          "message": "Unreachable code statement detected after terminal return/raise",
+          "snippet": ""
+        },
+        {
+          "file_path": "main.py",
+          "start_line": 10,
+          "end_line": 10,
+          "start_column": 9,
+          "end_column": 20,
+          "target_name": "UnreachableCode",
+          "status": "WARN",
+          "message": "Unreachable code statement detected after terminal return/raise",
+          "snippet": ""
+        },
+        {
+          "file_path": "main.py",
+          "start_line": 15,
+          "end_line": 15,
+          "start_column": 9,
+          "end_column": 22,
+          "target_name": "UnreachableCode",
+          "status": "WARN",
+          "message": "Unreachable code statement detected after terminal return/raise",
+          "snippet": ""
+        },
+        {
+          "file_path": "main.py",
+          "start_line": 18,
+          "end_line": 18,
+          "start_column": 9,
+          "end_column": 25,
+          "target_name": "UnreachableCode",
+          "status": "WARN",
+          "message": "Unreachable code statement detected after terminal return/raise",
+          "snippet": ""
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "match-unreachable",
+      "sources": {
+        "main.py": "def f(x):\n    match x:\n        case 1:\n            return 1\n            hidden()\n        case _:\n            raise ValueError()\n            other()\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "main.py",
+          "start_line": 5,
+          "end_line": 5,
+          "start_column": 13,
+          "end_column": 20,
+          "target_name": "UnreachableCode",
+          "status": "WARN",
+          "message": "Unreachable code statement detected after terminal return/raise",
+          "snippet": ""
+        },
+        {
+          "file_path": "main.py",
+          "start_line": 8,
+          "end_line": 8,
+          "start_column": 13,
+          "end_column": 19,
+          "target_name": "UnreachableCode",
+          "status": "WARN",
+          "message": "Unreachable code statement detected after terminal return/raise",
+          "snippet": ""
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "local-shadow",
+      "sources": {
+        "main.py": "def _f():\n    pass\ndef consume(_f):\n    _f()\ndef another():\n    _f = lambda: None\n    _f()\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "main.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "PASS",
+          "message": "Private function '_f' is referenced",
+          "snippet": "def _f():\n    pass"
+        }
+      ],
+      "original_errors": [],
+      "correction": "Local parameter and assignment references do not reference the module private binding",
+      "expected_targets": [
+        {
+          "file_path": "main.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "WARN",
+          "message": "Private module-level function '_f' is never referenced",
+          "snippet": "def _f():\n    pass"
+        }
+      ]
+    },
+    {
+      "id": "import-shadow",
+      "sources": {
+        "a.py": "def _f():\n    pass\n",
+        "b.py": "import a\ndef consume(a):\n    a._f()\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "a.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "PASS",
+          "message": "Private function '_f' is referenced",
+          "snippet": "def _f():\n    pass"
+        },
+        {
+          "file_path": "b.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        }
+      ],
+      "original_errors": [],
+      "correction": "Local parameter and assignment references do not reference the module private binding",
+      "expected_targets": [
+        {
+          "file_path": "a.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "WARN",
+          "message": "Private module-level function '_f' is never referenced",
+          "snippet": "def _f():\n    pass"
+        },
+        {
+          "file_path": "b.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        }
+      ]
+    },
+    {
+      "id": "package-attribute-precedence",
+      "sources": {
+        "pkg/__init__.py": "def _f():\n    pass\n",
+        "pkg/_f.py": "value = 1\n",
+        "b.py": "from pkg import _f\n_f()\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "pkg/__init__.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "WARN",
+          "message": "Private module-level function '_f' is never referenced",
+          "snippet": "def _f():\n    pass"
+        },
+        {
+          "file_path": "pkg/_f.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        },
+        {
+          "file_path": "b.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        }
+      ],
+      "original_errors": [],
+      "correction": "A declared package attribute takes precedence over a same-named child module",
+      "expected_targets": [
+        {
+          "file_path": "pkg/__init__.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "PASS",
+          "message": "Private function '_f' is referenced",
+          "snippet": "def _f():\n    pass"
+        },
+        {
+          "file_path": "pkg/_f.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        },
+        {
+          "file_path": "b.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "DeadCode",
+          "status": "PASS",
+          "message": "Python source was parsed and no dead-code findings were identified",
+          "snippet": ""
+        }
+      ]
+    },
+    {
+      "id": "unicode-unreachable",
+      "sources": {
+        "main.py": "def f():\n    return\n    이름 = \"한글\"\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "main.py",
+          "start_line": 3,
+          "end_line": 3,
+          "start_column": 5,
+          "end_column": 21,
+          "target_name": "UnreachableCode",
+          "status": "WARN",
+          "message": "Unreachable code statement detected after terminal return/raise",
+          "snippet": ""
+        }
+      ],
+      "original_errors": [],
+      "correction": "Unicode columns count characters rather than UTF-8 bytes",
+      "expected_targets": [
+        {
+          "file_path": "main.py",
+          "start_line": 3,
+          "end_line": 3,
+          "start_column": 5,
+          "end_column": 13,
+          "target_name": "UnreachableCode",
+          "status": "WARN",
+          "message": "Unreachable code statement detected after terminal return/raise",
+          "snippet": ""
+        }
+      ]
+    },
+    {
+      "id": "nested-global",
+      "sources": {
+        "main.py": "def _f():\n    pass\ndef caller():\n    global _f\n    return _f()\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "main.py",
+          "start_line": 1,
+          "end_line": 2,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "PASS",
+          "message": "Private function '_f' is referenced",
+          "snippet": "def _f():\n    pass"
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "unreachable-first-only",
+      "sources": {
+        "main.py": "def f():\n    return\n    first()\n    second()\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "main.py",
+          "start_line": 3,
+          "end_line": 3,
+          "start_column": 5,
+          "end_column": 11,
+          "target_name": "UnreachableCode",
+          "status": "WARN",
+          "message": "Unreachable code statement detected after terminal return/raise",
+          "snippet": ""
+        }
+      ],
+      "original_errors": []
+    },
+    {
+      "id": "syntax-error",
+      "sources": {
+        "a.py": "def _f():\n    pass\n",
+        "broken.py": "def broken(:\n    pass\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "broken.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "SyntaxError",
+          "status": "ERROR",
+          "message": "SyntaxError: invalid syntax",
+          "snippet": ""
+        }
+      ],
+      "original_errors": [
+        "SyntaxError: invalid syntax"
+      ]
+    },
+    {
+      "id": "redefined-function",
+      "sources": {
+        "main.py": "def _f():\n    return 1\ndef _f():\n    return 2\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_targets": [
+        {
+          "file_path": "main.py",
+          "start_line": 3,
+          "end_line": 4,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "_f()",
+          "status": "WARN",
+          "message": "Private module-level function '_f' is never referenced",
+          "snippet": "def _f():\n    return 2"
+        }
+      ],
+      "original_errors": []
+    }
+  ]
+}

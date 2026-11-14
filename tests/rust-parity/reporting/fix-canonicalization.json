@@ -1,0 +1,161 @@
+{
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "cases": [
+  {
+   "name": "plain",
+   "replacement": {
+    "path": "src/a.py",
+    "start_line": 1,
+    "start_column": 1,
+    "end_line": 1,
+    "end_column": 4,
+    "replacement": "x"
+   },
+   "canonical_path": "src/a.py",
+   "refused": null
+  },
+  {
+   "name": "collapsed",
+   "replacement": {
+    "path": "./src/../src/a.py",
+    "start_line": 2,
+    "start_column": 1,
+    "end_line": 3,
+    "end_column": 1,
+    "replacement": "x"
+   },
+   "canonical_path": "src/a.py",
+   "refused": null
+  },
+  {
+   "name": "backslash",
+   "replacement": {
+    "path": "src\\a.py",
+    "start_line": 1,
+    "start_column": 1,
+    "end_line": 1,
+    "end_column": 1,
+    "replacement": "x"
+   },
+   "canonical_path": "src/a.py",
+   "refused": null
+  },
+  {
+   "name": "trailing-slash",
+   "replacement": {
+    "path": "src/a.py/",
+    "start_line": 1,
+    "start_column": 1,
+    "end_line": 1,
+    "end_column": 2,
+    "replacement": "x"
+   },
+   "canonical_path": "src/a.py",
+   "refused": null
+  },
+  {
+   "name": "parent",
+   "replacement": {
+    "path": "../outside.py",
+    "start_line": 1,
+    "start_column": 1,
+    "end_line": 1,
+    "end_column": 2,
+    "replacement": "x"
+   },
+   "canonical_path": null,
+   "refused": "path escapes the project root: '../outside.py'"
+  },
+  {
+   "name": "absolute",
+   "replacement": {
+    "path": "/abs/outside.py",
+    "start_line": 1,
+    "start_column": 1,
+    "end_line": 1,
+    "end_column": 2,
+    "replacement": "x"
+   },
+   "canonical_path": null,
+   "refused": "absolute finding path requires project_root: '/abs/outside.py'"
+  },
+  {
+   "name": "drive-absolute",
+   "replacement": {
+    "path": "C:/outside.py",
+    "start_line": 1,
+    "start_column": 1,
+    "end_line": 1,
+    "end_column": 2,
+    "replacement": "x"
+   },
+   "canonical_path": null,
+   "refused": "absolute finding path requires project_root: 'C:/outside.py'"
+  },
+  {
+   "name": "drive-relative",
+   "replacement": {
+    "path": "C:outside.py",
+    "start_line": 1,
+    "start_column": 1,
+    "end_line": 1,
+    "end_column": 2,
+    "replacement": "x"
+   },
+   "canonical_path": null,
+   "refused": "drive-relative finding path is ambiguous: 'C:outside.py'"
+  },
+  {
+   "name": "reversed-lines",
+   "replacement": {
+    "path": "src/a.py",
+    "start_line": 3,
+    "start_column": 1,
+    "end_line": 2,
+    "end_column": 1,
+    "replacement": "x"
+   },
+   "canonical_path": null,
+   "refused": "finding fix replacement 'src/a.py' end_line must not precede start_line: 2 < 3"
+  },
+  {
+   "name": "reversed-columns",
+   "replacement": {
+    "path": "src/a.py",
+    "start_line": 1,
+    "start_column": 5,
+    "end_line": 1,
+    "end_column": 2,
+    "replacement": "x"
+   },
+   "canonical_path": null,
+   "refused": "finding fix replacement 'src/a.py' end_column must not precede start_column on one line: 2 < 5"
+  },
+  {
+   "name": "zero-column",
+   "replacement": {
+    "path": "src/a.py",
+    "start_line": 1,
+    "start_column": 0,
+    "end_line": 1,
+    "end_column": 2,
+    "replacement": "x"
+   },
+   "canonical_path": null,
+   "refused": "finding fix replacement 'src/a.py' start_column must be a 1-indexed integer: 0"
+  },
+  {
+   "name": "zero-line",
+   "replacement": {
+    "path": "src/a.py",
+    "start_line": 0,
+    "start_column": 1,
+    "end_line": 1,
+    "end_column": 2,
+    "replacement": "x"
+   },
+   "canonical_path": null,
+   "refused": "finding fix replacement 'src/a.py' start_line must be a 1-indexed integer: 0"
+  }
+ ]
+}

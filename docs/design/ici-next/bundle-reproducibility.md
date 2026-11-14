@@ -4,8 +4,8 @@
 |---|---|
 |상태|**측정 완료.** 동일 입력 두 빌드가 바이트 단위로 같다.|
 |근거 이슈|[WP04 #202](https://github.com/jihoon22-lee/ici/issues/202) 작업 4|
-|구현|[`scripts/assemble_bundle.py`](../../../scripts/assemble_bundle.py)|
-|검증|[`tests/test_bundle_assembly.py`](../../../tests/next/test_bundle_assembly.py)|
+|구현|[`scripts/assemble_bundle.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/scripts/assemble_bundle.py)|
+|검증|[`tests/test_bundle_assembly.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_bundle_assembly.py)|
 
 ## 출발점
 

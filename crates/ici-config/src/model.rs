@@ -1,0 +1,343 @@
+use ici_domain::{Profile, ScopeKind};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::{collections::BTreeMap, path::PathBuf};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SchemaFamily {
+    Automatic,
+    SparseV2,
+    NextV1,
+    Legacy,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Origin {
+    pub file: String,
+    pub line: usize,
+    pub column: usize,
+    pub key: String,
+    /// defaults, discovered, root, component, local, or global_preference.
+    pub layer: String,
+}
+impl Origin {
+    pub fn defaults(key: impl Into<String>) -> Self {
+        Self {
+            file: "<built-in defaults>".into(),
+            line: 1,
+            column: 1,
+            key: key.into(),
+            layer: "defaults".into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ConfigError {
+    pub message: String,
+    pub origin: Box<Origin>,
+    #[serde(default, skip_serializing_if = "related_is_empty")]
+    pub related: Box<[ConfigDiagnostic]>,
+    /// The message is a frozen refusal's whole text (legacy-schema stable commands only): the
+    /// display omits the native `file:line:column: key: ` origin prefix.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub verbatim: bool,
+}
+fn related_is_empty(related: &[ConfigDiagnostic]) -> bool {
+    related.is_empty()
+}
+impl std::error::Error for ConfigError {}
+impl std::fmt::Display for ConfigError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.verbatim {
+            return write!(formatter, "{}{}", self.message, self.related_text());
+        }
+        write!(
+            formatter,
+            "{}:{}:{}: {}: {}{}",
+            self.origin.file,
+            self.origin.line,
+            self.origin.column,
+            self.origin.key,
+            self.message,
+            self.related_text()
+        )
+    }
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ConfigDiagnostic {
+    pub message: String,
+    pub origin: Origin,
+}
+impl ConfigError {
+    pub fn new(message: impl Into<String>, origin: Origin) -> Self {
+        Self {
+            message: message.into(),
+            origin: Box::new(origin),
+            related: Box::default(),
+            verbatim: false,
+        }
+    }
+    /// A refusal displayed as frozen printed it (`message` is the whole text); `origin` still
+    /// names where the refused setting was read.
+    pub fn verbatim(message: impl Into<String>, origin: Origin) -> Self {
+        Self {
+            verbatim: true,
+            ..Self::new(message, origin)
+        }
+    }
+    pub(crate) fn collect(errors: Vec<Self>) -> Result<(), Self> {
+        let mut errors = errors.into_iter();
+        let Some(mut first) = errors.next() else {
+            return Ok(());
+        };
+        let mut related = std::mem::take(&mut first.related).into_vec();
+        for error in errors {
+            related.push(ConfigDiagnostic {
+                message: error.message,
+                origin: *error.origin,
+            });
+            related.extend(error.related);
+        }
+        if related.len() >= 63 {
+            related.truncate(63);
+            first
+                .message
+                .push_str(" (diagnostic output limited to 64 problems)");
+        }
+        first.related = related.into_boxed_slice();
+        Err(first)
+    }
+    fn related_text(&self) -> String {
+        self.related
+            .iter()
+            .map(|problem| {
+                format!(
+                    "\n{}:{}:{}: {}: {}",
+                    problem.origin.file,
+                    problem.origin.line,
+                    problem.origin.column,
+                    problem.origin.key,
+                    problem.message
+                )
+            })
+            .collect()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CheckSetting {
+    pub enabled: bool,
+    pub required: bool,
+    pub exemptions: BTreeMap<String, String>,
+    pub settings: Value,
+}
+impl CheckSetting {
+    /// An absent key inherits catalog policy; an explicit false remains false.
+    pub fn required_or(&self, catalog_default: bool) -> bool {
+        if self.settings.get("required").is_some() {
+            self.required
+        } else {
+            catalog_default
+        }
+    }
+    pub fn enabled_or(&self, catalog_default: bool) -> bool {
+        if self.settings.get("enabled").is_some() {
+            self.enabled
+        } else {
+            catalog_default
+        }
+    }
+}
+
+impl Default for CheckSetting {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            required: false,
+            exemptions: BTreeMap::new(),
+            settings: serde_json::json!({}),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ToolSetting {
+    pub id: String,
+    pub source: Option<String>,
+    pub path: Option<String>,
+    pub config: Option<String>,
+    pub settings: Value,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Build {
+    pub id: String,
+    pub system: Option<String>,
+    pub project: Option<String>,
+    pub directory: Option<String>,
+    pub variant: String,
+    pub prepare: Option<String>,
+    pub artifacts: Vec<String>,
+    pub settings: Value,
+    pub origin: Origin,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Component {
+    pub id: String,
+    /// Canonical workspace-relative path, with "." for the workspace itself.
+    pub root: String,
+    pub languages: Vec<String>,
+    /// Sorted canonical workspace-relative source paths; no symlink traversal.
+    pub files: Vec<String>,
+    /// Links the component's selection names whose file lies outside its root, in another part
+    /// of the workspace. They are not members and are never read; the selection is incomplete.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub outside_links: Vec<OutsideLink>,
+    pub source_dirs: Vec<String>,
+    pub sources: Vec<String>,
+    pub include: Vec<String>,
+    pub exclude: Vec<String>,
+    pub vendor: Vec<String>,
+    pub external: Vec<String>,
+    pub required: bool,
+    pub build: Option<String>,
+    pub needs: Vec<String>,
+    pub python_executable: Option<String>,
+    /// The configuration key that declared `python_executable` (frozen `declared.origin.key`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub python_executable_key: Option<String>,
+    pub python_type_provider: Option<String>,
+    pub test_paths: Vec<String>,
+    pub checks: BTreeMap<String, CheckSetting>,
+    pub integrations: Vec<Value>,
+    /// Validated source options retained for providers and legacy projections.
+    pub settings: Value,
+    /// A legacy `type = "python"` or `type = "cpp"` component's scope widened to both languages
+    /// (languages, files): frozen legacy engines read `project_cpp_sources()` and
+    /// `project_python_sources()` whatever the declared type, so only a legacy invocation
+    /// applies it (planning); never serialized, never seen by the next path.
+    #[serde(skip)]
+    pub legacy_widening: Option<(Vec<String>, Vec<String>)>,
+    pub declared_in: String,
+    pub origin: Origin,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Suppression {
+    pub fingerprint: String,
+    pub rule: String,
+    pub path: String,
+    pub component: String,
+    pub reason: String,
+    pub declared_in: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Publish {
+    pub repo: String,
+    pub api_url: String,
+    pub server_url: String,
+    pub branch: String,
+    pub token_env: String,
+    pub settings: Value,
+}
+
+/// A selected file symlink that resolves inside the workspace but outside its component's root.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct OutsideLink {
+    /// Workspace-relative path of the link.
+    pub link: String,
+    /// Workspace-relative path of the file it resolves to.
+    pub target: String,
+    /// The language of the target, which is what the link would have been analyzed as.
+    pub language: String,
+}
+impl OutsideLink {
+    pub fn reason(&self, component: &str) -> String {
+        format!(
+            "{} -> {} is outside the root of component `{component}` and was not analyzed",
+            self.link, self.target
+        )
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ResolvedProject {
+    pub root: PathBuf,
+    pub config_source: Option<PathBuf>,
+    pub schema_family: SchemaFamily,
+    pub profile: Profile,
+    pub scope_kind: ScopeKind,
+    pub workspace_name: String,
+    pub components: Vec<Component>,
+    pub builds: Vec<Build>,
+    pub tools: BTreeMap<String, ToolSetting>,
+    pub checks: BTreeMap<String, CheckSetting>,
+    pub suppressions: Vec<Suppression>,
+    pub publish: Option<Publish>,
+    /// Validated settings after defaults and permitted overrides; no known keys dropped.
+    pub effective: Value,
+    pub origins: BTreeMap<String, Origin>,
+    pub configuration_files: Vec<PathBuf>,
+    pub limitations: Vec<String>,
+}
+
+/// Validated policy and provenance without source discovery or execution-ready components.
+#[derive(Clone, Debug)]
+pub struct ConfigurationInspection {
+    pub root: PathBuf,
+    pub config_source: Option<PathBuf>,
+    pub schema_family: SchemaFamily,
+    pub profile: Profile,
+    pub scope_kind: ScopeKind,
+    pub workspace_name: String,
+    pub builds: Vec<Build>,
+    pub tools: BTreeMap<String, ToolSetting>,
+    pub checks: BTreeMap<String, CheckSetting>,
+    pub suppressions: Vec<Suppression>,
+    pub publish: Option<Publish>,
+    pub effective: Value,
+    pub origins: BTreeMap<String, Origin>,
+    pub configuration_files: Vec<PathBuf>,
+    pub limitations: Vec<String>,
+}
+impl ConfigurationInspection {
+    pub fn resolve_path(
+        &self,
+        key: &str,
+        value: &str,
+        environment: &BTreeMap<String, String>,
+    ) -> Result<String, ConfigError> {
+        resolve_policy_path(&self.root, &self.origins, key, value, environment)
+    }
+}
+impl ResolvedProject {
+    pub fn resolve_path(
+        &self,
+        key: &str,
+        value: &str,
+        environment: &BTreeMap<String, String>,
+    ) -> Result<String, ConfigError> {
+        resolve_policy_path(&self.root, &self.origins, key, value, environment)
+    }
+}
+fn resolve_policy_path(
+    root: &std::path::Path,
+    origins: &BTreeMap<String, Origin>,
+    key: &str,
+    value: &str,
+    environment: &BTreeMap<String, String>,
+) -> Result<String, ConfigError> {
+    let origin = origins
+        .get(key)
+        .cloned()
+        .unwrap_or_else(|| Origin::defaults(key));
+    let base = std::path::Path::new(&origin.file)
+        .parent()
+        .filter(|path| path.is_absolute())
+        .unwrap_or(root);
+    crate::paths::anchor(value, base, root, environment, &origin, false)
+}

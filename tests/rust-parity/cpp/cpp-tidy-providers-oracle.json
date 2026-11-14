@@ -1,0 +1,53 @@
+{
+ "banners": {
+  "clang-tidy": "LLVM version 21.1.6",
+  "clazy-standalone": "clazy version: 1.0"
+ },
+ "cases": {
+  "both": {
+   "exit": 3,
+   "limitations": [],
+   "ran": [
+    "clang-tidy"
+   ],
+   "state": "SUCCEEDED",
+   "tools": [
+    "clang-tidy",
+    "clazy-standalone"
+   ]
+  },
+  "clang-tidy-only": {
+   "exit": 3,
+   "limitations": [],
+   "ran": [
+    "clang-tidy"
+   ],
+   "state": "SUCCEEDED",
+   "tools": [
+    "clang-tidy"
+   ]
+  },
+  "clazy-only": {
+   "exit": 3,
+   "limitations": [
+    "clang-tidy is not available"
+   ],
+   "ran": [],
+   "state": "BLOCKED",
+   "tools": [
+    "clazy-standalone"
+   ]
+  },
+  "neither": {
+   "exit": 3,
+   "limitations": [
+    "clang-tidy is not available"
+   ],
+   "ran": [],
+   "state": "BLOCKED",
+   "tools": []
+  }
+ },
+ "config": "schema_version = 1\n[workspace]\nname = 'fixture'\n[[components]]\nid = 'app'\nroot = 'app'\nlanguages = ['cpp']\n",
+ "source": "int main() { return 0; }\n"
+}

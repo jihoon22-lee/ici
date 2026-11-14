@@ -1,0 +1,2163 @@
+//! Explicit preparation has two bounded stages: native build context, then owned artifact copies.
+use crate::{
+    commands::{CliError, Result},
+    events::EventLog,
+    planning::{self, PreparedPlan},
+    registry::Invocation,
+};
+use ici_application::{
+    plan::{PlannedCheck, Work},
+    snapshot::{InputLimits, InputSnapshot},
+};
+use ici_domain::{AnalysisOutput, TaskState};
+use ici_execution::{Cancellation, Scheduler};
+use std::collections::{BTreeMap, BTreeSet};
+
+pub struct Runtime<'a> {
+    pub invocation: &'a Invocation,
+    pub environment: &'a BTreeMap<String, String>,
+    pub run_id: &'a str,
+    pub static_only: bool,
+    pub scheduler: &'a Scheduler,
+    pub cancellation: &'a Cancellation,
+    pub events: &'a EventLog,
+}
+pub struct PreparedExecution {
+    pub prepared: PreparedPlan,
+    pub snapshot: InputSnapshot,
+    pub intake_ok: bool,
+    /// The project's inputs or a selected tool changed during preparation, or could not be
+    /// verified again after it: observed drift, distinct from an initial intake refusal (which
+    /// leaves this false). The run cannot be complete (`inputs changed while running`).
+    pub inputs_changed: bool,
+    pub outputs: BTreeMap<String, AnalysisOutput>,
+    /// Holding these guards protects every observed shadow until final input verification.
+    pub contexts: Vec<crate::export_context::PreparedContext>,
+    pub limitations: Vec<String>,
+}
+/// Marks a frozen `_count_adapter_artifacts` bound refusal inside the release binding.
+const LEGACY_DISCOVERY: &str = "legacy artifact discovery: ";
+
+/// Bind measured compiler outputs to the same release writer used by Python components.
+pub fn bind_compiled_artifacts(
+    prepared: &mut PreparedPlan,
+    contexts: &[crate::export_context::PreparedContext],
+    environment: &BTreeMap<String, String>,
+) -> Result<()> {
+    if contexts.is_empty() || prepared.plan.profile == ici_domain::Profile::Fast {
+        return Ok(());
+    }
+    for component in &prepared.project.components {
+        // The isolated link-reachability build answers the linker scope and is never an output.
+        if !contexts.iter().any(|context| {
+            context.plan.component_id == component.id
+                && context.plan.build.variant != "link-reachability"
+        }) {
+            continue;
+        }
+        let packaging = prepared
+            .plan
+            .checks
+            .iter()
+            .position(|check| {
+                check.component_id == component.id && check.check.id == "python.artifact"
+            })
+            .or_else(|| {
+                prepared.plan.checks.iter().position(|check| {
+                    check.component_id == component.id && check.check.id == "cpp.artifact"
+                })
+            });
+        let Some(index) = packaging else { continue };
+        let check = &mut prepared.plan.checks[index];
+        // Frozen adapter builds (CMake, qmake, Make) publish the release tree and loaders only;
+        // the direct g++ build publishes its binary into bin/. Next-schema projects (which the
+        // frozen pyz rejects) keep publishing their measured binaries.
+        let adapter = contexts
+            .iter()
+            .find(|context| {
+                prepared.project.schema_family == ici_config::SchemaFamily::Legacy
+                    && context.plan.component_id == component.id
+                    && matches!(
+                        context.plan.build.system.as_str(),
+                        "cmake" | "qmake" | "make"
+                    )
+            })
+            .map(|context| context.plan.clone());
+        // Frozen `_count_adapter_artifacts` raises past its discovery bounds, before the
+        // BuildAdapter success is recorded; it walks the shadow before anything else reads it, so
+        // its bound wins over the native artifact inventory's own entry bound.
+        let discovery = adapter
+            .as_ref()
+            .map(|adapter| {
+                crate::cpp::legacy_shadow_linked_outputs(&crate::files::under(
+                    &prepared.project.root,
+                    &adapter.build.shadow,
+                ))
+            })
+            .transpose()
+            .map(Option::flatten)
+            .map_err(|reason| format!("{LEGACY_DISCOVERY}{reason}"));
+        let build = discovery.and_then(|linked| {
+            crate::export_context::compiled_artifacts(&prepared.project, component, contexts)
+                .and_then(|artifacts| {
+                    if let Some(adapter) = &adapter {
+                        crate::artifact_build::describe_adapter(
+                            &prepared.project,
+                            component,
+                            &check.task_id,
+                            environment,
+                            artifacts.len(),
+                        )
+                        .map(|mut build| {
+                            build.lead_targets.push(crate::cpp::legacy_adapter_success(
+                                &prepared.project.root,
+                                &component.root,
+                                &adapter.build.system,
+                                &adapter.descriptor,
+                                linked.unwrap_or(artifacts.len()),
+                            ));
+                            build
+                        })
+                    } else {
+                        crate::artifact_build::describe_compiled(
+                            &prepared.project,
+                            component,
+                            &check.task_id,
+                            environment,
+                            &artifacts,
+                        )
+                        .map(|mut build| {
+                            build.legacy_binary_message = legacy_direct_binary_message(
+                                prepared.project.schema_family,
+                                component,
+                                contexts,
+                            );
+                            build
+                        })
+                    }
+                })
+        });
+        match build {
+            Ok(build) => {
+                check.work = Work::native_prepare_after(
+                    build.version_probe.iter().cloned().collect(),
+                    build.task.clone(),
+                );
+                prepared
+                    .artifact_builds
+                    .insert(check.task_id.clone(), build);
+            }
+            Err(reason)
+                if prepared.legacy_projection
+                    && check.check.id == "cpp.artifact"
+                    && reason.starts_with(LEGACY_DISCOVERY) =>
+            {
+                let message = format!(
+                    "Build metadata or setup error: {}",
+                    &reason[LEGACY_DISCOVERY.len()..]
+                );
+                // Frozen prepared `<version>/x86_64/{bin,lib}` before it built and counted.
+                if let Ok(build) = crate::artifact_build::describe_adapter(
+                    &prepared.project,
+                    component,
+                    &check.task_id,
+                    environment,
+                    0,
+                ) && build.version_probe.is_none()
+                {
+                    let _ = crate::artifact_build::release_directories(&build);
+                }
+                prepared.cpp.fail_preparation(
+                    &check.task_id,
+                    crate::cpp::build_failure(
+                        &check.task_id,
+                        ".",
+                        "ici.toml",
+                        true,
+                        &message,
+                        &message,
+                    ),
+                );
+                check.check.needs.clear();
+                check.work = Work::Internal;
+                prepared.artifact_builds.remove(&check.task_id);
+            }
+            Err(reason)
+                if prepared.legacy_projection
+                    && check.check.id == "cpp.artifact"
+                    && reason.starts_with("declared artifact") =>
+            {
+                // Frozen `_publish_declared_artifacts`: a broken [build.artifacts] declaration is
+                // a BuildError (ERROR, exit 1), never an incomplete or passing build.
+                let message = format!("Declared artifacts could not be recorded: {reason}");
+                prepared.cpp.fail_preparation(
+                    &check.task_id,
+                    crate::cpp::build_failure(
+                        &check.task_id,
+                        ".",
+                        "ici.toml",
+                        true,
+                        &message,
+                        &message,
+                    ),
+                );
+                check.check.needs.clear();
+                check.work = Work::Internal;
+                prepared.artifact_builds.remove(&check.task_id);
+            }
+            Err(reason) => {
+                check.work = Work::Blocked {
+                    reason: format!("compiled artifact preparation: {reason}"),
+                };
+                prepared.artifact_builds.remove(&check.task_id);
+            }
+        }
+    }
+    prepared.graph = ici_application::graph::TaskGraph::build(&prepared.plan.checks)
+        .map_err(|error| CliError(error.to_string()))?;
+    Ok(())
+}
+/// Frozen BuildEngine direct g++ success: "Compiled C++17 binary (<seconds>s)", here the summed
+/// wall time of the observed compile and link tasks.
+fn legacy_direct_binary_message(
+    family: ici_config::SchemaFamily,
+    component: &ici_config::Component,
+    contexts: &[crate::export_context::PreparedContext],
+) -> Option<String> {
+    if family != ici_config::SchemaFamily::Legacy {
+        return None;
+    }
+    let context = contexts.iter().find(|context| {
+        context.plan.component_id == component.id && context.plan.build.system == "direct-gcc"
+    })?;
+    let seconds: f64 = context
+        .evidence
+        .as_ref()
+        .and_then(|evidence| evidence.get("outcomes"))
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|outcome| {
+            outcome
+                .get("duration_seconds")
+                .and_then(serde_json::Value::as_f64)
+        })
+        .sum();
+    Some(format!("Compiled C++17 binary ({seconds:.2}s)"))
+}
+/// Frozen `prepare_qmake_compilation_context` / `prepare_cmake_compilation_context` (core/
+/// qmake_context.py, core/cmake_context.py): a legacy `verify` whose canonical release analysis
+/// database could not be prepared keeps running without a database and records why. `None`
+/// when frozen would have produced a database (a failed build after a configured CMake cache,
+/// or a captured database whose contents are incomplete): those stay native failures.
+pub(crate) fn legacy_context_fallback(
+    plan: &crate::export_context::ContextPreparationPlan,
+    failure: &crate::export_context::PreparationFailure,
+) -> Option<ici_cpp::ContextDiagnostic> {
+    // The project's own database is the analysis context: a failed BuildEngine release build
+    // is no preparation diagnostic of it.
+    if plan.direct.is_some() || plan.build.variant != "release" || plan.existing_database {
+        return None;
+    }
+    legacy_release_fallback(&plan.build.system, failure)
+}
+
+/// The native preparation could not start its processes at all (the scheduler refused the
+/// preparation task set): frozen's `configure` raising before any session result.
+pub(crate) const PREPARATION_NOT_STARTED: &str = "native preparation could not start";
+
+/// [`legacy_context_fallback`]'s diagnostic for a release analysis database of `system`.
+fn legacy_release_fallback(
+    system: &str,
+    failure: &crate::export_context::PreparationFailure,
+) -> Option<ici_cpp::ContextDiagnostic> {
+    use crate::export_context::PreparationFailure;
+    let diagnostic = |code: &str, message: &str, level: &str| ici_cpp::ContextDiagnostic {
+        code: code.into(),
+        message: message.into(),
+        level: level.into(),
+        entry_index: None,
+        source: String::new(),
+    };
+    let unavailable = || {
+        diagnostic(
+            "qmake-capture-unavailable",
+            "Exact qmake compiler capture could not be produced safely; analysis remains lower confidence.",
+            "warning",
+        )
+    };
+    let loaded = matches!(failure, PreparationFailure::Incomplete(reason)
+        if reason.starts_with("prepared compilation evidence is incomplete"));
+    match (system, failure) {
+        (_, _) if loaded => None,
+        ("qmake", PreparationFailure::Observed { phase, .. }) => Some(match phase.as_str() {
+            // The canonical probe configure (frozen `probe.configured` false).
+            "qmake probe" => diagnostic(
+                "qmake-configure-failed",
+                "Canonical qmake configure did not complete.",
+                "error",
+            ),
+            // The recorder-wrapped configure: the helper's own refusal (frozen
+            // `_qmake_compilers` cannot resolve one compiler program) is an unavailable capture.
+            "qmake configure" if failure.to_string().contains("ici qmake configure capture:") => {
+                unavailable()
+            }
+            "qmake configure" => diagnostic(
+                "qmake-capture-configure-failed",
+                "Canonical qmake capture configure did not complete.",
+                "error",
+            ),
+            "qmake compile" => diagnostic(
+                "qmake-capture-build-failed",
+                "The canonical qmake capture build did not complete.",
+                "error",
+            ),
+            _ => unavailable(),
+        }),
+        // Frozen catches every capture/journal error as an unavailable capture.
+        ("qmake", PreparationFailure::Incomplete(_)) => Some(unavailable()),
+        ("cmake", PreparationFailure::Observed { phase, .. }) if phase == "cmake configure" => {
+            Some(diagnostic(
+                "cmake-configure-failed",
+                "Canonical CMake configure did not complete.",
+                "error",
+            ))
+        }
+        // Frozen cmake_context.py:197-202: `configure` raising OSError/RuntimeError/ValueError.
+        ("cmake", PreparationFailure::Incomplete(reason))
+            if reason.starts_with(PREPARATION_NOT_STARTED) =>
+        {
+            Some(diagnostic(
+                "cmake-configure-error",
+                "Canonical CMake configure could not start.",
+                "error",
+            ))
+        }
+        ("cmake", PreparationFailure::Incomplete(_)) => Some(diagnostic(
+            "cmake-configure-failed",
+            "Canonical CMake configure did not complete.",
+            "error",
+        )),
+        _ => None,
+    }
+}
+
+/// The release plan of a legacy adapter build that never bound a context; frozen
+/// `project_version` runs the same `git describe --tags --always` with the v1.0.0 default.
+fn legacy_adapter_release(
+    prepared: &PreparedPlan,
+    component_id: &str,
+    task_id: &str,
+    runtime: &Runtime<'_>,
+) -> Option<crate::artifact_build::ArtifactBuildPlan> {
+    prepared
+        .project
+        .components
+        .iter()
+        .find(|component| component.id == component_id)
+        .and_then(|component| {
+            crate::artifact_build::describe_adapter(
+                &prepared.project,
+                component,
+                task_id,
+                runtime.environment,
+                0,
+            )
+            .ok()
+        })
+        .and_then(|build| match build.version_probe.clone() {
+            None => Some(build),
+            Some(probe) => {
+                let schedule = runtime
+                    .scheduler
+                    .run_with_start(std::slice::from_ref(&probe), runtime.cancellation, |_| {})
+                    .ok()?;
+                let outcome = schedule
+                    .outcomes
+                    .iter()
+                    .find(|outcome| outcome.task_id == probe.id)?;
+                crate::artifact_build::apply_version_probe(&build, outcome).ok()
+            }
+        })
+}
+
+const OUTPUT_REFUSAL: &str = "Could not prepare C++ output: ";
+
+/// Frozen `_ensure_output_file_available` for the binary `_compile_cpp` would write, before it
+/// runs g++: the refusal it records as "Could not prepare C++ output: ...".
+fn output_binary_refusal(
+    prepared: &PreparedPlan,
+    plan: &crate::export_context::ContextPreparationPlan,
+    runtime: &Runtime<'_>,
+) -> Option<String> {
+    if !(prepared.legacy_projection
+        && plan.build.variant == "release"
+        && plan.build.system == "direct-gcc")
+    {
+        return None;
+    }
+    let check = prepared.plan.checks.iter().find(|check| {
+        check.component_id == plan.component_id && check.check.id == "cpp.artifact"
+    })?;
+    let build = legacy_adapter_release(prepared, &plan.component_id, &check.task_id, runtime)?;
+    let path = build
+        .root
+        .join(&build.output_root)
+        .join("bin")
+        .join(&build.metadata.name);
+    let metadata = std::fs::symlink_metadata(&path).ok()?;
+    let reason = if metadata.file_type().is_symlink() {
+        "output path contains symlink"
+    } else if !metadata.is_file() {
+        "output path is not a regular file"
+    } else {
+        return None;
+    };
+    Some(format!("{OUTPUT_REFUSAL}{reason}: {}", path.display()))
+}
+
+/// A legacy release that compiles with g++ directly and may not keep its binary: its one located
+/// result, as frozen `_compile_cpp` (build.py:486-620) reports it. Native builds object by object;
+/// frozen's one process is classified here from the first failed step.
+fn legacy_direct_build_failure(
+    failure: &crate::export_context::PreparationFailure,
+    task_id: &str,
+    prepared: &PreparedPlan,
+    plan: &crate::export_context::ContextPreparationPlan,
+    runtime: &Runtime<'_>,
+) -> Option<AnalysisOutput> {
+    use crate::export_context::{
+        LEGACY_DIRECT_FAILURE, NO_DECLARED_EXECUTABLE, NO_DECLARED_OBJECT, PreparationFailure,
+        UNVERIFIED_RELEASE_BINARY,
+    };
+    if !(prepared.legacy_projection
+        && plan.build.variant == "release"
+        && plan.build.system == "direct-gcc")
+    {
+        return None;
+    }
+    let build = legacy_adapter_release(prepared, &plan.component_id, task_id, runtime)?;
+    // Frozen `_prepare_output_tree` ran before `_compile_cpp`.
+    let _ = crate::artifact_build::release_directories(&build);
+    let located = |mut output: AnalysisOutput| {
+        output.extra["project_name"] = serde_json::json!(build.metadata.name);
+        output.extra["project_version"] = serde_json::json!(build.metadata.version);
+        output.extra["target_path"] = serde_json::json!(build.root.join(&build.output_root));
+        output.extra["metrics_summary"] =
+            serde_json::json!(format!("Built into {}", build.output_root));
+        output
+    };
+    if let PreparationFailure::Incomplete(reason) = failure
+        && reason.starts_with(OUTPUT_REFUSAL)
+    {
+        let mut output = crate::cpp::build_failure(task_id, ".", "ici.toml", true, reason, reason);
+        output.extra["legacy_targets_only"] = serde_json::json!(true);
+        return Some(located(output));
+    }
+    let record = match failure {
+        PreparationFailure::Observed { output, .. } => {
+            output.extra.get(LEGACY_DIRECT_FAILURE)?.clone()
+        }
+        PreparationFailure::Incomplete(reason)
+            if [NO_DECLARED_OBJECT, NO_DECLARED_EXECUTABLE].contains(&reason.as_str()) =>
+        {
+            serde_json::json!({"exit_code": 0, "timed_out": false, "truncated": false})
+        }
+        PreparationFailure::Incomplete(reason) if reason.starts_with(UNVERIFIED_RELEASE_BINARY) => {
+            serde_json::json!({
+                "exit_code": 0, "timed_out": false, "truncated": false, "refusal": reason,
+            })
+        }
+        PreparationFailure::Incomplete(_) => return None,
+    };
+    let flag = |key: &str| record[key].as_bool() == Some(true);
+    // Frozen `run_process`: 124 after its timeout, -signal, and -1 for what could not start.
+    let returncode = if flag("timed_out") {
+        124
+    } else {
+        record["exit_code"]
+            .as_i64()
+            .or_else(|| record["signal"].as_i64().map(|signal| -signal))
+            .unwrap_or(-1)
+    };
+    let (message, measured) = if let Some(refusal) = record["refusal"].as_str() {
+        (refusal.to_owned(), false)
+    } else if flag("timed_out") || flag("truncated") {
+        ("C++ compilation output was incomplete".to_owned(), false)
+    } else if returncode < 0 {
+        (
+            "C++ compiler terminated before producing a result".to_owned(),
+            false,
+        )
+    } else if returncode == 1 {
+        let stderr = record["stderr"].as_str().unwrap_or_default();
+        (format!("C++ compilation failed: {stderr}"), true)
+    } else if returncode != 0 {
+        (format!("g++ failed with exit code {returncode}"), false)
+    } else {
+        (
+            "g++ reported success but no regular binary was produced".to_owned(),
+            false,
+        )
+    };
+    let binary = format!("{}/bin/{}", build.output_root, build.metadata.name);
+    let mut output =
+        crate::cpp::build_failure(task_id, &binary, &binary, !measured, &message, &message);
+    if measured {
+        output.targets[0].target_name = "CppBinary".into();
+        if let Some(finding) = output.observation.findings.last_mut() {
+            finding.native_rule_id = "CppBinary".into();
+        }
+        // The frozen target is the legacy view; the native result keeps the compiler's own
+        // findings at the source lines that failed (AGENTS §5.1).
+        if let Some(observed) = failure.observed_for(task_id) {
+            let located: Vec<_> = observed
+                .observation
+                .findings
+                .into_iter()
+                .filter(|finding| finding.rule_id == "compiler.diagnostic")
+                .collect();
+            if !located.is_empty() {
+                output.observation.findings = located;
+            }
+        }
+        // Frozen `evaluate_status(True, False, mode)`.
+        let mode = prepared
+            .project
+            .components
+            .iter()
+            .find(|component| component.id == plan.component_id)
+            .and_then(|component| component.settings.pointer("/engines/build/mode"))
+            .and_then(serde_json::Value::as_str);
+        if mode == Some("pass_warn") {
+            output.status = "WARN".into();
+        }
+    }
+    // The legacy engine is frozen's targets alone; the native result keeps every finding.
+    output.extra["legacy_targets_only"] = serde_json::json!(true);
+    output.extra["tool_evidence"] = serde_json::json!([{
+        "name": "g++ build",
+        "path": record["path"],
+        "argv": [],
+        "returncode": returncode,
+        "timed_out": flag("timed_out"),
+        "truncated": flag("truncated"),
+        "error": message,
+    }]);
+    Some(located(output))
+}
+
+/// Frozen `BuildEngine.run` (build.py:61-87) under legacy `ici build`: `_prepare_output_tree`
+/// runs before packaging and before any compile, so a symlinked or non-directory release path is
+/// one BuildError 'Build metadata or setup error: <reason>' at "." with the project metadata
+/// extras, and nothing is configured, compiled or packaged. Returns `(component, task, output)`
+/// for every refused artifact check; a check already decided while planning keeps its result.
+fn legacy_refused_output_trees(
+    prepared: &PreparedPlan,
+    runtime: &Runtime<'_>,
+) -> Vec<(String, String, AnalysisOutput)> {
+    // Frozen `BuildEngine.run` raises from `_prepare_output_tree` before it selects a backend,
+    // under `ici build` and under `ici verify --profile deep` alike, so the tree refusal also
+    // replaces a refusal native decides while planning (root ruling 2026-11-13: the failure class
+    // of an unadapted build differs, so frozen's tree error wins).
+    if prepared.project.schema_family != ici_config::SchemaFamily::Legacy {
+        return vec![];
+    }
+    let mut refused = vec![];
+    for check in prepared
+        .plan
+        .checks
+        .iter()
+        .filter(|check| matches!(check.check.id.as_str(), "cpp.artifact" | "python.artifact"))
+    {
+        // A statically versioned release names its tree without the Git probe.
+        let build = prepared
+            .project
+            .components
+            .iter()
+            .find(|component| component.id == check.component_id)
+            .and_then(|component| {
+                crate::artifact_build::describe_adapter(
+                    &prepared.project,
+                    component,
+                    &check.task_id,
+                    runtime.environment,
+                    0,
+                )
+                .ok()
+            })
+            .and_then(|build| {
+                if build.version_probe.is_none() {
+                    Some(build)
+                } else {
+                    legacy_adapter_release(prepared, &check.component_id, &check.task_id, runtime)
+                }
+            });
+        let Some(build) = build else {
+            continue;
+        };
+        let Err(reason) = crate::artifact_build::legacy_output_tree(&build) else {
+            continue;
+        };
+        let message = format!("Build metadata or setup error: {reason}");
+        let mut output =
+            crate::cpp::build_failure(&check.task_id, ".", "ici.toml", true, &message, &message);
+        output.extra["legacy_targets_only"] = serde_json::json!(true);
+        output.extra["project_name"] = serde_json::json!(build.metadata.name);
+        output.extra["project_version"] = serde_json::json!(build.metadata.version);
+        output.extra["target_path"] = serde_json::json!(build.root.join(&build.output_root));
+        output.extra["metrics_summary"] =
+            serde_json::json!(format!("Built into {}", build.output_root));
+        refused.push((check.component_id.clone(), check.task_id.clone(), output));
+    }
+    refused
+}
+
+/// Frozen `BuildEngine.run` prepares `<version>/x86_64/{bin,lib}` before `_compile_cpp`, so a C++
+/// release build refused before it starts still leaves that empty publish tree, and its result
+/// still carries the project metadata extras (build.py:61-87: `project_name`, `project_version`,
+/// `target_path`, "Built into <version>/x86_64") a planning refusal could not know yet.
+fn legacy_prepare_refused_release_trees(
+    prepared: &mut PreparedPlan,
+    runtime: &Runtime<'_>,
+    refused_tasks: &BTreeSet<String>,
+) {
+    let mut builds = vec![];
+    for check in prepared.plan.checks.iter().filter(|check| {
+        check.check.id == "cpp.artifact"
+            && prepared.cpp.preparation_failed(&check.task_id)
+            && !refused_tasks.contains(&check.task_id)
+    }) {
+        if let Some(build) =
+            legacy_adapter_release(prepared, &check.component_id, &check.task_id, runtime)
+        {
+            let _ = crate::artifact_build::release_directories(&build);
+            builds.push((check.task_id.clone(), build));
+        }
+    }
+    for (task_id, build) in builds {
+        if let Some(output) = prepared.cpp.planned_mut(&task_id)
+            && output.extra.get("project_name").is_none()
+        {
+            output.extra["project_name"] = serde_json::json!(build.metadata.name);
+            output.extra["project_version"] = serde_json::json!(build.metadata.version);
+            output.extra["target_path"] = serde_json::json!(build.root.join(&build.output_root));
+            output.extra["metrics_summary"] =
+                serde_json::json!(format!("Built into {}", build.output_root));
+        }
+    }
+}
+
+/// Frozen `BuildEngine.run` (build.py:47-150) when a legacy adapter release session fails
+/// before it builds: the result keeps the session's backend selection and process records as
+/// tool evidence and the project metadata extras (`project_name`, `project_version`,
+/// `target_path`, "Built into <version>/x86_64"), and its one finding is the adapter target's
+/// (the native finding text is trimmed; the frozen target keeps stderr's trailing whitespace).
+fn legacy_adapter_build_failure(
+    observed: &mut AnalysisOutput,
+    prepared: &PreparedPlan,
+    plan: &crate::export_context::ContextPreparationPlan,
+    task_id: &str,
+    runtime: &Runtime<'_>,
+) {
+    if let Some(processes) = observed
+        .extra
+        .get("process_evidence")
+        .and_then(serde_json::Value::as_array)
+        .cloned()
+        && let Some(component) = prepared
+            .project
+            .components
+            .iter()
+            .find(|component| component.id == plan.component_id)
+    {
+        observed.extra["tool_evidence"] = crate::cpp::legacy_build_session_evidence(
+            &prepared.project.root,
+            &component.root,
+            &plan.build.system,
+            &plan.descriptor,
+            &processes,
+        );
+    }
+    // The session records are the tool evidence now. The release plan was never bound (no
+    // context), so its metadata is described here; frozen `project_version` runs the same
+    // `git describe --tags --always` with the v1.0.0 default.
+    if let Some(extra) = observed.extra.as_object_mut() {
+        extra.remove("process_evidence");
+    }
+    let build = legacy_adapter_release(prepared, &plan.component_id, task_id, runtime);
+    if let Some(build) = &build {
+        // Frozen `_prepare_output_tree` ran before the adapter failed.
+        let _ = crate::artifact_build::release_directories(build);
+    }
+    if let Some(build) = build {
+        observed.extra["project_name"] = serde_json::json!(build.metadata.name);
+        observed.extra["project_version"] = serde_json::json!(build.metadata.version);
+        observed.extra["target_path"] = serde_json::json!(build.root.join(&build.output_root));
+        observed.extra["metrics_summary"] =
+            serde_json::json!(format!("Built into {}", build.output_root));
+    }
+    // Frozen `BuildEngine.run` publishes `[build.artifacts]` after the adapter failed
+    // (build.py:109, `_publish_declared_artifacts`): the `config.artifacts` manifest and its
+    // DeclaredArtifacts PASS, or the 'Declared artifacts could not be recorded' BuildError
+    // joined into the summary (binary-compat-declared-artifacts-oracle.json `declared-*`,
+    // `glob-*`). Under `verify` only, whose sessions carry the shared analysis context; a
+    // component that also packages Python publishes it from that `python.artifact` build.
+    if prepared.legacy_projection
+        && !prepared.cpp.legacy_standalone
+        && !prepared.plan.checks.iter().any(|check| {
+            check.component_id == plan.component_id && check.check.id == "python.artifact"
+        })
+        && let Some(component) = prepared
+            .project
+            .components
+            .iter()
+            .find(|component| component.id == plan.component_id)
+    {
+        match crate::artifact_build::legacy_declared_manifest(&prepared.project, component) {
+            Ok(Some((count, manifest))) => {
+                match observed.extra.get_mut("legacy_artifact_manifests") {
+                    Some(serde_json::Value::Array(manifests)) => manifests.push(manifest),
+                    _ => {
+                        observed.extra["legacy_artifact_manifests"] = serde_json::json!([manifest])
+                    }
+                }
+                let mut target = ici_domain::InspectionTarget::at(".", 1);
+                target.target_name = "DeclaredArtifacts".into();
+                target.message = format!("Recorded {count} declared artifact(s)");
+                observed.targets.push(target);
+            }
+            Ok(None) => {}
+            Err(reason) => {
+                let message = format!("Declared artifacts could not be recorded: {reason}");
+                let failure =
+                    crate::cpp::build_failure(task_id, ".", "ici.toml", true, &message, &message);
+                observed.targets.extend(failure.targets);
+                observed
+                    .observation
+                    .findings
+                    .extend(failure.observation.findings);
+                observed
+                    .observation
+                    .limitations
+                    .extend(failure.observation.limitations);
+                observed.summary = if observed.summary.is_empty() {
+                    message
+                } else {
+                    format!("{}; {message}", observed.summary)
+                };
+            }
+        }
+    }
+    let details: serde_json::Map<String, serde_json::Value> = observed
+        .observation
+        .findings
+        .iter()
+        .filter_map(|finding| {
+            let target = observed.targets.iter().find(|target| {
+                target.target_name == finding.native_rule_id
+                    && target.message.trim() == finding.message
+            })?;
+            Some((
+                finding.fingerprint.clone(),
+                serde_json::json!({"legacy_path": target.file_path, "legacy_message": target.message}),
+            ))
+        })
+        .collect();
+    if !details.is_empty() {
+        observed.extra["finding_details"] = serde_json::Value::Object(details);
+    }
+}
+
+/// Frozen `BinaryCompatibilityEngine.run` (binary_compat.py:32-165) after the legacy release
+/// build failed. Frozen publishes manifests only from the build, test and sanitizer sessions
+/// and `[build.artifacts]` (`config.artifacts`); `_package_python` publishes none. Once every
+/// preparation of the run has failed or built nothing (`contexts`: the preparations that
+/// succeeded), the analysis context holds only the declared manifest, so: no selection is the
+/// not-applicable SKIP (declared kinds are never `_BINARY_KINDS`), or when required the "no
+/// published executable or shared-library artifacts" ERROR; a selection the declared manifest
+/// does not hold is the sorted `configured artifact was not published: …` ERROR; a selection of
+/// declared records is inspected (non-ELF FAIL, or the NonElf SKIP under `allow_non_elf`)
+/// (binary-compat-declared-artifacts-oracle.json, root ruling 2026-11-14 (g3)). `None` when a
+/// prepared session built executables or artifacts, or a selected declared record is an ELF
+/// object or unreadable (frozen runs readelf on it; not captured).
+/// What the legacy binary_compat check becomes beside a release preparation that published
+/// nothing.
+enum LegacyCompatBeside {
+    /// Frozen's verdict, decided here.
+    Decided(Box<AnalysisOutput>),
+    /// A selected declared record is an ELF object: the check's own planned readelf/ABI steps
+    /// (the built-artifact path) inspect the declared records, so it is not blocked.
+    Inspect,
+}
+fn legacy_binary_compat_without_manifests(
+    prepared: &PreparedPlan,
+    plan: &crate::export_context::ContextPreparationPlan,
+    contexts: &[crate::export_context::PreparedContext],
+    environment: &BTreeMap<String, String>,
+) -> Option<LegacyCompatBeside> {
+    if contexts.iter().any(|context| {
+        !context.artifacts.is_empty()
+            || context.test_executable.is_some()
+            || !context.test_executables.is_empty()
+    }) {
+        return None;
+    }
+    let check = prepared.plan.checks.iter().find(|check| {
+        check.component_id == plan.component_id && check.check.id == "cpp.binary-compat"
+    })?;
+    let component = prepared
+        .project
+        .components
+        .iter()
+        .find(|component| component.id == plan.component_id)?;
+    let settings = component.settings.pointer("/engines/binary_compat");
+    let selected: BTreeSet<&str> = settings
+        .and_then(|settings| settings.get("artifacts"))
+        .and_then(serde_json::Value::as_array)
+        .map(|artifacts| {
+            artifacts
+                .iter()
+                .filter_map(serde_json::Value::as_str)
+                .collect()
+        })
+        .unwrap_or_default();
+    if selected.is_empty() {
+        let required = settings
+            .and_then(|settings| settings.get("required"))
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false);
+        return Some(LegacyCompatBeside::Decided(Box::new(
+            crate::cpp::legacy_binary_compat_unavailable(
+                &check.task_id,
+                required.then_some("no published executable or shared-library artifacts"),
+            ),
+        )));
+    }
+    // Frozen `_declared_artifact_paths` (globs included; a pattern that matched nothing
+    // publishes no manifest), recorded as `release:project:<path>` in path order.
+    // Frozen `ArtifactManifest.create` reads every declared file (`_file_digest`); a file it
+    // cannot read fails the publication, so no `config.artifacts` manifest holds anything.
+    let published: BTreeSet<String> =
+        match crate::artifact_build::legacy_declared_manifest(&prepared.project, component) {
+            Ok(Some((_, manifest))) => manifest["artifacts"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|record| record["path"].as_str().map(str::to_owned))
+                .collect(),
+            _ => BTreeSet::new(),
+        };
+    let records: Vec<&String> = published
+        .iter()
+        .filter(|path| {
+            selected.contains(path.as_str())
+                || selected.contains(format!("release:project:{path}").as_str())
+        })
+        .collect();
+    let mut missing: Vec<&str> = selected
+        .iter()
+        .copied()
+        .filter(|item| {
+            !records
+                .iter()
+                .any(|path| *item == path.as_str() || *item == format!("release:project:{path}"))
+        })
+        .collect();
+    missing.sort_unstable();
+    let maximum = settings
+        .and_then(|settings| settings.get("max_artifacts"))
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(64);
+    let error = if !missing.is_empty() {
+        Some(format!(
+            "configured artifact was not published: {}",
+            missing.join(", ")
+        ))
+    } else if records.len() as u64 > maximum {
+        Some(format!(
+            "binary artifact count exceeds configured maximum {maximum}"
+        ))
+    } else if !legacy_on_path(environment, "readelf") {
+        Some("readelf capability is unavailable".to_owned())
+    } else {
+        None
+    };
+    if let Some(error) = error {
+        return Some(LegacyCompatBeside::Decided(Box::new(
+            crate::cpp::legacy_binary_compat_unavailable(&check.task_id, Some(&error)),
+        )));
+    }
+    // Frozen reads each record's first four bytes; an ELF object goes to readelf
+    // (binary_compat.py:166-198), which the check's planned readelf/ABI steps run over the same
+    // declared records (root ruling 2026-11-14 (g3), `declared-elf-truncated`).
+    for path in &records {
+        let mut magic = Vec::with_capacity(4);
+        if let Err(error) = std::fs::File::open(prepared.project.root.join(path)).and_then(|file| {
+            std::io::Read::read_to_end(&mut std::io::Read::take(file, 4), &mut magic)
+        }) {
+            // Frozen binary_compat.py:131-135.
+            return Some(LegacyCompatBeside::Decided(Box::new(
+                crate::cpp::legacy_binary_compat_unavailable(
+                    &check.task_id,
+                    Some(&format!("artifact could not be read: {path}: {error}")),
+                ),
+            )));
+        }
+        if magic.starts_with(b"\x7fELF") {
+            return Some(LegacyCompatBeside::Inspect);
+        }
+    }
+    let allow_non_elf = settings
+        .and_then(|settings| settings.get("allow_non_elf"))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+    let paths: Vec<String> = records.into_iter().cloned().collect();
+    Some(LegacyCompatBeside::Decided(Box::new(
+        crate::cpp::legacy_binary_compat_declared_non_elf(
+            &check.task_id,
+            &component.id,
+            &paths,
+            allow_non_elf,
+        ),
+    )))
+}
+/// Frozen `shutil.which(name)` over the run's PATH: an executable regular file.
+fn legacy_on_path(environment: &BTreeMap<String, String>, name: &str) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    environment.get("PATH").is_some_and(|path| {
+        std::env::split_paths(path).any(|directory| {
+            std::fs::metadata(directory.join(name)).is_ok_and(|metadata| {
+                metadata.is_file() && metadata.permissions().mode() & 0o111 != 0
+            })
+        })
+    })
+}
+fn rebind(
+    runtime: &Runtime<'_>,
+    project: ici_config::ResolvedProject,
+    original: &InputSnapshot,
+    original_limits: &BTreeMap<String, usize>,
+    contexts: &[crate::export_context::PreparedContext],
+) -> Result<(PreparedPlan, InputSnapshot, bool)> {
+    let overlay = crate::export_context::overlay(&project, contexts);
+    let mut prepared = planning::prepare_resolved(
+        runtime.invocation,
+        overlay,
+        runtime.environment,
+        runtime.static_only,
+        runtime.run_id,
+    )?;
+    prepared.cpp.attach_prepared(contexts);
+    bind_compiled_artifacts(&mut prepared, contexts, runtime.environment)?;
+    let mut roots: Vec<_> = contexts
+        .iter()
+        .flat_map(|context| context.plan.build.generated_roots.iter().cloned())
+        .collect();
+    // Packages ici published during preparation (verified ownership manifest) are
+    // preparation outputs that later checks consume, not user edits made mid-run.
+    // Unverifiable ownership adds nothing, so such files still count as drift.
+    if let Ok(owned) = crate::artifact_build::owned_outputs(&prepared.project.root) {
+        roots.extend(owned);
+    }
+    let after = crate::inputs::capture_preserving(&prepared, original, original_limits, &roots)?;
+    let mut limits = crate::inputs::binary_limits(&prepared);
+    limits.extend(original_limits.clone());
+    let (snapshot, drift) = original
+        .after_preparation_with_path_limits(&after, &roots, InputLimits::default(), &limits)
+        .map_err(|error| CliError(error.to_string()))?;
+    Ok((prepared, snapshot, drift.stable()))
+}
+/// The frozen tool evidence of a link-reachability shadow that stopped: whether the configure was
+/// the step that failed, and the CMake processes that ran.
+pub(crate) fn legacy_shadow_failure_records(
+    plan: &crate::export_context::ContextPreparationPlan,
+    failure: &crate::export_context::PreparationFailure,
+    task_id: &str,
+    environment: &BTreeMap<String, String>,
+) -> Option<(bool, Vec<serde_json::Value>)> {
+    let observed = failure.observed_for(task_id)?;
+    let reason = failure.to_string();
+    let configure = reason.starts_with("cmake configure");
+    let steps = if configure { 1 } else { 2 };
+    let version = plan
+        .build
+        .tasks
+        .first()
+        .and_then(|task| task.argv.first())
+        .and_then(|cmake| {
+            crate::cpp::legacy_tooling::legacy_version_banner(
+                std::path::Path::new(cmake),
+                &plan.root,
+                environment,
+                "cmake",
+            )
+        })
+        .unwrap_or_default();
+    let records: Vec<serde_json::Value> = plan
+        .build
+        .tasks
+        .iter()
+        .take(steps)
+        .enumerate()
+        .map(|(index, task)| {
+            let failed = index + 1 == steps;
+            let code = if failed {
+                observed.observation.exit_code
+            } else {
+                Some(0)
+            };
+            serde_json::json!({"name": if index == 0 {
+                    "cmake linker-reachability configure"
+                } else {
+                    "cmake linker-reachability build"
+                },
+                "path":task.argv.first(),"version":version,"argv":task.argv,
+                "returncode":code,
+                "timed_out":failed && observed.observation.timed_out,
+                "truncated":failed && observed.observation.truncated,
+                "error":""})
+        })
+        .collect();
+    Some((configure, records))
+}
+/// The legacy dead engine with an enabled compiler scope builds its shadow after that scope, as
+/// frozen does under `ici dead` and `ici verify`, and not at all after its analysis error. Only
+/// that check consumes the link-reachability build.
+fn legacy_lazy_shadow(
+    prepared: &PreparedPlan,
+    plan: &crate::export_context::ContextPreparationPlan,
+) -> bool {
+    prepared.legacy_projection
+        && plan.build.variant == "link-reachability"
+        && plan.build.system == "cmake"
+        && prepared
+            .project
+            .components
+            .iter()
+            .find(|component| component.id == plan.component_id)
+            .is_some_and(|component| {
+                component
+                    .settings
+                    .pointer("/engines/dead/cpp_unused")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("auto")
+                    != "off"
+            })
+}
+pub fn execute(
+    mut prepared: PreparedPlan,
+    mut snapshot: InputSnapshot,
+    mut intake_ok: bool,
+    runtime: &Runtime<'_>,
+) -> PreparedExecution {
+    let mut initial_project = prepared.project.clone();
+    let initial_pins = prepared.tool_pins();
+    let initial_tools = prepared.tools.clone();
+    let original = snapshot.clone();
+    let original_limits = crate::inputs::binary_limits(&prepared);
+    let mut inputs_changed = false;
+    let mut contexts: Vec<crate::export_context::PreparedContext> = vec![];
+    let mut limitations = vec![];
+    let mut failures = vec![];
+    let mut outputs = BTreeMap::new();
+    let mut observed_failures = BTreeSet::new();
+    // Legacy binary_compat checks whose planned readelf/ABI steps inspect declared records
+    // beside a release preparation that published nothing (never blocked by that failure).
+    let mut legacy_declared_inspection: BTreeSet<String> = BTreeSet::new();
+    // `cpp.artifact` checks whose configured legacy release build failed: their BuildEngine
+    // result is that failure, so their own artifact preparation never runs.
+    let mut adapter_failures = BTreeSet::new();
+    // Legacy dead checks whose GNU ELF link-reachability preparation failed: they run and
+    // report the frozen linker-scope error instead of being blocked.
+    let mut legacy_linker_failures: Vec<(String, bool, Vec<serde_json::Value>)> = vec![];
+    // Legacy adapter release preparations that failed before building: their binary_compat
+    // check is decided once every other preparation has run.
+    let mut compat_without_release: Vec<crate::export_context::ContextPreparationPlan> = vec![];
+    // Legacy release analysis databases that could not be prepared: the source checks run
+    // without a database and report the frozen preparation diagnostic.
+    // Legacy direct coverage checks rebound to gcov over the notes a stopped compile left.
+    let mut legacy_notes_only = BTreeSet::new();
+    let mut legacy_fallbacks: Vec<(String, ici_cpp::ContextDiagnostic)> =
+        if prepared.legacy_projection && !prepared.cpp.legacy_standalone {
+            prepared.cpp.legacy_planned_fallbacks.clone()
+        } else {
+            vec![]
+        };
+    // Incomplete input is never a basis for preparing or building anything.
+    let prepare = intake_ok && snapshot.uncaptured.is_empty();
+    // Components whose frozen `_prepare_output_tree` raised: their release is never built.
+    let mut refused_trees = BTreeSet::new();
+    if prepare && prepared.legacy_projection && !runtime.cancellation.is_cancelled() {
+        let mut refused_tasks = BTreeSet::new();
+        for (component, task_id, output) in legacy_refused_output_trees(&prepared, runtime) {
+            outputs.insert(task_id.clone(), output);
+            observed_failures.insert(task_id.clone());
+            adapter_failures.insert(task_id.clone());
+            refused_tasks.insert(task_id);
+            // Standalone `ici build` never builds the refused release; under `ici verify` the
+            // release preparation also serves the other engines' analysis, so it still runs and
+            // only the artifact write is dropped.
+            if prepared.cpp.legacy_standalone {
+                refused_trees.insert(component);
+            }
+        }
+        legacy_prepare_refused_release_trees(&mut prepared, runtime, &refused_tasks);
+    }
+    let mut legacy_lazy_shadows = vec![];
+    if prepare && !runtime.cancellation.is_cancelled() {
+        for plan in &prepared.context_preparations {
+            if runtime.cancellation.is_cancelled() {
+                break;
+            }
+            if legacy_lazy_shadow(&prepared, plan) {
+                legacy_lazy_shadows.push(plan.clone());
+                continue;
+            }
+            if plan.build.variant == "release" && refused_trees.contains(&plan.component_id) {
+                continue;
+            }
+            let matching = contexts.iter().find(|context| {
+                context.plan.root == plan.root
+                    && context.plan.build.id == plan.build.id
+                    && context.plan.build.variant == plan.build.variant
+                    && context.plan.build.owner_digest == plan.build.owner_digest
+            });
+            let fresh = matching.is_none();
+            let refused = if fresh {
+                output_binary_refusal(&prepared, plan, runtime)
+            } else {
+                None
+            };
+            let result = if let Some(reason) = refused {
+                Err(crate::export_context::PreparationFailure::Incomplete(
+                    reason,
+                ))
+            } else if let Some(context) = matching {
+                crate::export_context::for_consumer(context, plan)
+                    .map_err(crate::export_context::PreparationFailure::Incomplete)
+            } else {
+                crate::export_context::execute_preparation_shared(
+                    plan,
+                    runtime.scheduler,
+                    runtime.cancellation,
+                    runtime.events,
+                    contexts
+                        .iter()
+                        .find_map(|context| context.shared_make_lease(plan)),
+                )
+            };
+            match result {
+                Ok(context) => {
+                    if let Some(failure) = &context.build_failure {
+                        if plan.build.system == "qmake" {
+                            limitations.push(format!(
+                                "{} {} build failed; its captured compilation database is analysed like frozen's separate analysis capture: {failure}",
+                                plan.component_id, plan.build.variant
+                            ));
+                        } else {
+                            limitations.push(format!(
+                                "{} {} build failed; its configured compilation database is analysed like frozen, which never builds this shadow: {failure}",
+                                plan.component_id, plan.build.variant
+                            ));
+                        }
+                    }
+                    // Frozen BuildEngine `_compile_cpp`: the failed adapter build is its own
+                    // `BuildAdapter` FAIL, beside the source checks that keep the database;
+                    // only the checks that consume release artifacts stop.
+                    if let Some(failed) = &context.build_failure_output {
+                        let failure = crate::export_context::PreparationFailure::Observed {
+                            phase: format!("{} compile", plan.build.system),
+                            output: failed.clone(),
+                        };
+                        if let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id
+                                && check.check.id == "cpp.artifact"
+                        }) && let Some(mut observed) = failure.observed_for(&check.task_id)
+                        {
+                            // Frozen BuildEngine's own release session failed at its build: the
+                            // same adapter result (session evidence, project metadata) as a
+                            // session that failed earlier, and binary_compat has no manifest.
+                            if prepared.legacy_projection
+                                && prepared.project.schema_family
+                                    == ici_config::SchemaFamily::Legacy
+                                && plan.build.variant == "release"
+                                && matches!(plan.build.system.as_str(), "cmake" | "qmake")
+                            {
+                                legacy_adapter_build_failure(
+                                    &mut observed,
+                                    &prepared,
+                                    plan,
+                                    &check.task_id,
+                                    runtime,
+                                );
+                                compat_without_release.push(plan.clone());
+                            }
+                            if let Err(redaction) = crate::execute::redact(&mut observed) {
+                                limitations
+                                    .push(format!("build adapter evidence redaction: {redaction}"));
+                            } else {
+                                outputs.insert(check.task_id.clone(), observed);
+                                observed_failures.insert(check.task_id.clone());
+                                adapter_failures.insert(check.task_id.clone());
+                            }
+                        }
+                        failures.push((
+                            plan.component_id.clone(),
+                            plan.build.variant.clone(),
+                            failure.to_string(),
+                            true,
+                        ));
+                    }
+                    // Frozen `prepare_cmake_compilation_context` adds the cache metadata,
+                    // generation and unity diagnostics to the canonical release context.
+                    if fresh
+                        && prepared.legacy_projection
+                        && !prepared.cpp.legacy_standalone
+                        && let Some(analysis) = &context.analysis
+                    {
+                        legacy_fallbacks.extend(
+                            analysis
+                                .diagnostics
+                                .iter()
+                                .map(|diagnostic| (plan.component_id.clone(), diagnostic.clone())),
+                        );
+                    }
+                    contexts.push(context);
+                }
+                Err(failure) => {
+                    let reason = failure.to_string();
+                    // Frozen BuildEngine runs only the release session: a legacy test or
+                    // sanitizer variant that fails is its own engine's result, not the build's.
+                    if !(prepared.legacy_projection && plan.build.variant != "release")
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id
+                                && check.check.id == "cpp.artifact"
+                        })
+                        && let Some(mut observed) = legacy_direct_build_failure(
+                            &failure,
+                            &check.task_id,
+                            &prepared,
+                            plan,
+                            runtime,
+                        )
+                        .or_else(|| failure.observed_for(&check.task_id))
+                    {
+                        let adapter = prepared.legacy_projection
+                            && prepared.project.schema_family == ici_config::SchemaFamily::Legacy
+                            && plan.build.variant == "release"
+                            && matches!(plan.build.system.as_str(), "cmake" | "qmake" | "make");
+                        if adapter {
+                            legacy_adapter_build_failure(
+                                &mut observed,
+                                &prepared,
+                                plan,
+                                &check.task_id,
+                                runtime,
+                            );
+                            // Decided after every preparation ran: a later session may still
+                            // publish a manifest.
+                            compat_without_release.push(plan.clone());
+                        }
+                        if let Err(redaction) = crate::execute::redact(&mut observed) {
+                            limitations
+                                .push(format!("direct compiler evidence redaction: {redaction}"));
+                        } else {
+                            outputs.insert(check.task_id.clone(), observed);
+                            observed_failures.insert(check.task_id.clone());
+                        }
+                    }
+                    // Frozen TestEngine `_run_cpp_tests_via_adapter`: a build of the test
+                    // variant that fails is the test command's measured FAIL at the descriptor.
+                    if matches!(plan.build.variant.as_str(), "coverage" | "test")
+                        && plan.build.system != "direct-gcc"
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == "cpp.test"
+                        })
+                        && let Some(observed) = failure.observed_for(&check.task_id)
+                        && let Some(mut output) = crate::cpp::test_build_failure(
+                            &check.task_id,
+                            &observed,
+                            prepared.legacy_projection,
+                        )
+                    {
+                        // Frozen `_run_cpp_tests_via_adapter` keeps the failed session's
+                        // evidence: the backend selection and the processes it ran.
+                        if prepared.legacy_projection
+                            && let Some(processes) = observed
+                                .extra
+                                .get("process_evidence")
+                                .and_then(serde_json::Value::as_array)
+                            && let Some(component) = prepared
+                                .project
+                                .components
+                                .iter()
+                                .find(|component| component.id == plan.component_id)
+                        {
+                            output.extra["tool_evidence"] =
+                                crate::cpp::legacy_build_session_evidence(
+                                    &prepared.project.root,
+                                    &component.root,
+                                    &plan.build.system,
+                                    &plan.descriptor,
+                                    processes,
+                                );
+                        }
+                        if let Err(redaction) = crate::execute::redact(&mut output) {
+                            limitations.push(format!("test build evidence redaction: {redaction}"));
+                        } else {
+                            outputs.insert(check.task_id.clone(), output);
+                            observed_failures.insert(check.task_id.clone());
+                        }
+                    }
+                    // Frozen TestEngine `_run_cpp_tests_via_adapter`: a coverage session that was
+                    // not configured records the session's errors as tool errors (ERROR,
+                    // NOT_RUN, no targets, TEM 0.00 / 5.0) and keeps its evidence: the backend
+                    // selection and the processes it ran.
+                    if prepared.legacy_projection
+                        && matches!(plan.build.variant.as_str(), "coverage" | "test")
+                        && matches!(plan.build.system.as_str(), "cmake" | "qmake" | "make")
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == "cpp.test"
+                        })
+                        && !outputs.contains_key(&check.task_id)
+                        && let Some(observed) = failure.observed_for(&check.task_id)
+                        && let Some(failed) = observed
+                            .targets
+                            .iter()
+                            .find(|target| target.target_name == "BuildError")
+                    {
+                        let mut output = crate::cpp::legacy_test_configuration_error(
+                            &check.task_id,
+                            &failed.message,
+                        );
+                        if let Some(processes) = observed
+                            .extra
+                            .get("process_evidence")
+                            .and_then(serde_json::Value::as_array)
+                            && let Some(component) = prepared
+                                .project
+                                .components
+                                .iter()
+                                .find(|component| component.id == plan.component_id)
+                        {
+                            output.extra["tool_evidence"] =
+                                crate::cpp::legacy_build_session_evidence(
+                                    &prepared.project.root,
+                                    &component.root,
+                                    &plan.build.system,
+                                    &plan.descriptor,
+                                    processes,
+                                );
+                        }
+                        if let Err(redaction) = crate::execute::redact(&mut output) {
+                            limitations
+                                .push(format!("test configure evidence redaction: {redaction}"));
+                        } else {
+                            outputs.insert(check.task_id.clone(), output);
+                            observed_failures.insert(check.task_id.clone());
+                        }
+                    }
+                    // Frozen TestEngine compiles the library with every test: a library source
+                    // that does not compile is a `Compilation Error` FAIL for each test.
+                    if matches!(plan.build.variant.as_str(), "coverage" | "test")
+                        && plan.build.system == "direct-gcc"
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == "cpp.test"
+                        })
+                        && let Some(observed) = failure.observed_for(&check.task_id)
+                        && let Some(stderr) = observed
+                            .extra
+                            .get("compile_failure_stderr")
+                            .and_then(serde_json::Value::as_str)
+                        && let Some(direct) = plan.direct.as_ref()
+                        && !direct.test_sources().is_empty()
+                    {
+                        let failures: crate::cpp::TestCompileFailures = direct
+                            .test_sources()
+                            .into_iter()
+                            .map(|source| (source, stderr.to_owned()))
+                            .collect::<std::collections::BTreeMap<_, _>>()
+                            .into();
+                        let mut output =
+                            crate::cpp::test_compile_failures_only(&check.task_id, &failures);
+                        if prepared.legacy_projection {
+                            crate::cpp::legacy_direct_tests(&mut output, &failures);
+                            // The compiles the failed phase ran (frozen records each test's).
+                            if let Some(records) =
+                                crate::execute::legacy_direct_compile_records(&observed.extra)
+                                    .filter(|records| !records.is_empty())
+                            {
+                                output.extra["tool_evidence"] = serde_json::json!(records);
+                            }
+                        }
+                        if crate::execute::redact(&mut output).is_ok() {
+                            outputs.insert(check.task_id.clone(), output);
+                            observed_failures.insert(check.task_id.clone());
+                        }
+                    }
+                    // Frozen `_compile_cpp_objects`: a production compile that did not finish
+                    // (past the output bound, or killed) is an ERROR at every test, naming the
+                    // sorted first production source that stopped it.
+                    if prepared.legacy_projection
+                        && matches!(plan.build.variant.as_str(), "coverage" | "test")
+                        && plan.build.system == "direct-gcc"
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == "cpp.test"
+                        })
+                        && !outputs.contains_key(&check.task_id)
+                        && let Some(observed) = failure.observed_for(&check.task_id)
+                        && let Some(process) = observed.extra.get("compile_failure_process")
+                        && (process["truncated"] == true
+                            || process["timed_out"] == true
+                            || process["signal"].is_number())
+                        && let Some(direct) = plan.direct.as_ref()
+                        && !direct.test_sources().is_empty()
+                        && let Some(source) = crate::cpp::legacy_stopping_source(&observed.extra)
+                    {
+                        let tests = direct.test_sources();
+                        let unfinished = tests
+                            .iter()
+                            .map(|test| {
+                                (
+                                    test.clone(),
+                                    serde_json::json!({
+                                        "incomplete": process["truncated"] == true
+                                            || process["timed_out"] == true,
+                                        "coverage": process["coverage"],
+                                        "path": source,
+                                    }),
+                                )
+                            })
+                            .collect();
+                        let mut failures: crate::cpp::TestCompileFailures = tests
+                            .into_iter()
+                            .map(|test| (test, String::new()))
+                            .collect::<std::collections::BTreeMap<_, _>>()
+                            .into();
+                        failures.unfinished = unfinished;
+                        let mut output =
+                            crate::cpp::test_compile_failures_only(&check.task_id, &failures);
+                        crate::cpp::legacy_direct_tests(&mut output, &failures);
+                        if let Some(records) =
+                            crate::execute::legacy_direct_compile_records(&observed.extra)
+                                .filter(|records| !records.is_empty())
+                        {
+                            output.extra["tool_evidence"] = serde_json::json!(records);
+                        }
+                        if crate::execute::redact(&mut output).is_ok() {
+                            outputs.insert(check.task_id.clone(), output);
+                            observed_failures.insert(check.task_id.clone());
+                        }
+                    }
+                    // Frozen `_collect_cpp_coverage` after `_compile_cpp_objects` stopped at a
+                    // later production source: gcov still reads the notes the earlier sources
+                    // left, then refuses the missing source (`incomplete_source_coverage`). The
+                    // coverage check is rebound to run gcov over those notes without a suite.
+                    if prepared.legacy_projection
+                        && plan.build.system == "direct-gcc"
+                        && let crate::export_context::PreparationFailure::Observed { phase, output } =
+                            &failure
+                        && phase == "compile"
+                        && let Some(direct) = plan.direct.as_ref()
+                        && let Some((notes, sources)) = direct.legacy_notes_before_failure(
+                            &plan.build.id,
+                            &plan.build.variant,
+                            &output.extra["outcomes"],
+                        )
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id
+                                && check.check.id == "cpp.coverage"
+                        })
+                        && let Some(component) = initial_project
+                            .components
+                            .iter_mut()
+                            .find(|component| component.id == plan.component_id)
+                    {
+                        component.settings["legacy_direct_coverage_notes"] = serde_json::json!({
+                            "directory": plan.build.shadow,
+                            "notes": notes,
+                            "sources": sources,
+                        });
+                        legacy_notes_only.insert(check.task_id.clone());
+                        if let Some(test) = prepared.plan.checks.iter().find(|test| {
+                            test.component_id == plan.component_id && test.check.id == "cpp.test"
+                        }) && let Some(output) = outputs.get_mut(&test.task_id)
+                        {
+                            crate::cpp::legacy_stopped_compile_suite(output, &test.task_id);
+                        }
+                    }
+                    // Frozen SanitizeEngine/ThreadSanitizeEngine direct g++ run: a production
+                    // source that does not compile fails every test's instrumented compile.
+                    if prepared.legacy_projection
+                        && plan.build.system == "direct-gcc"
+                        && let Some(check_id) = match plan.build.variant.as_str() {
+                            "sanitize" => Some("cpp.sanitize"),
+                            "thread-sanitize" => Some("cpp.tsan"),
+                            _ => None,
+                        }
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == check_id
+                        })
+                        && let Some(observed) = failure.observed_for(&check.task_id)
+                        && let Some(process) = observed.extra.get("compile_failure_process")
+                        && let Some(direct) = plan.direct.as_ref()
+                        && !direct.test_sources().is_empty()
+                        && let Some(mut output) = crate::cpp::legacy_sanitizer_compile_failures(
+                            &check.task_id,
+                            &direct.test_sources(),
+                            process,
+                        )
+                    {
+                        // Frozen records each test's failed `sanitizer compile` process (with
+                        // its failure message) and runs nothing after it: here the failed
+                        // native object compile shared by every test executable.
+                        let returncode = process["exit_code"].as_i64().unwrap_or_else(|| {
+                            if process["timed_out"] == true {
+                                124
+                            } else {
+                                process["signal"].as_i64().map_or(-1, |signal| -signal)
+                            }
+                        });
+                        let failed = observed.extra["outcomes"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .find(|outcome| {
+                                outcome["exit_code"] == process["exit_code"]
+                                    && outcome["signal"] == process["signal"]
+                            })
+                            .and_then(|outcome| {
+                                observed.extra["compiler_tasks"]
+                                    .as_array()?
+                                    .iter()
+                                    .find(|task| task["id"] == outcome["task_id"])
+                            });
+                        if let Some(task) = failed {
+                            let records: Vec<serde_json::Value> = output
+                                .targets
+                                .iter()
+                                .map(|target| {
+                                    serde_json::json!({"name":"sanitizer compile",
+                                        "path":task["argv"][0],"version":"","argv":task["argv"],
+                                        "returncode":returncode,
+                                        "timed_out":process["timed_out"],
+                                        "truncated":process["truncated"],
+                                        "error":target.message})
+                                })
+                                .collect();
+                            output.extra["tool_evidence"] = serde_json::json!(records);
+                        }
+                        if crate::execute::redact(&mut output).is_ok() {
+                            outputs.insert(check.task_id.clone(), output);
+                            observed_failures.insert(check.task_id.clone());
+                        }
+                    }
+                    // Frozen SanitizeEngine/ThreadSanitizeEngine `_prepare_sanitizer_adapter`: an
+                    // adapter configure or build that fails is one `C++Sanitizer` ERROR scope at
+                    // the descriptor with the session error (`_fail_adapter_scope`); nothing runs.
+                    if prepared.legacy_projection
+                        && plan.build.system != "direct-gcc"
+                        && let Some(check_id) = match plan.build.variant.as_str() {
+                            "sanitize" => Some("cpp.sanitize"),
+                            "thread-sanitize" => Some("cpp.tsan"),
+                            _ => None,
+                        }
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == check_id
+                        })
+                        && let Some(observed) = failure.observed_for(&check.task_id)
+                        && let Some(failed) = observed.targets.iter().find(|target| {
+                            matches!(target.target_name.as_str(), "BuildAdapter" | "BuildError")
+                        })
+                    {
+                        let mut output = crate::cpp::legacy_sanitizer_configuration_error(
+                            &check.task_id,
+                            &failed.file_path,
+                            &failed.message,
+                        );
+                        output.observation.limitations = observed.observation.limitations.clone();
+                        output.observation.limitations.push(failed.message.clone());
+                        // The failed session's evidence: its backend selection and processes.
+                        if let Some(processes) = observed
+                            .extra
+                            .get("process_evidence")
+                            .and_then(serde_json::Value::as_array)
+                            && let Some(component) = prepared
+                                .project
+                                .components
+                                .iter()
+                                .find(|component| component.id == plan.component_id)
+                        {
+                            output.extra["tool_evidence"] =
+                                crate::cpp::legacy_build_session_evidence(
+                                    &prepared.project.root,
+                                    &component.root,
+                                    &plan.build.system,
+                                    &plan.descriptor,
+                                    processes,
+                                );
+                        }
+                        if crate::execute::redact(&mut output).is_ok() {
+                            outputs.insert(check.task_id.clone(), output);
+                            observed_failures.insert(check.task_id.clone());
+                        }
+                    }
+                    // Frozen DeadCodeEngine GNU ELF linker scope (`_configure_shadow`): a CMake
+                    // link-reachability configure or build that did not complete is the
+                    // linker scope's own ERROR; the dead check reports it.
+                    if prepared.legacy_projection
+                        && plan.build.variant == "link-reachability"
+                        && plan.build.system == "cmake"
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == "cpp.dead"
+                        })
+                        && let Some((configure, records)) = legacy_shadow_failure_records(
+                            plan,
+                            &failure,
+                            &check.task_id,
+                            runtime.environment,
+                        )
+                    {
+                        legacy_linker_failures.push((check.task_id.clone(), configure, records));
+                    }
+                    limitations.push(format!(
+                        "{} {} preparation: {reason}",
+                        plan.component_id, plan.build.variant
+                    ));
+                    if prepared.legacy_projection
+                        && !prepared.cpp.legacy_standalone
+                        && let Some(diagnostic) = legacy_context_fallback(plan, &failure)
+                    {
+                        legacy_fallbacks.push((plan.component_id.clone(), diagnostic));
+                    }
+                    failures.push((
+                        plan.component_id.clone(),
+                        plan.build.variant.clone(),
+                        reason,
+                        // The project's own database keeps the source checks analysing.
+                        plan.direct.is_some() || plan.existing_database,
+                    ));
+                }
+            }
+        }
+        for plan in &compat_without_release {
+            match legacy_binary_compat_without_manifests(
+                &prepared,
+                plan,
+                &contexts,
+                runtime.environment,
+            ) {
+                Some(LegacyCompatBeside::Decided(compat)) => {
+                    let mut compat = *compat;
+                    if crate::execute::redact(&mut compat).is_ok() {
+                        // Frozen has one BinaryCompatibilityEngine: a hybrid component's Python
+                        // fallback (planned when no C++ selection applies) adds nothing beside
+                        // the decided verdict (oracle `python-control`).
+                        for check in prepared.plan.checks.iter().filter(|check| {
+                            check.component_id == plan.component_id
+                                && check.check.id == "python.binary-compat"
+                        }) {
+                            let mut fallback = compat.clone();
+                            fallback.observation.task_id = check.task_id.clone();
+                            fallback.targets.clear();
+                            fallback.observation.findings.clear();
+                            observed_failures.insert(check.task_id.clone());
+                            outputs.insert(check.task_id.clone(), fallback);
+                        }
+                        observed_failures.insert(compat.observation.task_id.clone());
+                        outputs.insert(compat.observation.task_id.clone(), compat);
+                    }
+                }
+                Some(LegacyCompatBeside::Inspect) => {
+                    legacy_declared_inspection.extend(
+                        prepared
+                            .plan
+                            .checks
+                            .iter()
+                            .filter(|check| {
+                                check.component_id == plan.component_id
+                                    && check.check.id == "cpp.binary-compat"
+                            })
+                            .map(|check| check.task_id.clone()),
+                    );
+                }
+                None => {}
+            }
+        }
+        // The inspection reads only declared project files: it consumes no build prerequisite
+        // (like planning's decided binary-compat verdicts), so the failed build output does not
+        // gate it at execution.
+        for check in &mut prepared.plan.checks {
+            if legacy_declared_inspection.contains(&check.task_id) {
+                check.check.needs.clear();
+                prepared.graph.edges.remove(&check.task_id);
+            }
+        }
+        // Frozen `_with_capture_coverage`: a qmake capture that missed a production translation
+        // unit is an error diagnostic of the captured context.
+        if prepared.legacy_projection && !prepared.cpp.legacy_standalone {
+            for held in contexts.iter().filter(|held| {
+                held.plan.build.system == "qmake"
+                    && held.plan.build.variant == "release"
+                    && held.plan.direct.is_none()
+                    && held.context.database_path.is_some()
+            }) {
+                let captured: BTreeSet<&String> =
+                    held.context.units.iter().map(|unit| &unit.source).collect();
+                let missing = held
+                    .plan
+                    .selected_sources
+                    .iter()
+                    .filter(|source| ici_cpp::is_translation_unit(source))
+                    .filter(|source| !captured.contains(source))
+                    .count();
+                if missing > 0 {
+                    legacy_fallbacks.push((
+                        held.plan.component_id.clone(),
+                        ici_cpp::ContextDiagnostic::error(
+                            "qmake-capture-incomplete",
+                            format!(
+                                "The qmake capture missed {missing} production translation unit(s)."
+                            ),
+                        ),
+                    ));
+                }
+            }
+        }
+        // Every C++ check binds with the preparation diagnostics in its component's context
+        // (frozen consumers stop on an error diagnostic before any replay).
+        for (component, diagnostic) in &legacy_fallbacks {
+            if let Some(component) = initial_project
+                .components
+                .iter_mut()
+                .find(|item| item.id == *component)
+            {
+                let entry = &mut component.settings["legacy_preparation_diagnostics"];
+                if !entry.is_array() {
+                    *entry = serde_json::json!([]);
+                }
+                entry
+                    .as_array_mut()
+                    .expect("diagnostic list")
+                    .push(serde_json::json!(diagnostic));
+            }
+        }
+        if !contexts.is_empty() || !legacy_fallbacks.is_empty() || !legacy_notes_only.is_empty() {
+            match rebind(
+                runtime,
+                initial_project.clone(),
+                &original,
+                &original_limits,
+                &contexts,
+            ) {
+                Ok((mut after, captured, stable)) => {
+                    for (role, tool) in &initial_tools {
+                        after
+                            .tools
+                            .entry(role.clone())
+                            .or_insert_with(|| tool.clone());
+                    }
+                    prepared = after;
+                    snapshot = captured;
+                    intake_ok &= stable;
+                    if !stable {
+                        inputs_changed = true;
+                        limitations.push("user inputs changed during native preparation; analysis retains the original captured bytes".into());
+                    }
+                }
+                Err(reason) => {
+                    intake_ok = false;
+                    inputs_changed = true;
+                    limitations.push(format!("prepared input capture: {reason}"));
+                }
+            }
+        }
+    }
+    let mut executed_checks: Vec<PlannedCheck> = vec![];
+    let native: Vec<_> = prepared
+        .plan
+        .checks
+        .iter()
+        .filter(|check| matches!(check.work, Work::NativePrepare { .. }))
+        .cloned()
+        .collect();
+    if intake_ok && prepare {
+        for mut check in native {
+            if runtime.cancellation.is_cancelled() {
+                break;
+            }
+            if adapter_failures.contains(&check.task_id) {
+                continue;
+            }
+            let Some(build) = prepared.artifact_builds.get(&check.task_id).cloned() else {
+                continue;
+            };
+            let (mut output, resolved) = crate::execute::execute_artifact_prepare(
+                &build,
+                check.tasks(),
+                &snapshot,
+                runtime.scheduler,
+                runtime.cancellation,
+                runtime.events,
+            );
+            for context in contexts
+                .iter()
+                .filter(|context| context.plan.component_id == check.component_id)
+            {
+                if let Some(evidence) = &context.evidence {
+                    output.extra["preparation_evidence"][&context.plan.build.variant] =
+                        evidence.clone();
+                }
+            }
+            // Frozen BuildEngine `tool_evidence`: the adapter session's backend selection and the
+            // configure/clean/build processes its release build ran.
+            if prepared.legacy_projection
+                && check.check.id == "cpp.artifact"
+                && prepared.project.schema_family == ici_config::SchemaFamily::Legacy
+                && let Some(session) = contexts.iter().find(|context| {
+                    context.plan.component_id == check.component_id
+                        && matches!(
+                            context.plan.build.system.as_str(),
+                            "cmake" | "qmake" | "make"
+                        )
+                        && context.plan.build.variant == "release"
+                })
+                && let Some(component) = prepared
+                    .project
+                    .components
+                    .iter()
+                    .find(|component| component.id == check.component_id)
+            {
+                output.extra["tool_evidence"] = crate::cpp::legacy_build_session_evidence(
+                    &prepared.project.root,
+                    &component.root,
+                    &session.plan.build.system,
+                    &session.plan.descriptor,
+                    &session.process_evidence,
+                );
+            }
+            // Frozen deep BuildEngine release session of an adapter backend (`ici verify`
+            // only) publishes its linked shadow outputs into the analysis context, like the
+            // test/sanitize sessions do.
+            if prepared.legacy_projection
+                && !prepared.cpp.legacy_standalone
+                && check.check.id == "cpp.artifact"
+                && let Some(session) = contexts.iter().find(|context| {
+                    context.plan.component_id == check.component_id
+                        && matches!(
+                            context.plan.build.system.as_str(),
+                            "cmake" | "qmake" | "make"
+                        )
+                        && context.plan.build.variant == "release"
+                })
+                && let Some(build) = session.plan.build.tasks.iter().find(|task| {
+                    task.argv.get(1).map(String::as_str) == Some("--build")
+                        || (session.plan.build.system != "cmake" && task.id.ends_with(":compile"))
+                })
+                && let Some(manifest) = crate::cpp::legacy_cmake_artifact_manifest(
+                    &prepared.project.root,
+                    &prepared.project.root.join(&session.plan.build.shadow),
+                    "release",
+                    &build.argv,
+                    &format!("{}.build", session.plan.build.system),
+                )
+            {
+                // Frozen order: the adapter session's manifest (build.py:736), then the
+                // `config.artifacts` manifest `_publish_declared_artifacts` already added.
+                let mut manifests = vec![manifest];
+                if let Some(serde_json::Value::Array(declared)) =
+                    output.extra.get("legacy_artifact_manifests")
+                {
+                    manifests.extend(declared.iter().cloned());
+                }
+                output.extra["legacy_artifact_manifests"] = serde_json::json!(manifests);
+            }
+            if let Some(resolved) = resolved {
+                check.work = Work::native_prepare_after(
+                    resolved.version_probe.iter().cloned().collect(),
+                    resolved.task.clone(),
+                );
+                prepared
+                    .artifact_builds
+                    .insert(check.task_id.clone(), resolved);
+            }
+            // Provider bytes have already been parsed; redact the complete structured output now.
+            if let Err(reason) = crate::execute::redact(&mut output) {
+                output = AnalysisOutput::new(&check.task_id, "ici.native-preparation");
+                output.observation.state = TaskState::Failed;
+                output
+                    .observation
+                    .limitations
+                    .push(format!("preparation output serialization: {reason}"));
+                output.status = "ERROR".into();
+            }
+            runtime.events.emit(
+                "task.completed",
+                Some(&check.task_id),
+                Some(&check.component_id),
+                &crate::execute::state_label(output.observation.state),
+            );
+            outputs.insert(check.task_id.clone(), output);
+            executed_checks.push(check);
+        }
+        if !executed_checks.is_empty() {
+            let resolved_builds = prepared.artifact_builds.clone();
+            match rebind(
+                runtime,
+                initial_project,
+                &original,
+                &original_limits,
+                &contexts,
+            ) {
+                Ok((mut after, captured, stable)) => {
+                    for (role, tool) in &initial_tools {
+                        after
+                            .tools
+                            .entry(role.clone())
+                            .or_insert_with(|| tool.clone());
+                    }
+                    prepared = after;
+                    snapshot = captured;
+                    intake_ok &= stable;
+                    if !stable {
+                        inputs_changed = true;
+                        limitations.push("user inputs changed while ici built artifacts; analysis retains the original captured bytes".into());
+                    }
+                }
+                Err(reason) => {
+                    intake_ok = false;
+                    inputs_changed = true;
+                    limitations.push(format!("artifact input capture: {reason}"));
+                }
+            }
+            prepared.artifact_builds = resolved_builds;
+            for executed in executed_checks {
+                if let Some(check) = prepared
+                    .plan
+                    .checks
+                    .iter_mut()
+                    .find(|check| check.task_id == executed.task_id)
+                {
+                    *check = executed;
+                }
+            }
+            match ici_application::graph::TaskGraph::build(&prepared.plan.checks) {
+                Ok(graph) => prepared.graph = graph,
+                Err(reason) => {
+                    intake_ok = false;
+                    limitations.push(format!("prepared output/dependency conflict: {reason}"));
+                }
+            }
+        }
+    }
+    for check in &mut prepared.plan.checks {
+        if observed_failures.contains(&check.task_id) {
+            check.work = Work::Internal;
+            prepared.graph.blocked.remove(&check.task_id);
+        }
+    }
+    // A notes-only coverage check was graphed as blocked on the suite that never ran (now the
+    // observed compile failures): schedule it after them, as frozen runs gcov after every test.
+    if !legacy_notes_only.is_empty() {
+        let blocked = std::mem::take(&mut prepared.graph.blocked);
+        match ici_application::graph::TaskGraph::build(&prepared.plan.checks) {
+            Ok(graph) => prepared.graph = graph,
+            Err(reason) => {
+                intake_ok = false;
+                limitations.push(format!("prepared output/dependency conflict: {reason}"));
+            }
+        }
+        for (id, reason) in blocked {
+            if !legacy_notes_only.contains(&id) && !observed_failures.contains(&id) {
+                prepared.graph.blocked.entry(id).or_insert(reason);
+            }
+        }
+    }
+    // Nothing was published for a failed adapter build, so no output ownership is verified.
+    for task_id in &adapter_failures {
+        prepared.artifact_builds.remove(task_id);
+    }
+    let mut legacy_linker_ids = BTreeSet::new();
+    let mut legacy_linker_work = BTreeMap::new();
+    for (id, configure, records) in legacy_linker_failures {
+        prepared
+            .cpp
+            .fail_legacy_linker_preparation(&id, configure, records);
+        prepared.graph.blocked.remove(&id);
+        legacy_linker_ids.insert(id);
+    }
+    for plan in legacy_lazy_shadows {
+        let project = prepared.project.clone();
+        let Some(component) = project
+            .components
+            .iter()
+            .find(|component| component.id == plan.component_id)
+        else {
+            continue;
+        };
+        let Some((id, check)) = prepared
+            .plan
+            .checks
+            .iter()
+            .find(|check| check.component_id == plan.component_id && check.check.id == "cpp.dead")
+            .map(|check| (check.task_id.clone(), check.check.clone()))
+        else {
+            continue;
+        };
+        let work = prepared.cpp.defer_legacy_shadow(
+            &project,
+            component,
+            &check,
+            &id,
+            runtime.environment,
+            plan,
+        );
+        legacy_linker_work.insert(id.clone(), work);
+        prepared.graph.blocked.remove(&id);
+        legacy_linker_ids.insert(id);
+    }
+    if !legacy_linker_ids.is_empty() {
+        for check in &mut prepared.plan.checks {
+            if legacy_linker_ids.contains(&check.task_id) {
+                check.work = legacy_linker_work
+                    .remove(&check.task_id)
+                    .unwrap_or(Work::Internal);
+            }
+        }
+        // The check was unbound (blocked) while its preparation was pending: schedule it.
+        let blocked = std::mem::take(&mut prepared.graph.blocked);
+        match ici_application::graph::TaskGraph::build(&prepared.plan.checks) {
+            Ok(graph) => prepared.graph = graph,
+            Err(reason) => {
+                intake_ok = false;
+                limitations.push(format!("prepared output/dependency conflict: {reason}"));
+            }
+        }
+        for (id, reason) in blocked {
+            if !legacy_linker_ids.contains(&id) {
+                prepared.graph.blocked.entry(id).or_insert(reason);
+            }
+        }
+    }
+    for (component, variant, reason, direct) in failures {
+        let fallback = variant == "release"
+            && legacy_fallbacks
+                .iter()
+                .any(|(fallback, _)| *fallback == component);
+        for check in &prepared.plan.checks {
+            if check.component_id != component || check.check.language != "cpp" {
+                continue;
+            }
+            // A failed legacy direct release compile, or the failed build of a configured legacy
+            // CMake release context, is the BuildEngine's own failure; the source checks keep
+            // their analysis like frozen. So does a legacy release analysis database that could
+            // not be prepared: the source checks analyse without one.
+            let affected = if (direct || fallback) && variant == "release" {
+                matches!(
+                    check.check.id.as_str(),
+                    "cpp.artifact" | "cpp.binary-compat"
+                )
+            } else {
+                crate::cpp::preparation_dependent(
+                    &check.check.id,
+                    &variant,
+                    !check.tasks().is_empty(),
+                )
+            };
+            if affected {
+                if legacy_linker_ids.contains(&check.task_id) {
+                    continue;
+                }
+                if observed_failures.contains(&check.task_id)
+                    || legacy_declared_inspection.contains(&check.task_id)
+                {
+                    prepared.graph.blocked.remove(&check.task_id);
+                    continue;
+                }
+                if legacy_notes_only.contains(&check.task_id)
+                    && !matches!(check.work, Work::Blocked { .. })
+                {
+                    continue;
+                }
+                prepared.graph.blocked.insert(
+                    check.task_id.clone(),
+                    format!("explicit {variant} preparation failed: {reason}"),
+                );
+            }
+        }
+    }
+    let after_pins = prepared.tool_pins();
+    if initial_pins.iter().any(|(path, digest)| {
+        after_pins.get(path) != Some(digest)
+            || ici_execution::process::executable_digest(std::path::Path::new(path))
+                .ok()
+                .as_ref()
+                != Some(digest)
+    }) {
+        intake_ok = false;
+        inputs_changed = true;
+        limitations.push("a selected tool changed during preparation; completed preparation remains partial evidence".into());
+    }
+    // Preserve completed preparation evidence even when later capture or graph validation fails.
+    if !intake_ok {
+        for output in outputs.values_mut() {
+            output
+                .observation
+                .limitations
+                .push("later input verification is incomplete".into());
+        }
+    }
+    PreparedExecution {
+        prepared,
+        snapshot,
+        intake_ok,
+        inputs_changed,
+        outputs,
+        contexts,
+        limitations,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PREPARATION_NOT_STARTED, legacy_release_fallback};
+    use crate::export_context::PreparationFailure;
+
+    /// Frozen core/cmake_context.py:197-202, which no fixture reaches (the frozen `configure`
+    /// raising before a session result; native refuses the equivalent inputs at planning):
+    ///     except (OSError, RuntimeError, ValueError):
+    ///         return _with_diagnostics(
+    ///             existing,
+    ///             _diagnostic("cmake-configure-error", "Canonical CMake configure could not start."),
+    ///         )
+    /// and its neighbour :203-207 for a configure that ran and did not complete.
+    #[test]
+    fn cmake_preparation_that_could_not_start_is_frozen_configure_error() {
+        let started = |reason: &str| {
+            legacy_release_fallback("cmake", &PreparationFailure::Incomplete(reason.into()))
+                .map(|diagnostic| (diagnostic.code, diagnostic.message, diagnostic.level))
+        };
+        assert_eq!(
+            started(&format!("{PREPARATION_NOT_STARTED}: invalid task graph")),
+            Some((
+                "cmake-configure-error".into(),
+                "Canonical CMake configure could not start.".into(),
+                "error".into()
+            ))
+        );
+        assert_eq!(
+            started("build lease is held by another run"),
+            Some((
+                "cmake-configure-failed".into(),
+                "Canonical CMake configure did not complete.".into(),
+                "error".into()
+            ))
+        );
+        // A configured database whose contents are incomplete stays a native failure.
+        assert_eq!(
+            started("prepared compilation evidence is incomplete: []"),
+            None
+        );
+    }
+}

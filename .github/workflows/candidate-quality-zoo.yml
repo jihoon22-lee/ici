@@ -8,11 +8,11 @@ on:
         required: true
         type: string
       candidate_artifact_id:
-        description: "Actions artifact ID for the provenance-bound candidate ZIP"
+        description: "Actions artifact ID of ici-native-candidate-<sha> from candidate-artifact.yml"
         required: true
         type: string
       candidate_archive_sha256:
-        description: "Out-of-band SHA-256 of the raw candidate artifact ZIP"
+        description: "Out-of-band SHA-256 of ici-<version>-x86_64-unknown-linux-musl.tar.gz"
         required: true
         type: string
       corpus_sha:
@@ -39,15 +39,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  accept:
-    name: Verify Candidate against Quality Zoo
+  # Native Rust candidate (ADR-0008). Selectors bind expectations to an exact ici
+  # executable digest, so a fresh native build is first bound, in this job's
+  # throwaway corpus checkout, to the frozen v0.13.0 answers by
+  # runner.bind_candidate: only producer_version changes; every predicate is
+  # the v0.13.0 known answer, and the reviewed per-format override in
+  # runner/candidate_overrides.py is the only accepted native difference.
+  # Nothing is committed. Any remaining parity gap fails this job.
+  accept-native:
+    name: Verify Native Candidate against Quality Zoo
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     permissions:
       actions: read
       checks: read
       contents: read
       pull-requests: read
+    env:
+      # SHA-256 of the public v0.13.0 ici.pyz: the frozen oracle whose answers bind.
+      REFERENCE_SHA256: c179986f3d0eac110cf436a961458e56c0f4a218517e9883ff47cd67addc1cde
 
     steps:
       - name: Checkout Trusted Candidate Helper
@@ -122,25 +132,38 @@ jobs:
               ;;
           esac
 
-      - name: Download Exact Candidate Archive and Metadata
+      - name: Download Exact Native Candidate and Provenance
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ICI_TARGET_SHA: ${{ inputs.ici_target_sha }}
           CANDIDATE_ARTIFACT_ID: ${{ inputs.candidate_artifact_id }}
           CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
         run: |
           set -euo pipefail
-          mkdir -- "$RUNNER_TEMP/candidate-evidence"
+          evidence="$RUNNER_TEMP/candidate-evidence"
+          mkdir -- "$evidence"
           gh api -H 'Accept: application/vnd.github+json' \
             "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CANDIDATE_ARTIFACT_ID}" \
-            > "$RUNNER_TEMP/candidate-evidence/artifact.json"
+            > "$evidence/artifact.json"
+          test "$(jq -r '.name' "$evidence/artifact.json")" = "ici-native-candidate-$ICI_TARGET_SHA"
+          test "$(jq -r '.workflow_run.head_sha' "$evidence/artifact.json")" = "$ICI_TARGET_SHA"
+          run_id="$(jq -r '.workflow_run.id' "$evidence/artifact.json")"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" > "$evidence/candidate-run.json"
+          jq -e --arg sha "$ICI_TARGET_SHA" \
+            '.path == ".github/workflows/candidate-artifact.yml" and .head_branch == "main" and .event == "workflow_dispatch" and .head_sha == $sha' \
+            "$evidence/candidate-run.json" > /dev/null
           gh api -H 'Accept: application/vnd.github+json' \
             "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CANDIDATE_ARTIFACT_ID}/zip" \
-            > "$RUNNER_TEMP/candidate.zip"
-          printf '%s  %s\n' "$CANDIDATE_ARCHIVE_SHA256" "$RUNNER_TEMP/candidate.zip" \
-            | sha256sum --check --strict
+            > "$RUNNER_TEMP/native-candidate.zip"
+          mkdir -- "$RUNNER_TEMP/native-candidate"
+          unzip -q "$RUNNER_TEMP/native-candidate.zip" -d "$RUNNER_TEMP/native-candidate"
+          mapfile -t archives < <(find "$RUNNER_TEMP/native-candidate" -maxdepth 1 -type f -name 'ici-*-x86_64-unknown-linux-musl.tar.gz')
+          test "${#archives[@]}" = 1
+          printf '%s  %s\n' "$CANDIDATE_ARCHIVE_SHA256" "${archives[0]}" | sha256sum --check --strict
+          printf 'NATIVE_ARCHIVE=%s\n' "${archives[0]}" >> "$GITHUB_ENV"
 
-      - name: Preflight Candidate without Credentials
-        id: preflight
+      - name: Intake and Bind Native Candidate without Credentials
         env:
           ICI_TARGET_SHA: ${{ inputs.ici_target_sha }}
           CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
@@ -149,142 +172,49 @@ jobs:
           set -euo pipefail
           unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN
           unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL
-          python3.10 -m runner.candidate_intake \
-            --archive "$RUNNER_TEMP/candidate.zip" \
+          python3.10 -m runner.native_intake \
+            --archive "$NATIVE_ARCHIVE" \
             --archive-sha256 "$CANDIDATE_ARCHIVE_SHA256" \
-            --repository "$GITHUB_REPOSITORY" \
-            --target-sha "$ICI_TARGET_SHA" \
-            --destination "$RUNNER_TEMP/candidate-preflight" \
-            --json > "$RUNNER_TEMP/candidate-preflight.json"
-          python3.10 - "$RUNNER_TEMP/candidate-preflight/candidate-provenance.json" \
-            "$GITHUB_OUTPUT" <<'PY'
-          import json
-          import sys
-          from pathlib import Path
-
-          payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-          output = Path(sys.argv[2])
-          names = (
-              "candidate_run_id",
-              "merge_gate_check_run_id",
-              "merge_gate_job_id",
-              "merge_gate_run_id",
-          )
-          with output.open("a", encoding="utf-8") as stream:
-              for name in names:
-                  value = payload[name]
-                  if type(value) is not int or value < 1:
-                      raise SystemExit(f"invalid provenance ID: {name}")
-                  stream.write(f"{name}={value}\n")
-          PY
-
-      - name: Fetch Authenticated GitHub Evidence
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CANDIDATE_RUN_ID: ${{ steps.preflight.outputs.candidate_run_id }}
-          MERGE_GATE_CHECK_RUN_ID: ${{ steps.preflight.outputs.merge_gate_check_run_id }}
-          MERGE_GATE_JOB_ID: ${{ steps.preflight.outputs.merge_gate_job_id }}
-          MERGE_GATE_RUN_ID: ${{ steps.preflight.outputs.merge_gate_run_id }}
-        run: |
-          set -euo pipefail
-          evidence="$RUNNER_TEMP/candidate-evidence"
-          gh api -H 'Accept: application/vnd.github+json' \
-            "repos/${GITHUB_REPOSITORY}/actions/runs/${CANDIDATE_RUN_ID}" \
-            > "$evidence/candidate-run.json"
-          gh api -H 'Accept: application/vnd.github+json' \
-            "repos/${GITHUB_REPOSITORY}/check-runs/${MERGE_GATE_CHECK_RUN_ID}" \
-            > "$evidence/gate-check.json"
-          gh api -H 'Accept: application/vnd.github+json' \
-            "repos/${GITHUB_REPOSITORY}/actions/jobs/${MERGE_GATE_JOB_ID}" \
-            > "$evidence/gate-job.json"
-          gh api -H 'Accept: application/vnd.github+json' \
-            "repos/${GITHUB_REPOSITORY}/actions/runs/${MERGE_GATE_RUN_ID}" \
-            > "$evidence/gate-run.json"
-
-      - name: Select Candidate Quality Zoo Manifest
-        id: select-manifest
-        working-directory: corpus/quality-zoo
-        run: |
-          set -euo pipefail
-          candidate_manifest="candidate-manifest.json"
-          stable_manifest="manifest.json"
-          if [[ -e "$candidate_manifest" || -L "$candidate_manifest" ]]; then
-            if [[ ! -f "$candidate_manifest" || -L "$candidate_manifest" ]]; then
-              echo "candidate-manifest.json must be a regular non-symlink file" >&2
-              exit 1
-            fi
-            selected_manifest="$candidate_manifest"
-            selected_source="candidate"
-          elif [[ -e "$stable_manifest" || -L "$stable_manifest" ]]; then
-            if [[ ! -f "$stable_manifest" || -L "$stable_manifest" ]]; then
-              echo "manifest.json must be a regular non-symlink file" >&2
-              exit 1
-            fi
-            selected_manifest="$stable_manifest"
-            selected_source="stable-fallback"
+            --destination "$RUNNER_TEMP/native-verified" > "$RUNNER_TEMP/native-intake.json"
+          jq -e --arg sha "$ICI_TARGET_SHA" \
+            '.source_revision == $sha and .development_snapshot == false and .target == "x86_64-unknown-linux-musl"' \
+            "$RUNNER_TEMP/native-intake.json" > /dev/null
+          executable="$(jq -r '.executable' "$RUNNER_TEMP/native-intake.json")"
+          if [[ -e candidate-manifest.json || -L candidate-manifest.json ]]; then
+            [[ -f candidate-manifest.json && ! -L candidate-manifest.json ]]
+            manifest=candidate-manifest.json
           else
-            echo "Quality Zoo has no supported manifest" >&2
-            exit 1
+            [[ -f manifest.json && ! -L manifest.json ]]
+            manifest=manifest.json
           fi
-          selected_sha256="$(sha256sum -- "$selected_manifest" | cut -d ' ' -f1)"
+          python3.10 -m runner.bind_candidate \
+            --manifest "$manifest" \
+            --reference-sha256 "$REFERENCE_SHA256" \
+            --ici-bin "$executable" \
+            --name "candidate-native-${ICI_TARGET_SHA:0:12}" > "$RUNNER_TEMP/native-bind.json"
           {
-            printf 'path=%s\n' "$selected_manifest"
-            printf 'source=%s\n' "$selected_source"
-            printf 'sha256=%s\n' "$selected_sha256"
-          } >> "$GITHUB_OUTPUT"
+            printf 'NATIVE_EXECUTABLE=%s\n' "$executable"
+            printf 'NATIVE_MANIFEST=%s\n' "$manifest"
+          } >> "$GITHUB_ENV"
 
-      - name: Verify Candidate Provenance and Run Quality Zoo
-        env:
-          ICI_TARGET_SHA: ${{ inputs.ici_target_sha }}
-          CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
-          MANIFEST_PATH: ${{ steps.select-manifest.outputs.path }}
-          MANIFEST_SOURCE: ${{ steps.select-manifest.outputs.source }}
-          MANIFEST_SHA256: ${{ steps.select-manifest.outputs.sha256 }}
+      - name: Run Quality Zoo against the Native Candidate
         working-directory: corpus/quality-zoo
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: |
           set -euo pipefail
           unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN
           unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL
-          python3.10 -m runner.candidate_intake \
-            --archive "$RUNNER_TEMP/candidate.zip" \
-            --archive-sha256 "$CANDIDATE_ARCHIVE_SHA256" \
-            --repository "$GITHUB_REPOSITORY" \
-            --target-sha "$ICI_TARGET_SHA" \
-            --destination "$RUNNER_TEMP/candidate-verified" \
-            --github-evidence "$RUNNER_TEMP/candidate-evidence" \
-            --json > "$RUNNER_TEMP/candidate-intake.json"
-          case "$MANIFEST_SOURCE:$MANIFEST_PATH" in
-            candidate:candidate-manifest.json|stable-fallback:manifest.json) ;;
-            *) echo "unexpected Quality Zoo manifest selection" >&2; exit 1 ;;
-          esac
-          test "$(sha256sum -- "$MANIFEST_PATH" | cut -d ' ' -f1)" = "$MANIFEST_SHA256"
+          # Record which external tools this runner resolves; native intake
+          # extracts only bin/ici, so project tools come from this PATH.
+          for tool in python3.10 ruff ty mypy g++ clang clang-tidy clazy-standalone clazy cmake qmake6 pkg-config; do
+            printf '%s\t%s\n' "$tool" "$(command -v "$tool" || echo unavailable)"
+          done > "$RUNNER_TEMP/native-tool-inventory.tsv"
           ICI_PYTHON=python3.10 python3.10 -m runner.run \
-            --manifest "$MANIFEST_PATH" \
-            --ici-bin "$RUNNER_TEMP/candidate-verified/ici.pyz" \
+            --manifest "$NATIVE_MANIFEST" \
+            --ici-bin "$NATIVE_EXECUTABLE" \
             --output-dir "$RUNNER_TEMP/quality-zoo-results" \
-            --timeout-seconds 300
-          test "$(sha256sum -- "$MANIFEST_PATH" | cut -d ' ' -f1)" = "$MANIFEST_SHA256"
-          python3.10 - "$RUNNER_TEMP/quality-zoo-results/manifest-selection.json" \
-            "$MANIFEST_PATH" "$MANIFEST_SOURCE" "$MANIFEST_SHA256" <<'PY'
-          import json
-          import sys
-          from pathlib import Path
-
-          output, path, source, sha256 = sys.argv[1:]
-          Path(output).write_text(
-              json.dumps(
-                  {
-                      "schema": "quality-zoo.manifest-selection/v1",
-                      "path": path,
-                      "sha256": sha256,
-                      "source": source,
-                  },
-                  sort_keys=True,
-              )
-              + "\n",
-              encoding="utf-8",
-          )
-          PY
+            --timeout-seconds 900 || status=$?
           python3.10 - "$RUNNER_TEMP/quality-zoo-results/suite.json" <<'PY'
           import json
           import sys
@@ -299,27 +229,30 @@ jobs:
           if payload.get("scenario_count") != len(results):
               raise SystemExit("Quality Zoo scenario count differs")
           if payload.get("contract_verdict") != "PASS":
-              raise SystemExit("Quality Zoo candidate contract did not pass")
+              raise SystemExit("Quality Zoo native candidate contract did not pass")
           if any(item.get("errors") for item in results if isinstance(item, dict)):
-              raise SystemExit("Quality Zoo candidate result contains runner errors")
+              raise SystemExit("Quality Zoo native result contains runner errors")
           PY
+          test "${status:-0}" = 0
 
-      - name: Stage Candidate Acceptance Evidence
+      - name: Stage Native Candidate Acceptance Evidence
+        if: always()
         run: |
           set -euo pipefail
-          destination="$RUNNER_TEMP/candidate-acceptance"
+          destination="$RUNNER_TEMP/native-acceptance"
           mkdir -- "$destination"
-          cp -- "$RUNNER_TEMP/candidate-preflight.json" "$destination/preflight.json"
-          cp -- "$RUNNER_TEMP/candidate-intake.json" "$destination/intake.json"
-          cp -- "$RUNNER_TEMP/corpus-revision.json" "$destination/corpus-revision.json"
-          cp -R -- "$RUNNER_TEMP/candidate-evidence" "$destination/github-evidence"
-          cp -R -- "$RUNNER_TEMP/quality-zoo-results" "$destination/results"
+          for file in native-intake.json native-bind.json native-tool-inventory.tsv corpus-revision.json; do
+            if [ -f "$RUNNER_TEMP/$file" ]; then cp -- "$RUNNER_TEMP/$file" "$destination/"; fi
+          done
+          if [ -d "$RUNNER_TEMP/candidate-evidence" ]; then cp -R -- "$RUNNER_TEMP/candidate-evidence" "$destination/github-evidence"; fi
+          if [ -d "$RUNNER_TEMP/quality-zoo-results" ]; then cp -R -- "$RUNNER_TEMP/quality-zoo-results" "$destination/results"; fi
 
-      - name: Upload Candidate Acceptance Evidence
+      - name: Upload Native Candidate Acceptance Evidence
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: quality-zoo-candidate-${{ inputs.ici_target_sha }}-${{ inputs.corpus_sha }}
-          path: ${{ runner.temp }}/candidate-acceptance
+          name: quality-zoo-native-candidate-${{ inputs.ici_target_sha }}-${{ inputs.corpus_sha }}
+          path: ${{ runner.temp }}/native-acceptance
           if-no-files-found: error
           retention-days: 14
           compression-level: 0

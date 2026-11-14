@@ -1,0 +1,2547 @@
+{
+  "schema_version": "ici.result/v3",
+  "suite_status": "WARN",
+  "duration": 3.125,
+  "passed_count": 0,
+  "warned_count": 19,
+  "failed_count": 0,
+  "error_count": 0,
+  "skipped_count": 0,
+  "total_count": 19,
+  "tem_score": 1.0417,
+  "max_tem_score": 5.0,
+  "results": [
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "line",
+      "status": "WARN",
+      "summary": "line summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "code": 40,
+        "comment": 5,
+        "blank": 2,
+        "total": 47,
+        "all": {
+          "code": 44,
+          "comment": 5,
+          "blank": 3,
+          "total": 52
+        },
+        "files_data": [
+          {
+            "path": "src/core.py",
+            "lang": "Python",
+            "scope": "source",
+            "code": 40,
+            "comment": 5,
+            "blank": 2,
+            "total": 47,
+            "status": "PASS"
+          },
+          {
+            "path": "docs/config.toml",
+            "lang": "TOML",
+            "scope": "extra",
+            "code": 4,
+            "comment": 0,
+            "blank": 1,
+            "total": 5,
+            "status": "PASS"
+          }
+        ],
+        "top_files": [
+          {
+            "path": "src/core.py",
+            "code": 40
+          }
+        ]
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/line.py",
+          "start_line": 2,
+          "end_line": 3,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "line:warning",
+          "status": "WARN",
+          "message": "line issue evidence",
+          "snippet": "line <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/line.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "line:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.line.target",
+          "category": "maintainability",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:61cfc36266e2e4d685abeb182e81ea89c556e5f45e6f83c8e4031f5bbc357837",
+          "primary_location": {
+            "path": "src/line.py",
+            "start_line": 2,
+            "end_line": 3,
+            "start_column": null,
+            "end_column": null,
+            "label": "line:warning"
+          },
+          "related_locations": [],
+          "message": "line issue evidence",
+          "explanation": "Adapted from the legacy line InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "line:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "line <value>\nnext line",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.line.target",
+          "category": "maintainability",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:d3e7b939d155f2feb51aacf4614f9f64a8975e577ded5ada244760a51a13a747",
+          "primary_location": {
+            "path": "src/line.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "line:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy line InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "line:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "lint",
+      "status": "WARN",
+      "summary": "lint summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "preserved_extension": "lint extension detail"
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/lint.py",
+          "start_line": 3,
+          "end_line": 4,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "lint:warning",
+          "status": "WARN",
+          "message": "lint issue evidence",
+          "snippet": "lint <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/lint.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "lint:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.lint.target",
+          "category": "maintainability",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:32eb750a7f063ebc6ebf6eb53782c8324854830946fddcfdd5bb8c1ecaa43abf",
+          "primary_location": {
+            "path": "src/lint.py",
+            "start_line": 3,
+            "end_line": 4,
+            "start_column": null,
+            "end_column": null,
+            "label": "lint:warning"
+          },
+          "related_locations": [],
+          "message": "lint issue evidence",
+          "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "lint:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "lint <value>\nnext line",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.lint.target",
+          "category": "maintainability",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:50c2b5efbc7e8afddf49adeb69889c468419273322364e3ee9661ffe28c889ce",
+          "primary_location": {
+            "path": "src/lint.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "lint:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "lint:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "compile_db",
+      "status": "WARN",
+      "summary": "compile_db summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "origin": "cmake",
+        "unity_build": true,
+        "covered_sources": [
+          "src/core.cpp"
+        ],
+        "generated_inputs": [
+          "build/moc_widget.cpp"
+        ]
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/compile_db.py",
+          "start_line": 4,
+          "end_line": 5,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "compile_db:warning",
+          "status": "WARN",
+          "message": "compile_db issue evidence",
+          "snippet": "compile_db <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/compile_db.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "compile_db:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.compile-db.target",
+          "category": "build",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:5942e99e7c31c193affc25dd62533a3eab82ee17d556710033763545d0a9e41e",
+          "primary_location": {
+            "path": "src/compile_db.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "compile_db:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy compile_db InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "compile_db:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.compile-db.target",
+          "category": "build",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:70cad2f02e433f4d903b7327d7cdfbea42a61db2654d5e5908d09e092ab626c6",
+          "primary_location": {
+            "path": "src/compile_db.py",
+            "start_line": 4,
+            "end_line": 5,
+            "start_column": null,
+            "end_column": null,
+            "label": "compile_db:warning"
+          },
+          "related_locations": [],
+          "message": "compile_db issue evidence",
+          "explanation": "Adapted from the legacy compile_db InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "compile_db:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "compile_db <value>\nnext line",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "test",
+      "status": "WARN",
+      "summary": "test summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "passed_tests": 2,
+        "total_tests": 3,
+        "pass_rate": 0.6666666666666666,
+        "line_coverage": 50.0,
+        "branch_coverage": 40.0,
+        "function_coverage": 50.0,
+        "tem_score": 1.0417,
+        "coverage_source": "gcov",
+        "coverage_totals": {
+          "stmts": 10,
+          "miss": 5,
+          "cover": 50.0,
+          "branch_cover": 40.0
+        },
+        "coverage_files": [
+          {
+            "file": "src/core.cpp",
+            "stmts": 10,
+            "covered": 5,
+            "miss": 5,
+            "cover": 50.0,
+            "branch_cover": 40.0,
+            "missing_lines": [
+              4,
+              5,
+              6
+            ]
+          }
+        ],
+        "function_rows": [
+          {
+            "file": "src/core.cpp",
+            "name": "used_function",
+            "start_line": 2,
+            "end_line": 6,
+            "covered": true,
+            "missing_lines": []
+          },
+          {
+            "file": "src/core.cpp",
+            "name": "unused_function",
+            "start_line": 8,
+            "end_line": 12,
+            "covered": false,
+            "missing_lines": [
+              9
+            ]
+          }
+        ],
+        "test_suites": [
+          {
+            "file": "tests/test_core.cpp",
+            "passed": 2,
+            "failed": 1,
+            "skipped": 0,
+            "total": 3,
+            "tests": [
+              {
+                "name": "passing_case",
+                "status": "passed"
+              },
+              {
+                "name": "failing_case",
+                "status": "failed",
+                "message": "expected <value>"
+              }
+            ]
+          }
+        ],
+        "test_quality": {
+          "weak_assertions": 1,
+          "assertion_targets": [
+            {
+              "path": "tests/test_core.cpp",
+              "line": 4,
+              "message": "equality only"
+            }
+          ]
+        }
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/test.py",
+          "start_line": 5,
+          "end_line": 6,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "test:warning",
+          "status": "WARN",
+          "message": "test issue evidence",
+          "snippet": "test <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/test.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "test:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.test.target",
+          "category": "test",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:c9a88b77239a4c408dedfd4c6aced634b269c7a6ab558355a7b1cc3cb6c41835",
+          "primary_location": {
+            "path": "src/test.py",
+            "start_line": 5,
+            "end_line": 6,
+            "start_column": null,
+            "end_column": null,
+            "label": "test:warning"
+          },
+          "related_locations": [],
+          "message": "test issue evidence",
+          "explanation": "Adapted from the legacy test InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "test:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "test <value>\nnext line",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.test.target",
+          "category": "test",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:d51ff338627d511f847ca44aa77db0bc8d235090b7caf5d9dd8e9ffc7c22cc34",
+          "primary_location": {
+            "path": "src/test.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "test:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy test InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "test:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "type",
+      "status": "WARN",
+      "summary": "type summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "preserved_extension": "type extension detail"
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/type.py",
+          "start_line": 6,
+          "end_line": 7,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "type:warning",
+          "status": "WARN",
+          "message": "type issue evidence",
+          "snippet": "type <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/type.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "type:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.type.target",
+          "category": "type",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:29cfaffd5d8cd2adc264d46ec8cfba6b231758c915a9806632f58fe266b78896",
+          "primary_location": {
+            "path": "src/type.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "type:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy type InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "type:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.type.target",
+          "category": "type",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:30d81fcc0f29e94c7d9baaac28956572c87b9faf6b19f63bad290a3a5ae5587d",
+          "primary_location": {
+            "path": "src/type.py",
+            "start_line": 6,
+            "end_line": 7,
+            "start_column": null,
+            "end_column": null,
+            "label": "type:warning"
+          },
+          "related_locations": [],
+          "message": "type issue evidence",
+          "explanation": "Adapted from the legacy type InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "type:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "type <value>\nnext line",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "python_compat",
+      "status": "WARN",
+      "summary": "python_compat summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "target_python": "3.10",
+        "requires_python": ">=3.10",
+        "package_inspection": {
+          "wheel": "demo-1.0-py3-none-any.whl"
+        }
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/python_compat.py",
+          "start_line": 7,
+          "end_line": 8,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "python_compat:warning",
+          "status": "WARN",
+          "message": "python_compat issue evidence",
+          "snippet": "python_compat <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/python_compat.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "python_compat:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.python-compat.target",
+          "category": "correctness",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:09f7712912fda8d53a4d9c14f1b200f60a096d46995234136c4263624445abc7",
+          "primary_location": {
+            "path": "src/python_compat.py",
+            "start_line": 7,
+            "end_line": 8,
+            "start_column": null,
+            "end_column": null,
+            "label": "python_compat:warning"
+          },
+          "related_locations": [],
+          "message": "python_compat issue evidence",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "python_compat:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "python_compat <value>\nnext line",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.python-compat.target",
+          "category": "correctness",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:857c35a418272a9b1950eef1d26a7be460193c343cbd164fc575b81fde394d44",
+          "primary_location": {
+            "path": "src/python_compat.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "python_compat:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "python_compat:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "cognitive",
+      "status": "WARN",
+      "summary": "cognitive summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "top_cognitive_funcs": [
+          {
+            "file": "src/core.cpp",
+            "name": "nested_function",
+            "cognitive": 9,
+            "nesting": 4
+          }
+        ]
+      },
+      "required": true,
+      "evidence": "ESTIMATED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/cognitive.py",
+          "start_line": 8,
+          "end_line": 9,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "cognitive:warning",
+          "status": "WARN",
+          "message": "cognitive issue evidence",
+          "snippet": "cognitive <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/cognitive.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "cognitive:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.cognitive.target",
+          "category": "maintainability",
+          "severity": "info",
+          "confidence": "medium",
+          "fingerprint": "sha256:0540e0bad61c17d7835eeab6edb2ac11f281a3e5559cee6a827998cfaea78dc6",
+          "primary_location": {
+            "path": "src/cognitive.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "cognitive:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy cognitive InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "cognitive:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.cognitive.target",
+          "category": "maintainability",
+          "severity": "medium",
+          "confidence": "medium",
+          "fingerprint": "sha256:0d26b15352f19b6d5112f4b8528ab4a42054257eb2a23774d6820928fd580a6d",
+          "primary_location": {
+            "path": "src/cognitive.py",
+            "start_line": 8,
+            "end_line": 9,
+            "start_column": null,
+            "end_column": null,
+            "label": "cognitive:warning"
+          },
+          "related_locations": [],
+          "message": "cognitive issue evidence",
+          "explanation": "Adapted from the legacy cognitive InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "cognitive:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "cognitive <value>\nnext line",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "resource",
+      "status": "WARN",
+      "summary": "resource summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "preserved_extension": "resource extension detail"
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/resource.py",
+          "start_line": 9,
+          "end_line": 10,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "resource:warning",
+          "status": "WARN",
+          "message": "resource issue evidence",
+          "snippet": "resource <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/resource.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "resource:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.resource.target",
+          "category": "resource",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:19adf255b2ddbe8faa1761e28b980ede1c899e8b6e58bf42737171bb2020f3a2",
+          "primary_location": {
+            "path": "src/resource.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "resource:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "resource:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.resource.target",
+          "category": "resource",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:7fef78535df7a2c205924eb24451f7a11e831f453d0c0aabfd8884ce0819a8f9",
+          "primary_location": {
+            "path": "src/resource.py",
+            "start_line": 9,
+            "end_line": 10,
+            "start_column": null,
+            "end_column": null,
+            "label": "resource:warning"
+          },
+          "related_locations": [],
+          "message": "resource issue evidence",
+          "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "resource:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "resource <value>\nnext line",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "security",
+      "status": "WARN",
+      "summary": "security summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "preserved_extension": "security extension detail"
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/security.py",
+          "start_line": 10,
+          "end_line": 11,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "security:warning",
+          "status": "WARN",
+          "message": "security issue evidence",
+          "snippet": "security <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/security.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "security:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.security.target",
+          "category": "security",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:4434e8d74d2ac51b5eabc342745ea2d4dc48a2b57053d3bab13a52bab95f4a3e",
+          "primary_location": {
+            "path": "src/security.py",
+            "start_line": 10,
+            "end_line": 11,
+            "start_column": null,
+            "end_column": null,
+            "label": "security:warning"
+          },
+          "related_locations": [],
+          "message": "security issue evidence",
+          "explanation": "Adapted from the legacy security InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "security:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "security <value>\nnext line",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.security.target",
+          "category": "security",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:be3d693574d949e3ff2f82e639aaf7e129f76a34b5c21e30258a15cef27492f9",
+          "primary_location": {
+            "path": "src/security.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "security:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy security InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "security:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "cycle",
+      "status": "WARN",
+      "summary": "cycle summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "py_cycles": 1,
+        "cpp_cycles": 0,
+        "cycles": [
+          [
+            "pkg.a",
+            "pkg.b"
+          ]
+        ]
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/cycle.py",
+          "start_line": 11,
+          "end_line": 12,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "cycle:warning",
+          "status": "WARN",
+          "message": "cycle issue evidence",
+          "snippet": "cycle <value>\nnext line",
+          "metrics": {
+            "modules": [
+              "pkg.a",
+              "pkg.b"
+            ],
+            "files": [
+              "src/a.py",
+              "src/b.py"
+            ]
+          }
+        },
+        {
+          "file_path": "src/cycle.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "cycle:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.cycle.target",
+          "category": "architecture",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:37ac7f41d641d96b78f2e4d6842b54954e18295c5d5a1c3752a2711b0986dc76",
+          "primary_location": {
+            "path": "src/cycle.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "cycle:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy cycle InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "cycle:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.cycle.target",
+          "category": "architecture",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:ce1ffe04188d1925ae3c8011c8d4dd09dd5a2035e9d3b80b87eed09dc9079d00",
+          "primary_location": {
+            "path": "src/cycle.py",
+            "start_line": 11,
+            "end_line": 12,
+            "start_column": null,
+            "end_column": null,
+            "label": "cycle:warning"
+          },
+          "related_locations": [],
+          "message": "cycle issue evidence",
+          "explanation": "Adapted from the legacy cycle InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "cycle:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "cycle <value>\nnext line",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "complexity",
+      "status": "WARN",
+      "summary": "complexity summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "top_complex_funcs": [
+          {
+            "file": "src/core.py",
+            "name": "complex_function",
+            "complexity": 14,
+            "lines": 20,
+            "nesting": 4
+          }
+        ],
+        "distribution": {
+          "A": 2,
+          "C": 1
+        }
+      },
+      "required": true,
+      "evidence": "ESTIMATED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/complexity.py",
+          "start_line": 12,
+          "end_line": 13,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "complexity:warning",
+          "status": "WARN",
+          "message": "complexity issue evidence",
+          "snippet": "complexity <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/complexity.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "complexity:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.complexity.target",
+          "category": "maintainability",
+          "severity": "info",
+          "confidence": "medium",
+          "fingerprint": "sha256:79d93d7b9ba9d3b88a00b88cdca2bc1f1a5c23a7513ed516af673fc80be552da",
+          "primary_location": {
+            "path": "src/complexity.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "complexity:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "complexity:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.complexity.target",
+          "category": "maintainability",
+          "severity": "medium",
+          "confidence": "medium",
+          "fingerprint": "sha256:b08405dbf1f24a15ab292d13b1591732616104777e2371a40ec2a4e789250e68",
+          "primary_location": {
+            "path": "src/complexity.py",
+            "start_line": 12,
+            "end_line": 13,
+            "start_column": null,
+            "end_column": null,
+            "label": "complexity:warning"
+          },
+          "related_locations": [],
+          "message": "complexity issue evidence",
+          "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "complexity:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "complexity <value>\nnext line",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "sanitize",
+      "status": "WARN",
+      "summary": "sanitize summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "kind": "address",
+        "frames": [
+          {
+            "path": "src/core.cpp",
+            "line": 12,
+            "symbol": "unsafe_access"
+          }
+        ]
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/sanitize.py",
+          "start_line": 13,
+          "end_line": 14,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "sanitize:warning",
+          "status": "WARN",
+          "message": "sanitize issue evidence",
+          "snippet": "sanitize <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/sanitize.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "sanitize:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.sanitize.target",
+          "category": "correctness",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:0be47a29d17347c66d5e4dc88e51eff6b288d22d35dc44c2b5183b1526a1f569",
+          "primary_location": {
+            "path": "src/sanitize.py",
+            "start_line": 13,
+            "end_line": 14,
+            "start_column": null,
+            "end_column": null,
+            "label": "sanitize:warning"
+          },
+          "related_locations": [],
+          "message": "sanitize issue evidence",
+          "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "sanitize:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "sanitize <value>\nnext line",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.sanitize.target",
+          "category": "correctness",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:f9ee725827a84dcb0693ed61df6991585fd6417140e5e88e82685b03346f556b",
+          "primary_location": {
+            "path": "src/sanitize.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "sanitize:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "sanitize:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "thread_sanitize",
+      "status": "WARN",
+      "summary": "thread_sanitize summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "preserved_extension": "thread_sanitize extension detail"
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/thread_sanitize.py",
+          "start_line": 14,
+          "end_line": 15,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "thread_sanitize:warning",
+          "status": "WARN",
+          "message": "thread_sanitize issue evidence",
+          "snippet": "thread_sanitize <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/thread_sanitize.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "thread_sanitize:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.thread-sanitize.target",
+          "category": "correctness",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:8ceced92a33bde9212a9bd98672a041276d065893e2e60dde4d7d195e2ff1f56",
+          "primary_location": {
+            "path": "src/thread_sanitize.py",
+            "start_line": 14,
+            "end_line": 15,
+            "start_column": null,
+            "end_column": null,
+            "label": "thread_sanitize:warning"
+          },
+          "related_locations": [],
+          "message": "thread_sanitize issue evidence",
+          "explanation": "Adapted from the legacy thread_sanitize InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "thread_sanitize:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "thread_sanitize <value>\nnext line",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.thread-sanitize.target",
+          "category": "correctness",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:a37512d1cc8168d66ac4408bdc9a8d11a8a77f4af962ab09d173089c83d0c9a9",
+          "primary_location": {
+            "path": "src/thread_sanitize.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "thread_sanitize:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy thread_sanitize InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "thread_sanitize:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "dead",
+      "status": "WARN",
+      "summary": "dead summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "preserved_extension": "dead extension detail"
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/dead.py",
+          "start_line": 15,
+          "end_line": 16,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "dead:warning",
+          "status": "WARN",
+          "message": "dead issue evidence",
+          "snippet": "dead <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/dead.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "dead:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.dead.target",
+          "category": "maintainability",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:569e1c5aae86c40b1f9fc1e941e8209c4f166876b2460543626e0e4e7947538e",
+          "primary_location": {
+            "path": "src/dead.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "dead:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy dead InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "dead:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.dead.target",
+          "category": "maintainability",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:e8d89c1191fe027abd34fe12b3da2bff04ca365d8197aa0200c33f207af480be",
+          "primary_location": {
+            "path": "src/dead.py",
+            "start_line": 15,
+            "end_line": 16,
+            "start_column": null,
+            "end_column": null,
+            "label": "dead:warning"
+          },
+          "related_locations": [],
+          "message": "dead issue evidence",
+          "explanation": "Adapted from the legacy dead InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "dead:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "dead <value>\nnext line",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "dup",
+      "status": "WARN",
+      "summary": "dup summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "clone_groups": [
+          {
+            "id": 7,
+            "lines_count": 6,
+            "occurrences_count": 2,
+            "detection": "python-ast-semantic-shape",
+            "snippet": "def duplicate(x):\n    return x < 3",
+            "occurrences": [
+              {
+                "file_path": "src/a.py",
+                "start_line": 4,
+                "end_line": 9,
+                "loc": "a.py:L4"
+              },
+              {
+                "file_path": "src/b.py",
+                "start_line": 11,
+                "end_line": 16,
+                "loc": "b.py:L11"
+              }
+            ]
+          }
+        ],
+        "duplication_pct": 12.5
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/dup.py",
+          "start_line": 16,
+          "end_line": 17,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "dup:warning",
+          "status": "WARN",
+          "message": "dup issue evidence",
+          "snippet": "dup <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/dup.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "dup:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.dup.target",
+          "category": "maintainability",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:64c4b973b29c1a800a6665d6723e970b0a667b9e0042a405a232138148208c19",
+          "primary_location": {
+            "path": "src/dup.py",
+            "start_line": 16,
+            "end_line": 17,
+            "start_column": null,
+            "end_column": null,
+            "label": "dup:warning"
+          },
+          "related_locations": [],
+          "message": "dup issue evidence",
+          "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "dup:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "dup <value>\nnext line",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.dup.target",
+          "category": "maintainability",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:8761c147d654e5cd779ac73c5dd2db26ec1f0e1be874507c39273a303b8a1f40",
+          "primary_location": {
+            "path": "src/dup.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "dup:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "dup:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "exception",
+      "status": "WARN",
+      "summary": "exception summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "preserved_extension": "exception extension detail"
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/exception.py",
+          "start_line": 17,
+          "end_line": 18,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "exception:warning",
+          "status": "WARN",
+          "message": "exception issue evidence",
+          "snippet": "exception <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/exception.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "exception:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.exception.target",
+          "category": "correctness",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:974701dec6dc4e2e38e973626b3d4bfceedeafb87230ea54526d7b5a13370c4d",
+          "primary_location": {
+            "path": "src/exception.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "exception:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "exception:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.exception.target",
+          "category": "correctness",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:e98739efc7a871dddfebe644baad1e4accac4279d794bb47bb4df3689b597a8f",
+          "primary_location": {
+            "path": "src/exception.py",
+            "start_line": 17,
+            "end_line": 18,
+            "start_column": null,
+            "end_column": null,
+            "label": "exception:warning"
+          },
+          "related_locations": [],
+          "message": "exception issue evidence",
+          "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "exception:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "exception <value>\nnext line",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "build",
+      "status": "WARN",
+      "summary": "build summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "artifact_manifest": {
+          "schema_version": "ici.artifacts/v2",
+          "producer": "cmake",
+          "variant": "release",
+          "artifacts": [
+            {
+              "path": "build/core",
+              "target": "core",
+              "command": [
+                "cmake",
+                "--build",
+                "build"
+              ]
+            }
+          ]
+        }
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/build.py",
+          "start_line": 18,
+          "end_line": 19,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "build:warning",
+          "status": "WARN",
+          "message": "build issue evidence",
+          "snippet": "build <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/build.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "build:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.build.target",
+          "category": "build",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:7810f1a7cf4f3e51f3947263165bda0c212b9d298d8596093daf9940afced1f4",
+          "primary_location": {
+            "path": "src/build.py",
+            "start_line": 18,
+            "end_line": 19,
+            "start_column": null,
+            "end_column": null,
+            "label": "build:warning"
+          },
+          "related_locations": [],
+          "message": "build issue evidence",
+          "explanation": "Adapted from the legacy build InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "build:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "build <value>\nnext line",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.build.target",
+          "category": "build",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:fba359bb9d649e303b5f9eaa919e6f4d83ebab7fd805eb4131b75979e523c407",
+          "primary_location": {
+            "path": "src/build.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "build:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy build InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "build:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "binary_compat",
+      "status": "WARN",
+      "summary": "binary_compat summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "before_symbols": [
+          "old_symbol"
+        ],
+        "after_symbols": [
+          "new_symbol"
+        ],
+        "removed": [
+          "old_symbol"
+        ]
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/binary_compat.py",
+          "start_line": 19,
+          "end_line": 20,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "binary_compat:warning",
+          "status": "WARN",
+          "message": "binary_compat issue evidence",
+          "snippet": "binary_compat <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/binary_compat.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "binary_compat:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.binary-compat.target",
+          "category": "compatibility",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:9f5acfd550f5e1d8655bd2503ea687a31a9d2f7a1cb15dcb30ad0e6b030dddb0",
+          "primary_location": {
+            "path": "src/binary_compat.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "binary_compat:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy binary_compat InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "binary_compat:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.binary-compat.target",
+          "category": "compatibility",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:d5f35c6d97631eb506efe1477e11487c7f5eef99f26ca6c05da4da20c1dca3f8",
+          "primary_location": {
+            "path": "src/binary_compat.py",
+            "start_line": 19,
+            "end_line": 20,
+            "start_column": null,
+            "end_column": null,
+            "label": "binary_compat:warning"
+          },
+          "related_locations": [],
+          "message": "binary_compat issue evidence",
+          "explanation": "Adapted from the legacy binary_compat InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "binary_compat:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "binary_compat <value>\nnext line",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    },
+    {
+      "schema_version": "ici.result/v3",
+      "engine_name": "integration",
+      "status": "WARN",
+      "summary": "integration summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+        "steps": [
+          {
+            "name": "service_ready",
+            "status": "PASS"
+          },
+          {
+            "name": "request_roundtrip",
+            "status": "FAIL"
+          }
+        ]
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [
+        {
+          "file_path": "src/integration.py",
+          "start_line": 20,
+          "end_line": 21,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "integration:warning",
+          "status": "WARN",
+          "message": "integration issue evidence",
+          "snippet": "integration <value>\nnext line",
+          "metrics": {
+            "lines": 2,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/integration.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "integration:PASS",
+          "status": "PASS",
+          "message": "inspected normal location",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "ici.legacy.integration.target",
+          "category": "correctness",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:9f4d8f42b602924017d04c6a8b98ff2af356a2a9df0432256454d2b2924b332b",
+          "primary_location": {
+            "path": "src/integration.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "integration:PASS"
+          },
+          "related_locations": [],
+          "message": "inspected normal location",
+          "explanation": "Adapted from the legacy integration InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "integration:PASS",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.integration.target",
+          "category": "correctness",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:fff2272dc11c5535f625ce4b165cd50f788d9b11c03605882f836579303a8580",
+          "primary_location": {
+            "path": "src/integration.py",
+            "start_line": 20,
+            "end_line": 21,
+            "start_column": null,
+            "end_column": null,
+            "label": "integration:warning"
+          },
+          "related_locations": [],
+          "message": "integration issue evidence",
+          "explanation": "Adapted from the legacy integration InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "integration:warning",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 2,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "integration <value>\nnext line",
+          "fixes": []
+        }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+    }
+  ],
+  "support_matrix": {
+    "project_languages": [
+      "python",
+      "cpp"
+    ],
+    "project_frameworks": [
+      "Qt"
+    ],
+    "entries": [
+      {
+        "engine_name": "complexity",
+        "language": "cpp",
+        "mode": "heuristic",
+        "active_mode": "heuristic",
+        "applicable": true,
+        "enabled": true,
+        "evidence": "ESTIMATED",
+        "confidence": "medium",
+        "frameworks": [
+          "Qt"
+        ],
+        "required_tools": [
+          "clang-tidy"
+        ],
+        "optional_tools": [],
+        "fallback_mode": null,
+        "limitations": [
+          "Source estimate preserves compiler boundary uncertainty"
+        ],
+        "reason": "measured boundary; estimated complexity"
+      }
+    ]
+  },
+  "analysis_metadata": null,
+  "baseline_comparison": null,
+  "capability_inventory": null,
+  "analysis_context": null,
+  "producer_extension": {
+    "unknown": "keep rich extension",
+    "literal": "</script><script>alert(1)</script>"
+  }
+}

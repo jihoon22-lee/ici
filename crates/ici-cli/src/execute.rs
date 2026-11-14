@@ -1,0 +1,2838 @@
+//! Execution lifecycle. Immutable analysis, process evidence, policy and saved artifacts stay distinct.
+use crate::{
+    commands::{CliError, CommandOutput, Result, under},
+    events::{EventLog, SignalGuard},
+    inputs,
+    planning::{self, PreparedPlan},
+    registry::Invocation,
+};
+use ici_application::{
+    assemble::{self, RunContext},
+    identity,
+    plan::Work,
+    suppressions::SuppressionPolicy,
+    verification,
+};
+use ici_domain::{AnalysisOutput, GateVerdict, Observation, RunResult, TaskState};
+use ici_execution::{
+    Cancellation, Runner, Scheduler,
+    storage::{self, WriteMode},
+};
+use serde_json::json;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::{Path, PathBuf},
+    time::Instant,
+};
+
+#[derive(Debug)]
+pub struct ExecutedRun {
+    pub result: RunResult,
+    /// Retain actual inspected PASS/FAIL locations and descriptor extras for report projection.
+    pub outputs: BTreeMap<String, AnalysisOutput>,
+    pub result_path: PathBuf,
+    /// The run's resolved workspace root (where `--result` and the details resolve).
+    pub project_root: PathBuf,
+    pub raw_fingerprints: BTreeMap<String, String>,
+    /// Native observation-cache key of every task that had one (task id -> `sha256:` key).
+    pub cache_keys: BTreeMap<String, String>,
+    pub required_checks: BTreeMap<String, bool>,
+    pub engine_names: BTreeMap<String, String>,
+    pub project_name: String,
+    pub duration_seconds: f64,
+    /// Frozen-shaped legacy `baseline_comparison` of a comparable baseline (severity regressions
+    /// and fail-on-new gate entries); `None` without a comparable baseline.
+    pub legacy_baseline: Option<serde_json::Value>,
+    /// The saved legacy suite (`results`, `analysis_metadata`) of a comparable baseline that a
+    /// native `--write-baseline` wrote, for the frozen legacy-space comparison.
+    pub legacy_baseline_suite: Option<serde_json::Value>,
+    /// Gated new findings and gated severity regressions against a comparable baseline.
+    pub baseline_gate_failures: Vec<String>,
+    /// The prepared C++ analysis context as preparation left it
+    /// ([`crate::cpp::CppPlans::legacy_suite_snapshot`]), for the legacy suite report.
+    pub legacy_suite_snapshot: serde_json::Value,
+    /// The legacy suite's capability inventory and its native evidence, taken before
+    /// preparation (`ici verify` only).
+    pub legacy_capability_inventory: Option<crate::doctor::SuiteCapabilities>,
+    /// The `project.cpp_pkg_config` flags `ici verify` probed before preparing (empty for every
+    /// other command); each package that added none is a limitation of `result` instead
+    /// (root ruling 2026-11-14).
+    pub legacy_package_flags: Vec<String>,
+    /// Frozen `_announce` lines for the resolved root and scope.
+    pub announcement: Option<String>,
+    /// Run-level notes frozen `verify_text` prints: plan and execution limitations, without the
+    /// per-analysis limitations the saved result also carries.
+    pub notes: Vec<String>,
+    /// Frozen `verify_text`'s per-unit execution notes (`note: <unit>: <detail>`), kept only where
+    /// a ruling restored them: a check blocked behind next's empty pytest suite (exit 5).
+    pub unit_notes: Vec<(String, String)>,
+}
+/// The exact command that writes a baseline this command can compare against.
+pub fn regenerate_baseline_command(command: &str, baseline: &str) -> String {
+    let quote = |path: &str| {
+        if !path.is_empty()
+            && path
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b"._/-+@%=:,".contains(&b))
+        {
+            path.to_owned()
+        } else {
+            format!("'{}'", path.replace('\'', "'\\''"))
+        }
+    };
+    if command == "verify" {
+        format!("ici verify --write-baseline {}", quote(baseline))
+    } else {
+        let fresh = baseline.strip_suffix(".json").map_or_else(
+            || format!("{baseline}.next.json"),
+            |stem| format!("{stem}.next.json"),
+        );
+        format!(
+            "ici analyze --result {} (then pass --baseline {})",
+            quote(&fresh),
+            quote(&fresh)
+        )
+    }
+}
+fn error(error: impl std::fmt::Display) -> CliError {
+    CliError(error.to_string())
+}
+
+pub fn command(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    static_only: bool,
+) -> Result<CommandOutput> {
+    let cancellation = Cancellation::default();
+    let _signals = SignalGuard::install(&cancellation).map_err(error)?;
+    let json_mode = invocation.flag("json_mode");
+    // Frozen `_announce`: root and scope precede everything; under --json they are diagnostics.
+    let place = |announcement: String, mut output: CommandOutput| {
+        if json_mode {
+            output.stderr.insert_str(0, &announcement);
+        } else {
+            output.stdout.insert_str(0, &announcement);
+        }
+        output
+    };
+    let run = match execute(invocation, cwd, environment, static_only, &cancellation) {
+        Ok(run) => run,
+        Err(failure) => {
+            // A refusal after scope resolution (nothing selected, an unreadable baseline, an
+            // unwritable destination) still follows the announcement, as in the frozen flow.
+            return match crate::planning::announcement(invocation, cwd, environment) {
+                Some(announcement) => Ok(place(
+                    announcement,
+                    CommandOutput {
+                        stdout: String::new(),
+                        stderr: crate::commands::diagnostic(&failure),
+                        exit_code: 2,
+                    },
+                )),
+                None => Err(failure),
+            };
+        }
+    };
+    let stdout = if json_mode {
+        run.result.to_json().map_err(error)? + "\n"
+    } else {
+        let notes: Vec<String> = run
+            .notes
+            .iter()
+            .map(|note| ici_execution::redaction::redact_text(note))
+            .collect();
+        let unit_notes: Vec<(String, String)> = run
+            .unit_notes
+            .iter()
+            .map(|(unit, detail)| (unit.clone(), ici_execution::redaction::redact_text(detail)))
+            .collect();
+        let mut text =
+            crate::run_text::verdict_block(&run.result, &unit_notes, &notes, &run.result_path);
+        // Root decision D4: frozen `next verify` (cli/next_path.cmd_verify) writes only the
+        // result and its text ends at `saved <path>`; the page is `next report`'s job. Only
+        // `ici analyze` adds the offline page and the finding preview (execution plan §2.1).
+        if invocation.command() == "analyze" {
+            // The run's own workspace root, as frozen `analyze` resolves its outputs (not the
+            // `next report` artifact root, which stops below an enclosing checkout).
+            let root = run.project_root.clone();
+            let stored = crate::report::load(&root, &run.result_path)?;
+            let options = ici_reporting::RenderOptions {
+                source_root: Some(root.to_string_lossy().into_owned()),
+                ..Default::default()
+            };
+            // Root decision E2: frozen wrote only the result beside an explicit `--result`, so
+            // the page of a result outside the native namespace lives with its details under
+            // `<project>/.ici/rust-v1/details/<file>/<run>/` and never beside a user path (nor
+            // over a user's own `<result>.html`); the default result keeps its page beside it.
+            let page = if run.result_path.starts_with(root.join(".ici/rust-v1")) {
+                run.result_path.with_extension("html")
+            } else {
+                crate::report::details_path(&root, &run.result_path, &run.result.run_id)?
+                    .with_file_name("page.html")
+            };
+            let html = ici_reporting::render_html(&stored, &options).map_err(error)?;
+            crate::report::write_artifact(
+                &page,
+                html.as_bytes(),
+                &run.result_path,
+                crate::report::ArtifactKind::Html,
+            )
+            .map_err(|failure| {
+                CliError(format!(
+                    "analysis result saved at {}; HTML could not be written: {failure}",
+                    run.result_path.display()
+                ))
+            })?;
+            text.push_str(&crate::run_text::native_tail(&run.result, &page));
+        }
+        text
+    };
+    let output = CommandOutput {
+        stdout,
+        stderr: String::new(),
+        exit_code: run.result.exit_code(),
+    };
+    Ok(match run.announcement.clone() {
+        Some(announcement) => place(announcement, output),
+        None => output,
+    })
+}
+
+pub fn execute(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    static_only: bool,
+    cancellation: &Cancellation,
+) -> Result<ExecutedRun> {
+    let started = Instant::now();
+    let run_id = format!(
+        "{}-{}",
+        chrono::Utc::now().format("%Y%m%dT%H%M%S%.9fZ"),
+        std::process::id()
+    );
+    let mut prepared =
+        planning::prepare_for_run(invocation, cwd, environment, static_only, &run_id)?;
+    let result_path = under(
+        &prepared.project.root,
+        invocation.value("result").unwrap_or(crate::DEFAULT_RESULT),
+    );
+    let events_path = invocation
+        .value("events")
+        .map(|path| under(&prepared.project.root, path));
+    let baseline_path = invocation
+        .value("baseline")
+        .map(|path| under(&prepared.project.root, path));
+    protect_outputs(
+        &prepared,
+        &result_path,
+        events_path.as_deref(),
+        baseline_path.as_deref(),
+    )?;
+    // Invalid baselines and artifact destinations fail before launching project tools.
+    // Frozen next `_load_baseline`: an unreadable baseline is a `config: ` refusal naming it.
+    let baseline_document = baseline_path
+        .as_ref()
+        .map(|path| {
+            crate::report::load(&prepared.project.root, path).map_err(|e| {
+                if crate::legacy::is_legacy(invocation) {
+                    crate::legacy_execute::baseline_load_error(path, &e)
+                } else if path.is_file() {
+                    crate::commands::classed(
+                        crate::commands::CONFIG_PREFIX,
+                        format!(
+                            "baseline {} is not a result this version can read: {e}",
+                            path.display()
+                        ),
+                    )
+                } else {
+                    crate::commands::classed(
+                        crate::commands::CONFIG_PREFIX,
+                        format!("baseline {} cannot be read: {e}", path.display()),
+                    )
+                }
+            })
+        })
+        .transpose()?;
+    let baseline = baseline_document.as_ref().and_then(|stored| match stored {
+        ici_reporting::StoredResult::Run(run) => Some(run.as_ref().clone()),
+        ici_reporting::StoredResult::Legacy(legacy) => legacy
+            .as_value()
+            .get("native_run")
+            .cloned()
+            .and_then(|value| RunResult::from_value(value).ok()),
+    });
+    validate_destination(&result_path, false)?;
+    validate_destination(
+        &crate::report::details_path(&prepared.project.root, &result_path, &run_id)?,
+        true,
+    )?;
+    if result_path.exists() {
+        storage::read_result(&result_path).map_err(|failure| CliError(format!("existing result is not a native run artifact; choose a new --result path: {failure}")))?;
+    }
+    if let Some(path) = &events_path {
+        if previous_event_stream(path)? {
+            validate_destination(path, false)?;
+            std::fs::remove_file(path).map_err(error)?;
+        }
+        validate_destination(path, true)?;
+    }
+    let runner = Runner::with_environment(environment.clone());
+    // Observe the user's tree before our result/event artifacts can make it dirty.
+    let vcs = crate::vcs::inspect(&prepared.source_identity, &runner, cancellation);
+    let events = EventLog::open(events_path.as_deref(), &run_id).map_err(error)?;
+    events.emit("run.started", None, None, "capturing selected inputs");
+    let mut scheduler = Scheduler::new(runner.clone(), 2);
+    scheduler.lock_directory = Some(prepared.project.root.join(".ici/rust-v1/locks/tasks"));
+    let mut limitations = vec![];
+    limitations.extend(vcs.limitation);
+    let mut input_limits = inputs::binary_limits(&prepared);
+    let mut code_input_paths = inputs::code_evidence_paths(&prepared);
+    let (snapshot, intake_ok) = match inputs::capture(&prepared) {
+        Ok(snapshot) => (snapshot, true),
+        Err(failure) => {
+            limitations.push(failure.to_string());
+            (inputs::empty_snapshot(), false)
+        }
+    };
+    events.emit(
+        "plan.ready",
+        None,
+        None,
+        &format!("{} selected checks", prepared.plan.checks.len()),
+    );
+    // Frozen `ici verify` takes its capability inventory before preparing anything; the saved
+    // suite reuses it, so a report never probes again.
+    let legacy_capability_inventory = if invocation.command() == "verify" {
+        Some(crate::legacy_support::suite_capability_inventory(
+            invocation,
+            &prepared,
+            environment,
+            cancellation,
+        )?)
+    } else {
+        None
+    };
+    // Frozen `verify` resolves `project.cpp_pkg_config` while it discovers the project model,
+    // before any engine runs. Root ruling 2026-11-14: a configured package that added no flags
+    // is an explicit limitation of the saved run, never a silent omission.
+    let legacy_package_flags = if invocation.command() == "verify" {
+        let probed = crate::cpp::package_flags::preparation_flags(&prepared.project, environment);
+        limitations.extend(probed.limitations);
+        probed.flags
+    } else {
+        vec![]
+    };
+    // Frozen reads a project's own database before preparing anything; the overlay may later
+    // point the component at a shadow this run prepares.
+    let legacy_project_database = crate::legacy::is_legacy(invocation)
+        .then(|| crate::cpp::CppPlans::legacy_project_database(&prepared.project, environment))
+        .flatten();
+    let preparation = crate::preparation::execute(
+        prepared,
+        snapshot,
+        intake_ok,
+        &crate::preparation::Runtime {
+            invocation,
+            environment,
+            run_id: &run_id,
+            static_only,
+            scheduler: &scheduler,
+            cancellation,
+            events: &events,
+        },
+    );
+    let crate::preparation::PreparedExecution {
+        prepared: resolved,
+        snapshot,
+        intake_ok,
+        inputs_changed: preparation_changed,
+        outputs: pre_outputs,
+        contexts: context_guards,
+        limitations: preparation_limits,
+    } = preparation;
+    prepared = resolved;
+    let legacy_suite_snapshot = prepared.cpp.legacy_suite_snapshot(legacy_project_database);
+    input_limits.extend(inputs::binary_limits(&prepared));
+    code_input_paths.extend(inputs::code_evidence_paths(&prepared));
+    limitations.extend(preparation_limits);
+    let core_digest =
+        ici_execution::process::executable_digest(Path::new("/proc/self/exe")).map_err(error);
+    let core_known = core_digest.is_ok();
+    if let Err(failure) = &core_digest {
+        limitations.push(format!("core identity unavailable: {failure}"));
+    }
+    let policy_digest = identity::policy_digest(&prepared.project).map_err(error)?;
+    // A partial snapshot proves nothing about the sources it left unread: no reuse, no store.
+    let cache = crate::reuse::RunCache::new(
+        &prepared.project.root,
+        core_digest.as_ref().ok().map(String::as_str),
+        &policy_digest,
+        invocation.flag("no_cache"),
+    )
+    .filter(|_| snapshot.uncaptured.is_empty());
+    let root = prepared.project.root.clone();
+    prepared
+        .cpp
+        .refuse_uncaptured_steps(&root, &snapshot.uncaptured);
+    for (id, steps) in &prepared.cpp.blocked_steps {
+        prepared.suite_steps.insert(id.clone(), steps.clone());
+    }
+    for check in &mut prepared.plan.checks {
+        let Some(providers) = prepared.cpp.diagnostics.get(&check.task_id) else {
+            continue;
+        };
+        if let Work::Steps { tasks, .. } = &mut check.work {
+            tasks.retain(|task| providers.iter().any(|provider| provider.task.id == task.id));
+            if tasks.is_empty()
+                && let Some(reason) = prepared
+                    .suite_steps
+                    .get(&check.task_id)
+                    .and_then(|steps| steps.iter().find_map(|(_, reason)| reason.clone()))
+            {
+                check.work = Work::Blocked { reason };
+            }
+        }
+    }
+    let mut cache_keys = BTreeMap::new();
+    let mut reused = vec![];
+    let toolchain_digest=identity::digest(&json!({"namespace":"ici.rust.toolchain.v1","core":core_digest.ok(),"tools":prepared.toolchain_roles()})).map_err(error)?;
+    let coordinates =
+        ici_providers::source_coordinates(snapshot.files.values().map(|file| &file.input));
+    prepared.cpp.attach_sources(coordinates.clone());
+    for provider in prepared.providers.values_mut() {
+        ici_providers::attach_sources(provider, coordinates.clone());
+    }
+    let mut python = ici_analysis::AnalysisSession::new();
+    let mut cpp = ici_cpp::CppAnalysisSession::new();
+    let mut outputs = pre_outputs;
+    let mut unit_notes: Vec<(String, String)> = vec![];
+    // Legacy lint syntax outputs projected so far (task id -> heuristic fallback).
+    let mut projected_lint = BTreeMap::<String, bool>::new();
+    let mut step_outcomes = BTreeMap::new();
+    // Blocked checks whose refusal the legacy projection reports as frozen's measured scope
+    // error (a CMake sanitizer suite without CTestTestfile.cmake): preparation answered them,
+    // so, like an observed preparation failure, they become internal work after execution.
+    let mut projected_refusals = BTreeSet::new();
+    let mut owned_runs = BTreeMap::new();
+    let mut enrichment_incomplete = BTreeMap::new();
+    for plans in prepared.validations.values_mut() {
+        for plan in plans {
+            ici_validation::attach_sources(plan, coordinates.clone());
+        }
+    }
+    if intake_ok && !cancellation.is_cancelled() {
+        for planned in &prepared.plan.checks {
+            if planned.check.language != "python"
+                || !prepared.validations.contains_key(&planned.task_id)
+            {
+                continue;
+            }
+            let mut request =
+                inputs::analysis_request(&prepared, planned, &snapshot, prepared.legacy_projection);
+            let component = inputs::component(&prepared, planned);
+            for (path, file) in &snapshot.files {
+                if path.ends_with(".py")
+                    && (component.root == "." || path.starts_with(&format!("{}/", component.root)))
+                    && !request.inputs.iter().any(|input| input.path == *path)
+                {
+                    request.inputs.push(file.input.clone());
+                }
+            }
+            let (facts, facts_complete, fact_limitation) = match python
+                .source_facts_cancellable(&request, &cancellation.flag())
+            {
+                Ok(facts) => (
+                    facts
+                        .functions
+                        .into_iter()
+                        .map(|fact| ici_validation::FunctionFact {
+                            path: fact.path,
+                            name: fact.name,
+                            qualified_name: fact.qualified_name,
+                            start_line: fact.start_line,
+                            entry_line: Some(fact.entry_line),
+                            body_start_line: fact.body_start_line,
+                            end_line: fact.end_line,
+                            ast_depth: fact.ast_depth,
+                        })
+                        .collect::<Vec<_>>(),
+                    true,
+                    None,
+                ),
+                Err(output) => (
+                    vec![],
+                    false,
+                    Some(format!(
+                        "core source geometry unavailable; project runtime evidence is independent: {}",
+                        output
+                            .observation
+                            .limitations
+                            .last()
+                            .cloned()
+                            .unwrap_or(output.summary)
+                    )),
+                ),
+            };
+            if cancellation.is_cancelled() {
+                break;
+            }
+            let requirement = if planned.check.id == "python.compat-runtime" {
+                match ici_analysis::requires_python(&request) {
+                    Ok(requirement) => requirement.filter(|requirement| !requirement.is_empty()),
+                    Err(output) => {
+                        enrichment_incomplete.insert(
+                            planned.task_id.clone(),
+                            format!(
+                                "declared runtime compatibility cannot be evaluated: {}",
+                                output
+                                    .observation
+                                    .limitations
+                                    .last()
+                                    .cloned()
+                                    .unwrap_or(output.summary)
+                            ),
+                        );
+                        None
+                    }
+                }
+            } else {
+                None
+            };
+            for plan in prepared
+                .validations
+                .get_mut(&planned.task_id)
+                .expect("selected validation")
+            {
+                if let Some(limitation) = &fact_limitation {
+                    plan.limitations.push(limitation.clone());
+                }
+                plan.context.functions = facts
+                    .iter()
+                    .filter(|fact| {
+                        plan.kind != ici_validation::ValidationKind::PythonCoverage
+                            || plan.context.source_files.contains(&fact.path)
+                    })
+                    .cloned()
+                    .collect();
+                plan.context.options.function_facts_complete = facts_complete;
+                if plan.context.options.requires_python.is_none() {
+                    plan.context.options.requires_python = requirement.clone();
+                }
+            }
+        }
+    }
+    for planned in &prepared.plan.checks {
+        if let Some(reason) = prepared.graph.blocked.get(&planned.task_id) {
+            // Frozen `_validated_adapter_process` (sanitize.py:449): a CMake project without
+            // `enable_testing()` writes no CTestTestfile.cmake, so its ctest reported no test.
+            // The suite binding that refuses the absent inventory runs after the sanitizer
+            // session's preparation, so the refusal arrives here (sanitize-no-tests-oracle.json
+            // `cmake-no-enable-testing`); the session that built the variant is the evidence.
+            // That projected scope error is frozen's verdict: the suite's blocked step is its
+            // cause, not a further limitation that would turn it into a blocked SKIP.
+            let projected = prepared.legacy_projection
+                && absent_ctest_inventory(reason)
+                && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
+                && build_system(&prepared, planned).as_deref() == Some("cmake");
+            let mut output = if projected {
+                let mut output = crate::cpp::legacy_sanitizer_configuration_error(
+                    &planned.task_id,
+                    "CMakeLists.txt",
+                    crate::cpp::LEGACY_SANITIZER_NO_TESTS,
+                );
+                if let Some(evidence) = legacy_runtime_tool_evidence(
+                    &prepared,
+                    planned,
+                    &[],
+                    &step_outcomes,
+                    &context_guards,
+                ) {
+                    output.extra["tool_evidence"] = json!(evidence);
+                }
+                output
+            } else {
+                unavailable(&planned.task_id, TaskState::Blocked, reason)
+            };
+            if projected {
+                projected_refusals.insert(planned.task_id.clone());
+            } else if let Some(steps) = prepared.suite_steps.get(&planned.task_id) {
+                crate::cpp_validation::apply_suite_steps(&mut output, steps);
+            }
+            outputs.insert(planned.task_id.clone(), output);
+        }
+    }
+    for layer in prepared.graph.layers.clone() {
+        let mut tasks = vec![];
+        for id in &layer {
+            let planned = prepared
+                .plan
+                .checks
+                .iter()
+                .find(|planned| &planned.task_id == id)
+                .expect("graph owns selected checks");
+            if outputs.contains_key(id) {
+                continue;
+            }
+            let reason = if cancellation.is_cancelled() {
+                Some((TaskState::Cancelled, "run cancelled".into()))
+            } else if !intake_ok {
+                Some((TaskState::Blocked, "input snapshot failed".into()))
+            } else if let Some(reason) = inputs::uncaptured_block(&prepared, planned, &snapshot) {
+                Some((TaskState::Blocked, reason))
+            } else {
+                prepared
+                    .graph
+                    .edges
+                    .get(id)
+                    .and_then(|dependencies| {
+                        dependencies.iter().find(|dependency| {
+                            outputs
+                                .get(*dependency)
+                                .is_none_or(|output| !output.observation.evidence_is_complete())
+                                && !prepared.cpp.partial_input_available(dependency, id)
+                                && !outputs.get(*dependency).is_some_and(|output| {
+                                    prepared
+                                        .cpp
+                                        .coverage_reads_incomplete_tests(dependency, id, output)
+                                })
+                        })
+                    })
+                    .map(|dependency| {
+                        let empty_suite = !prepared.legacy_projection
+                            && empty_pytest_suite(&prepared, dependency, &outputs);
+                        let reason = if (!prepared.legacy_projection
+                            && dependency.ends_with(".cpp.compile"))
+                            || empty_suite
+                        {
+                            format!("prerequisite {dependency} did not run")
+                        } else {
+                            format!("prerequisite {dependency} has no complete evidence")
+                        };
+                        if empty_suite {
+                            unit_notes.push((id.clone(), reason.clone()));
+                        }
+                        (TaskState::Blocked, reason)
+                    })
+            };
+            if let Some((state, reason)) = reason {
+                let mut output = unavailable(id, state, &reason);
+                if state == TaskState::Blocked
+                    && let Some(steps) = prepared.cpp.prerequisite_blocked_steps(id, &reason)
+                {
+                    crate::cpp_validation::apply_suite_steps(&mut output, &steps);
+                }
+                outputs.insert(id.clone(), output);
+                continue;
+            }
+            match &planned.work {
+                Work::NativePrepare { tasks } => {
+                    let Some(build) = prepared.artifact_builds.get(id).cloned() else {
+                        outputs.insert(
+                            id.clone(),
+                            unavailable(
+                                id,
+                                TaskState::Blocked,
+                                "native preparation handler is not bound",
+                            ),
+                        );
+                        continue;
+                    };
+                    let (mut output, resolved) = execute_artifact_prepare(
+                        &build,
+                        tasks,
+                        &snapshot,
+                        &scheduler,
+                        cancellation,
+                        &events,
+                    );
+                    if let Some(build) = resolved {
+                        prepared.artifact_builds.insert(id.clone(), build);
+                    }
+                    redact(&mut output)?;
+                    events.emit(
+                        "task.completed",
+                        Some(id),
+                        Some(&planned.component_id),
+                        &state_label(output.observation.state),
+                    );
+                    outputs.insert(id.clone(), output);
+                }
+                Work::Internal => {
+                    // A legacy zero-tests deep pass whose only observation runs no process
+                    // (frozen found no mutation tool): observed from its bound plan, never reused.
+                    if let Some(plan) = prepared.validations.get(id).and_then(|plans| {
+                        plans.iter().find(|plan| {
+                            plan.tasks.is_empty()
+                                && plan.context.options.legacy_zero_tests.is_some()
+                        })
+                    }) {
+                        let mut output = ici_validation::observe(
+                            plan,
+                            &BTreeMap::new(),
+                            &ici_validation::CapturedArtifacts::default(),
+                        );
+                        redact(&mut output)?;
+                        events.emit(
+                            "task.completed",
+                            Some(id),
+                            Some(&planned.component_id),
+                            &state_label(output.observation.state),
+                        );
+                        outputs.insert(id.clone(), output);
+                        continue;
+                    }
+                    let start = Instant::now();
+                    let request = inputs::analysis_request(
+                        &prepared,
+                        planned,
+                        &snapshot,
+                        prepared.legacy_projection,
+                    );
+                    if let Some(cache) = &cache {
+                        match cache.internal_key(&request, &prepared.project.root, &snapshot) {
+                            Ok(Some(key)) => {
+                                cache_keys.insert(id.clone(), key.clone());
+                                match cache.store.get_output(&key, id) {
+                                    Ok(Some(mut output)) => {
+                                        redact(&mut output)?;
+                                        events.emit(
+                                            "task.progress",
+                                            Some(id),
+                                            Some(&planned.component_id),
+                                            "reused unchanged native analysis",
+                                        );
+                                        reused.push(id.clone());
+                                        outputs.insert(id.clone(), output);
+                                        continue;
+                                    }
+                                    Ok(None) => {}
+                                    Err(error) => {
+                                        limitations.push(format!("cache ignored for {id}: {error}"))
+                                    }
+                                }
+                            }
+                            Ok(None) => {}
+                            Err(error) => {
+                                limitations.push(format!("cache identity for {id}: {error}"))
+                            }
+                        }
+                    }
+
+                    events.emit(
+                        "task.started",
+                        Some(id),
+                        Some(&planned.component_id),
+                        "native analysis",
+                    );
+                    let mut output = if let Some(output) =
+                        crate::cpp::legacy_cpp_absent_output(&planned.check.id, id)
+                    {
+                        output
+                    } else if let Some(output) =
+                        outside_component_root(&prepared, planned, id, &request)
+                    {
+                        output
+                    } else if let Some(output) = crate::validation::internal(
+                        &prepared.project,
+                        inputs::component(&prepared, planned),
+                        &planned.check.id,
+                        id,
+                    ) {
+                        output
+                    } else if prepared.cpp.handles(id)
+                        || matches!(planned.check.id.as_str(), "cpp.compile" | "cpp.artifact")
+                    {
+                        let component = inputs::component(&prepared, planned).clone();
+                        let mut output = prepared.cpp.run(
+                            &prepared.project,
+                            &component,
+                            &request,
+                            &scheduler,
+                            cancellation,
+                            &events,
+                        );
+                        // A legacy context-error syntax check runs no process (frozen
+                        // `_run_exact`) but keeps the frozen lint projection.
+                        if prepared.cpp.is_legacy_context_error(id) {
+                            legacy_lint_projection(
+                                &prepared,
+                                planned,
+                                &component,
+                                &mut output,
+                                &outputs,
+                                &mut projected_lint,
+                            );
+                        }
+                        output
+                    } else if planned.check.language == "python" {
+                        python.analyze_cancellable(&request, &cancellation.flag())
+                    } else {
+                        let mut output = cpp.analyze_cancellable(&request, &cancellation.flag());
+                        // Frozen heuristic C++ cycle targets: absolute member files, no
+                        // configuration graph.
+                        if prepared.legacy_projection && planned.check.id == "cpp.cycle" {
+                            crate::cpp::legacy_cycle_target_metrics(
+                                &mut output,
+                                &prepared.project.root,
+                                &[],
+                            );
+                        }
+                        output
+                    };
+                    // A legacy direct C++ test run decided while planning (every test compile
+                    // failed) still records the compile processes its preparation ran.
+                    if prepared.legacy_projection
+                        && prepared.project.schema_family == ici_config::SchemaFamily::Legacy
+                        && planned.check.id == "cpp.test"
+                        && output.extra.get("tool_evidence").is_none()
+                        && let Some(evidence) = legacy_runtime_tool_evidence(
+                            &prepared,
+                            planned,
+                            &[],
+                            &step_outcomes,
+                            &context_guards,
+                        )
+                    {
+                        output.extra["tool_evidence"] = json!(evidence);
+                    }
+                    inputs::mark_uncaptured(&prepared, planned, &snapshot, &mut output);
+                    output.observation.duration_seconds = Some(start.elapsed().as_secs_f64());
+                    redact(&mut output)?;
+                    events.emit(
+                        "task.completed",
+                        Some(id),
+                        Some(&planned.component_id),
+                        &state_label(output.observation.state),
+                    );
+                    outputs.insert(id.clone(), output);
+                }
+                Work::Process { task, .. } => tasks.push(task.as_ref().clone()),
+                Work::Steps { .. } => {
+                    let mut output = if planned.check.language == "cpp" && prepared.cpp.handles(id)
+                    {
+                        let request = inputs::analysis_request(
+                            &prepared,
+                            planned,
+                            &snapshot,
+                            prepared.legacy_projection,
+                        );
+                        let component = inputs::component(&prepared, planned).clone();
+                        let mut output = prepared.cpp.run(
+                            &prepared.project,
+                            &component,
+                            &request,
+                            &scheduler,
+                            cancellation,
+                            &events,
+                        );
+                        legacy_lint_projection(
+                            &prepared,
+                            planned,
+                            &component,
+                            &mut output,
+                            &outputs,
+                            &mut projected_lint,
+                        );
+                        if prepared.legacy_projection && planned.check.id == "cpp.tidy" {
+                            // Frozen LintEngine verdict over the syntax targets already observed.
+                            if let Some((diagnostics, fallback)) = prepared
+                                .plan
+                                .checks
+                                .iter()
+                                .find(|check| {
+                                    check.component_id == planned.component_id
+                                        && check.check.id == "cpp.diagnostics"
+                                })
+                                .and_then(|check| {
+                                    Some((
+                                        check.task_id.clone(),
+                                        *projected_lint.get(&check.task_id)?,
+                                    ))
+                                })
+                                && let Some(syntax) = outputs.get_mut(&diagnostics)
+                            {
+                                crate::cpp::legacy_lint_verdict(syntax, Some(&output), fallback);
+                            }
+                        }
+                        output
+                    } else if let Some(plans) = prepared.validations.get(id) {
+                        let mut output = execute_validation(
+                            id,
+                            plans,
+                            &scheduler,
+                            cancellation,
+                            &events,
+                            &mut step_outcomes,
+                            &mut owned_runs,
+                        );
+                        if planned.check.id == "cpp.test" {
+                            let failures = crate::cpp::direct_test_compile_failures(
+                                &prepared.project,
+                                &planned.component_id,
+                                environment,
+                            );
+                            crate::cpp::append_test_compile_failures(&mut output, &failures);
+                            let system = build_system(&prepared, planned);
+                            if prepared.legacy_projection && system.as_deref() == Some("direct-gcc")
+                            {
+                                crate::cpp::legacy_direct_tests(&mut output, &failures);
+                            } else if prepared.legacy_projection
+                                && system.as_deref() == Some("cmake")
+                            {
+                                let testfile = plans
+                                    .first()
+                                    .and_then(|plan| plan.context.targets.first())
+                                    .map(|target| prepared.project.root.join(target))
+                                    .unwrap_or_default();
+                                // Frozen `run_tests` takes the JUnit reading only when
+                                // `parse_ctest_junit` accepts the report ctest wrote.
+                                let junit = plans.first().is_some_and(|plan| {
+                                    plan.context.options.legacy_ctest_junit
+                                        && ici_validation::make_check::ctest_junit_accepted(
+                                            &ici_validation::cpp::legacy_ctest_junit_path(
+                                                &plan.context,
+                                            ),
+                                        )
+                                });
+                                crate::cpp::legacy_ctest_tests(
+                                    &mut output,
+                                    &prepared.project.root,
+                                    "CMakeLists.txt",
+                                    &testfile,
+                                    junit,
+                                );
+                            } else if prepared.legacy_projection
+                                && matches!(system.as_deref(), Some("qmake" | "make"))
+                            {
+                                crate::cpp::legacy_make_check_tests(
+                                    &mut output,
+                                    &prepared.project.root,
+                                    &build_descriptor(&prepared, planned),
+                                );
+                            }
+                        }
+                        if prepared.legacy_projection && planned.check.id == "cpp.binary-compat" {
+                            let shadow = plans
+                                .first()
+                                .and_then(|plan| plan.context.options.build_roots.get(1))
+                                .and_then(|directory| {
+                                    directory.strip_prefix(&prepared.project.root).ok()
+                                })
+                                .map(|directory| directory.to_string_lossy().into_owned())
+                                .unwrap_or_default();
+                            // Selected `config.artifacts` records keep frozen's project ids.
+                            let declared: BTreeSet<String> = prepared
+                                .project
+                                .components
+                                .iter()
+                                .find(|component| component.id == planned.component_id)
+                                .and_then(|component| {
+                                    crate::artifact_build::legacy_declared_publication(
+                                        &prepared.project,
+                                        component,
+                                    )
+                                })
+                                .map(|published| published.into_keys().collect())
+                                .unwrap_or_default();
+                            crate::cpp::legacy_binary_compat(
+                                &mut output,
+                                &shadow,
+                                "release",
+                                &declared,
+                            );
+                            // Frozen BinaryCompatibilityEngine: one `readelf binary
+                            // compatibility` record per inspected artifact, in run order.
+                            let evidence: Vec<serde_json::Value> = plans
+                                .iter()
+                                .flat_map(|plan| &plan.tasks)
+                                .filter_map(|task| {
+                                    let outcome = step_outcomes.get(&task.id)?;
+                                    let failed = outcome.exit_code != Some(0);
+                                    Some(json!({
+                                        "name": "readelf binary compatibility",
+                                        "path": task.argv.first().cloned().unwrap_or_default(),
+                                        "version": "",
+                                        "argv": task.argv,
+                                        "returncode": crate::cpp::frozen_returncode(outcome),
+                                        "timed_out": outcome.timed_out,
+                                        "truncated": outcome.truncated,
+                                        "error": if failed {
+                                            String::from_utf8_lossy(&outcome.stderr)
+                                                .chars()
+                                                .take(512)
+                                                .collect::<String>()
+                                        } else {
+                                            String::new()
+                                        },
+                                    }))
+                                })
+                                .collect();
+                            if !evidence.is_empty() {
+                                output.extra["tool_evidence"] = json!(evidence);
+                            }
+                        }
+                        // Frozen CMake/qmake build sessions of `ici verify` (with an analysis
+                        // context; standalone commands have none) publish their linked outputs
+                        // (`_capture_artifact_manifest`) on the test/sanitize engines.
+                        let system = build_system(&prepared, planned);
+                        if prepared.legacy_projection
+                            && !prepared.cpp.legacy_standalone
+                            && matches!(system.as_deref(), Some("cmake" | "qmake" | "make"))
+                            && let Some(variant) = match planned.check.id.as_str() {
+                                "cpp.test" => Some("coverage"),
+                                "cpp.sanitize" => Some("sanitize"),
+                                "cpp.tsan" => Some("thread-sanitize"),
+                                _ => None,
+                            }
+                            && let Some(shadow) = plans
+                                .first()
+                                .and_then(|plan| plan.context.options.build_dir.clone())
+                            // A legacy Make shadow is shared by every variant: the session
+                            // of this check's own variant ran its build command.
+                            && let Some(session) = context_guards
+                                .iter()
+                                .filter(|guard| {
+                                    guard.plan.component_id == planned.component_id
+                                        && prepared.project.root.join(&guard.plan.build.shadow)
+                                            == shadow
+                                })
+                                .min_by_key(|guard| guard.plan.build.variant != variant)
+                            && let Some(build) = session.plan.build.tasks.iter().find(|task| {
+                                task.argv.get(1).map(String::as_str) == Some("--build")
+                                    || (matches!(system.as_deref(), Some("qmake" | "make"))
+                                        && task.id.ends_with(":compile"))
+                            })
+                            && let Some(manifest) = crate::cpp::legacy_cmake_artifact_manifest(
+                                &prepared.project.root,
+                                &shadow,
+                                variant,
+                                &build.argv,
+                                &format!("{}.build", system.as_deref().unwrap_or("cmake")),
+                            )
+                        {
+                            output.extra["legacy_artifact_manifests"] = json!([manifest]);
+                        }
+                        if prepared.legacy_projection
+                            && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
+                        {
+                            match build_system(&prepared, planned).as_deref() {
+                                Some("direct-gcc") => {
+                                    let runs: Vec<(Option<i32>, String)> = plans
+                                        .iter()
+                                        .flat_map(|plan| &plan.tasks)
+                                        .filter(|task| task.kind != ici_domain::TaskKind::Probe)
+                                        .filter_map(|task| step_outcomes.get(&task.id))
+                                        .map(|outcome| {
+                                            (
+                                                outcome.exit_code,
+                                                crate::cpp::frozen_process_snippet(
+                                                    &outcome.stderr,
+                                                    &outcome.stdout,
+                                                ),
+                                            )
+                                        })
+                                        .collect();
+                                    crate::cpp::legacy_direct_sanitizer(
+                                        &mut output,
+                                        &planned.check.id,
+                                        &runs,
+                                    )
+                                }
+                                Some(system @ ("cmake" | "qmake" | "make")) => {
+                                    let testfile = plans
+                                        .first()
+                                        .and_then(|plan| plan.context.options.build_dir.clone())
+                                        .map(|directory| directory.join("CTestTestfile.cmake"))
+                                        .unwrap_or_default();
+                                    // Frozen `engines.<sanitize|thread_sanitize>.required`
+                                    // (default true) decides whether a case that was not
+                                    // executed is an ERROR or a SKIP scope.
+                                    let section = if planned.check.id == "cpp.tsan" {
+                                        "/engines/thread_sanitize/required"
+                                    } else {
+                                        "/engines/sanitize/required"
+                                    };
+                                    let required = prepared
+                                        .project
+                                        .components
+                                        .iter()
+                                        .find(|component| component.id == planned.component_id)
+                                        .and_then(|component| component.settings.pointer(section))
+                                        .and_then(serde_json::Value::as_bool)
+                                        != Some(false);
+                                    // A qmake `make check` or Make test command has no CTest
+                                    // inventory and locates its scopes at the root descriptor.
+                                    let descriptor = if system != "cmake" {
+                                        build_descriptor(&prepared, planned)
+                                    } else {
+                                        "CMakeLists.txt".into()
+                                    };
+                                    // Frozen `run_tests` reads ctest's stdout when
+                                    // `parse_ctest_junit` refuses the report ctest wrote.
+                                    let ctest_stdout = system == "cmake"
+                                        && plans.first().is_some_and(|plan| {
+                                            plan.context.options.legacy_ctest_junit
+                                                && !ici_validation::make_check::ctest_junit_accepted(
+                                                    &ici_validation::cpp::legacy_ctest_junit_path(
+                                                        &plan.context,
+                                                    ),
+                                                )
+                                        });
+                                    // Frozen `_validated_adapter_process` (sanitize.py:449):
+                                    // a build system that reported no test is one
+                                    // `C++Sanitizer` ERROR scope at the descriptor
+                                    // (`_fail_adapter_scope`); nothing ran under the sanitizers.
+                                    // The suite refusal is the ordered step's prerequisite
+                                    // (the inventory or its CTestTestfile.cmake), so the
+                                    // observation is BLOCKED, or FAILED when observed.
+                                    if matches!(
+                                        output.observation.state,
+                                        TaskState::Failed | TaskState::Blocked
+                                    ) && output.observation.limitations.iter().any(|reason| {
+                                        ici_validation::cpp::reported_no_tests(reason)
+                                            || (system == "cmake" && absent_ctest_inventory(reason))
+                                    }) {
+                                        let mut failed =
+                                            crate::cpp::legacy_sanitizer_configuration_error(
+                                                id,
+                                                &descriptor,
+                                                crate::cpp::LEGACY_SANITIZER_NO_TESTS,
+                                            );
+                                        failed.observation.duration_seconds =
+                                            output.observation.duration_seconds;
+                                        failed.observation.tool_versions =
+                                            std::mem::take(&mut output.observation.tool_versions);
+                                        output = failed;
+                                    }
+                                    // Frozen `run_tests` (core/cmake.py:727-769) returns no
+                                    // case when the suite process timed out or truncated its
+                                    // output and records the session error, which
+                                    // `_validated_adapter_process` (sanitize.py:449) makes the
+                                    // descriptor's scope error (its :467 branch is unreachable).
+                                    let incomplete = plans.iter().find_map(|plan| {
+                                        let suite = step_outcomes
+                                            .get(&format!("{}.suite", plan.context.task_id))?;
+                                        if suite.timed_out {
+                                            Some("timed out")
+                                        } else if suite.truncated {
+                                            Some("truncated its output")
+                                        } else {
+                                            None
+                                        }
+                                    });
+                                    if output.observation.state == TaskState::Failed
+                                        && let Some(reason) = incomplete
+                                    {
+                                        let mut failed =
+                                            crate::cpp::legacy_sanitizer_configuration_error(
+                                                id,
+                                                &descriptor,
+                                                &format!(
+                                                    "{} {reason}; test evidence is incomplete",
+                                                    match system {
+                                                        "cmake" => "ctest",
+                                                        "make" => "Make test command",
+                                                        _ => "make check",
+                                                    }
+                                                ),
+                                            );
+                                        failed.observation.duration_seconds =
+                                            output.observation.duration_seconds;
+                                        output = failed;
+                                    }
+                                    crate::cpp::legacy_ctest_sanitizer(
+                                        &mut output,
+                                        &planned.check.id,
+                                        &descriptor,
+                                        &testfile,
+                                        required,
+                                        ctest_stdout,
+                                    );
+                                }
+                                _ => {}
+                            }
+                        }
+                        // Frozen `TestEngine._threshold_breaches` serves both languages.
+                        if prepared.legacy_projection
+                            && matches!(
+                                planned.check.id.as_str(),
+                                "cpp.coverage" | "python.coverage"
+                            )
+                        {
+                            crate::cpp::legacy_threshold_breaches(&mut output);
+                        }
+                        if prepared.legacy_projection
+                            && prepared.project.schema_family == ici_config::SchemaFamily::Legacy
+                            && output.extra.get("tool_evidence").is_none()
+                            && let Some(evidence) = legacy_runtime_tool_evidence(
+                                &prepared,
+                                planned,
+                                plans,
+                                &step_outcomes,
+                                &context_guards,
+                            )
+                            .or_else(|| legacy_python_tool_evidence(planned, plans, &step_outcomes))
+                        {
+                            output.extra["tool_evidence"] = json!(evidence);
+                        }
+                        // Frozen `run_evidence.error`: each failed direct sanitizer execution's
+                        // record carries its `SanitizerExecution` message.
+                        if let Some(serde_json::Value::Array(errors)) = output
+                            .extra
+                            .as_object_mut()
+                            .and_then(|extra| extra.remove("legacy_sanitizer_run_errors"))
+                            && let Some(records) = output.extra["tool_evidence"].as_array_mut()
+                        {
+                            let executions = records
+                                .iter_mut()
+                                .filter(|record| record["name"] == "sanitizer execution");
+                            for (record, error) in executions.zip(errors) {
+                                if let serde_json::Value::String(error) = error {
+                                    record["error"] = json!(error);
+                                }
+                            }
+                        }
+                        output
+                    } else {
+                        unavailable(
+                            id,
+                            TaskState::Blocked,
+                            "ordered validation adapter has not supplied an observer",
+                        )
+                    };
+                    if let Some(steps) = prepared.suite_steps.get(id) {
+                        crate::cpp_validation::apply_suite_steps(&mut output, steps);
+                    }
+                    redact(&mut output)?;
+                    outputs.insert(id.clone(), output);
+                }
+                Work::Blocked { reason } => {
+                    // Frozen `_validated_adapter_process` (sanitize.py:449): a CMake project
+                    // without `enable_testing()` writes no CTestTestfile.cmake, so its ctest
+                    // reported no test; the session that built the variant is the evidence.
+                    // Only an absent inventory is that case (a symlinked or uncontained one stays
+                    // the binding refusal).
+                    // The projected scope error is not then blocked by the suite steps.
+                    let projected = prepared.legacy_projection
+                        && absent_ctest_inventory(reason)
+                        && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
+                        && build_system(&prepared, planned).as_deref() == Some("cmake");
+                    let mut output = if projected {
+                        let mut output = crate::cpp::legacy_sanitizer_configuration_error(
+                            id,
+                            "CMakeLists.txt",
+                            crate::cpp::LEGACY_SANITIZER_NO_TESTS,
+                        );
+                        if let Some(evidence) = legacy_runtime_tool_evidence(
+                            &prepared,
+                            planned,
+                            &[],
+                            &step_outcomes,
+                            &context_guards,
+                        ) {
+                            output.extra["tool_evidence"] = json!(evidence);
+                        }
+                        output
+                    } else {
+                        unavailable(id, TaskState::Blocked, reason)
+                    };
+                    if projected {
+                        projected_refusals.insert(id.clone());
+                    } else if let Some(steps) = prepared.suite_steps.get(id) {
+                        crate::cpp_validation::apply_suite_steps(&mut output, steps);
+                    }
+                    outputs.insert(id.clone(), output);
+                }
+            }
+        }
+        // Ruff's actual inspected scope is proven by a separate visible probe, never inferred from requested targets.
+        let probes: Vec<_> = tasks
+            .iter()
+            .filter_map(|task| prepared.probes.get(&task.id).cloned())
+            .collect();
+        let proof = scheduler
+            .run_with_start(&probes, cancellation, |task| {
+                events.emit(
+                    "task.started",
+                    Some(&task.id),
+                    None,
+                    "native scope inventory",
+                )
+            })
+            .map_err(error)?;
+        for outcome in proof.outcomes {
+            events.emit(
+                "task.completed",
+                Some(&outcome.task_id),
+                None,
+                &state_label(outcome.state),
+            );
+            if let Some(id) = outcome.task_id.strip_suffix(".format-capability")
+                && let Some(provider) = prepared.providers.get_mut(id)
+            {
+                ici_providers::plan::apply_ruff_format_capability(provider, &outcome);
+            } else if let Some(id) = outcome.task_id.strip_suffix(".files") {
+                let provider = prepared
+                    .providers
+                    .get_mut(id)
+                    .expect("probe belongs to provider");
+                let evidence = &prepared.native_configuration[id];
+                if let Err(failure) =
+                    ici_providers::plan::apply_ruff_inventory(provider, &outcome, evidence)
+                {
+                    provider.scope_complete = false;
+                    provider.limitations.push(failure.to_string());
+                }
+            }
+        }
+        let mut runnable = vec![];
+        for mut task in tasks {
+            // The legacy formatter's capability probe chose the text dialect after planning.
+            if let Some(provider) = prepared.providers.get(&task.id)
+                && provider.context.legacy_text_format
+            {
+                task.argv.clone_from(&provider.task.argv);
+            }
+            if let Some(mut output) = prepared
+                .providers
+                .get(&task.id)
+                .and_then(ici_providers::legacy_probe_refusal)
+            {
+                redact(&mut output)?;
+                outputs.insert(task.id.clone(), output);
+                continue;
+            }
+            let mut hit = false;
+            if let (Some(cache), Some(provider)) = (&cache, prepared.providers.get(&task.id)) {
+                match cache.provider_key(provider, &prepared.project.root, &snapshot, &runner) {
+                    Ok(Some(key)) => {
+                        cache_keys.insert(task.id.clone(), key.clone());
+                        match cache.store.get_output(&key, &task.id) {
+                            Ok(Some(mut output)) => {
+                                redact(&mut output)?;
+                                events.emit(
+                                    "task.progress",
+                                    Some(&task.id),
+                                    None,
+                                    "reused verified native tool evidence",
+                                );
+                                reused.push(task.id.clone());
+                                outputs.insert(task.id.clone(), output);
+                                hit = true;
+                            }
+                            Ok(None) => {}
+                            Err(error) => {
+                                limitations.push(format!("cache ignored for {}: {error}", task.id))
+                            }
+                        }
+                    }
+                    Ok(None) => {}
+                    Err(error) => {
+                        limitations.push(format!("cache identity for {}: {error}", task.id))
+                    }
+                }
+            }
+            if !hit {
+                runnable.push(task);
+            }
+        }
+        let schedule = scheduler
+            .run_with_start(&runnable, cancellation, |task| {
+                events.emit(
+                    "task.started",
+                    Some(&task.id),
+                    None,
+                    "native tool execution",
+                )
+            })
+            .map_err(error)?;
+        for outcome in schedule.outcomes {
+            let id = outcome.task_id.clone();
+            let mut output = if let Some(provider) = prepared.providers.get(&id) {
+                ici_providers::observe_full(provider, &outcome)
+            } else {
+                unavailable(&id, TaskState::Failed, "process observer unavailable")
+            };
+            redact(&mut output)?;
+            events.emit(
+                "task.completed",
+                Some(&id),
+                None,
+                &state_label(output.observation.state),
+            );
+            outputs.insert(id, output);
+        }
+    }
+    for planned in &prepared.plan.checks {
+        outputs.entry(planned.task_id.clone()).or_insert_with(|| {
+            unavailable(
+                &planned.task_id,
+                if cancellation.is_cancelled() {
+                    TaskState::Cancelled
+                } else {
+                    TaskState::Blocked
+                },
+                "selected check did not execute",
+            )
+        });
+    }
+    // The verification would otherwise re-block a projected refusal by its plan entry.
+    for check in &mut prepared.plan.checks {
+        if projected_refusals.contains(&check.task_id) {
+            check.work = Work::Internal;
+            prepared.graph.blocked.remove(&check.task_id);
+        }
+    }
+    for (id, reason) in enrichment_incomplete {
+        if let Some(output) = outputs.get_mut(&id) {
+            output.observation.state = TaskState::Failed;
+            output.observation.limitations.push(reason.clone());
+            output.status = "ERROR".into();
+            output.summary = reason;
+        }
+    }
+    for output in outputs.values_mut() {
+        redact(output)?;
+    }
+    let mut generated_outputs = BTreeSet::new();
+    let mut preparation_verified = true;
+    for (id, build) in &prepared.artifact_builds {
+        if outputs
+            .get(id)
+            .is_some_and(|output| output.observation.evidence_is_complete())
+        {
+            match crate::artifact_build::verify_output(build) {
+                Ok(paths) => generated_outputs.extend(
+                    paths
+                        .into_keys()
+                        .filter(|path| !snapshot.files.contains_key(path)),
+                ),
+                Err(reason) => {
+                    preparation_verified = false;
+                    limitations.push(format!("prepared artifact integrity: {reason}"));
+                }
+            }
+        }
+    }
+    let inputs_stable = match planning::prepare_with_contexts(
+        invocation,
+        cwd,
+        environment,
+        static_only,
+        &run_id,
+        &generated_outputs,
+        &context_guards,
+    )
+    .and_then(|mut after| {
+        // A check that preparation already answered with its observed failure (e.g. the
+        // BuildEngine result of a failed legacy release build) runs no task of its own, so the
+        // re-plan's tasks for it are not pins of this run.
+        for check in &mut after.plan.checks {
+            if prepared.plan.checks.iter().any(|before| {
+                before.task_id == check.task_id && matches!(before.work, Work::Internal)
+            }) {
+                check.work = Work::Internal;
+            }
+        }
+        // A compiler scope that builds its shadow afterwards is bound the same way here, so its
+        // compiler tasks are re-derived and compared like every other check's.
+        for (id, plan) in prepared.cpp.legacy_pending_shadows() {
+            let project = after.project.clone();
+            let Some(component) = project
+                .components
+                .iter()
+                .find(|component| component.id == plan.component_id)
+            else {
+                continue;
+            };
+            let Some(index) = after
+                .plan
+                .checks
+                .iter()
+                .position(|check| check.task_id == id)
+            else {
+                continue;
+            };
+            let check = after.plan.checks[index].check.clone();
+            let work =
+                after
+                    .cpp
+                    .defer_legacy_shadow(&project, component, &check, &id, environment, plan);
+            after.plan.checks[index].work = work;
+        }
+        for context in context_guards
+            .iter()
+            .filter(|context| context.plan.direct.is_some())
+        {
+            for (name, tool) in &context.plan.tools {
+                let current =
+                    ici_execution::process::executable_digest(&tool.path).map_err(error)?;
+                if current != tool.digest {
+                    return Ok(false);
+                }
+                after
+                    .tools
+                    .entry(format!(
+                        "prepare:{}:{}:{name}",
+                        context.plan.component_id, context.plan.build.variant
+                    ))
+                    .or_insert_with(|| tool.clone());
+            }
+        }
+        // Preparation keeps the initial plan's tools (e.g. the legacy C++ fallback compiler
+        // planned before the owned CMake database existed) beside the rebound plan; the final
+        // re-plan carries the same roles, each still re-measured, so they are not input drift.
+        for (role, tool) in &prepared.tools {
+            if !after.tools.contains_key(role) {
+                let current =
+                    ici_execution::process::executable_digest(&tool.path).map_err(error)?;
+                if current != tool.digest {
+                    return Ok(false);
+                }
+                after.tools.insert(role.clone(), tool.clone());
+            }
+        }
+        inputs::capture_preserving(&after, &snapshot, &input_limits, &[])
+            .map(|new| !inputs::changed(&prepared, &after, &snapshot, &new))
+    }) {
+        Ok(stable) => intake_ok && preparation_verified && stable,
+        // A refused intake is reported once; re-reading the same inputs cannot add to it.
+        Err(_) if !intake_ok => false,
+        Err(failure) => {
+            limitations.push(format!("final input verification: {failure}"));
+            false
+        }
+    };
+    if inputs_stable
+        && !cancellation.is_cancelled()
+        && let Some(cache) = &cache
+    {
+        for (id, key) in &cache_keys {
+            if !reused.contains(id)
+                && let Some(output) = outputs.get(id)
+                && let Err(error) = cache.store.put_output(key, output)
+            {
+                limitations.push(format!("cache write for {id}: {error}"));
+            }
+        }
+    }
+    crate::legacy::annotation_fallback(&prepared, &mut outputs);
+    crate::legacy::lint_syntax(&prepared, &mut outputs);
+    crate::legacy::apply_gate_policy(&prepared, &mut outputs);
+    let suppressions = SuppressionPolicy::new(&prepared.project.suppressions).map_err(error)?;
+    let observations: Vec<Observation> = prepared
+        .plan
+        .checks
+        .iter()
+        .map(|planned| outputs[&planned.task_id].observation.clone())
+        .collect();
+    let verification = verification::evaluate(
+        &prepared.plan,
+        observations,
+        cancellation.is_cancelled(),
+        |finding| suppressions.apply(finding),
+    )
+    .map_err(error)?;
+    let mut raw_fingerprints = verification.raw_fingerprints.clone();
+    let checks = inputs::check_records(
+        &prepared,
+        &verification.observations,
+        &snapshot,
+        &outputs,
+        &runner,
+        &inputs::InputVerification {
+            stable: inputs_stable && snapshot.uncaptured.is_empty(),
+            code_paths: code_input_paths,
+        },
+        core_known,
+    )?;
+    if let Some(failure) = events.failure() {
+        limitations.push(failure);
+    }
+    let mut source = snapshot.source(vcs.commit, !vcs.clean);
+    // Frozen `SourceInventory.identity`: every component's declared external inputs, in
+    // declaration order, as anchored (workspace-relative inside the root, absolute outside).
+    source.external_inputs = prepared
+        .project
+        .components
+        .iter()
+        .flat_map(|component| component.external.iter().cloned())
+        .collect();
+    let selected: BTreeSet<_> = prepared
+        .project
+        .components
+        .iter()
+        .flat_map(|component| component.files.iter().cloned())
+        .collect();
+    let generated: BTreeSet<_> = prepared
+        .cpp
+        .contexts
+        .values()
+        .flat_map(|context| context.units.iter().map(|unit| unit.source.clone()))
+        .filter(|path| !selected.contains(path))
+        .collect();
+    source.files.retain(|path| !generated.contains(path));
+    source.generated = generated.into_iter().collect();
+    // Frozen next_path records why a run stopped among the run's own limitations.
+    if cancellation.is_cancelled() {
+        limitations.push(format!(
+            "cancelled: {}",
+            cancellation
+                .reason()
+                .unwrap_or_else(|| "user request".into())
+        ));
+    }
+    // What frozen `verify_text` prints as notes: plan and run limitations, not the analyses' own.
+    let mut run_notes: BTreeSet<String> = prepared
+        .plan
+        .limitations
+        .iter()
+        .chain(&limitations)
+        .map(|note| ici_execution::redaction::redact_text(note))
+        .collect();
+    // An initial intake refusal is reported once (its own reason); drift observed during
+    // preparation, or its failed re-verification, is a change and never a complete run.
+    if (!inputs_stable && intake_ok) || preparation_changed {
+        run_notes.insert(ici_application::assemble::INPUTS_CHANGED_REASON.into());
+    }
+    let mut result = assemble::assemble(
+        &prepared.project,
+        &prepared.request,
+        &prepared.plan,
+        verification,
+        RunContext {
+            run_id,
+            ici_version: crate::VERSION.into(),
+            source,
+            policy_digest,
+            toolchain_digest,
+            bundle_digest: None,
+            cancelled: cancellation.is_cancelled(),
+            // A refused intake is not a change: every check already reports it blocked.
+            inputs_stable: (inputs_stable || !intake_ok) && !preparation_changed,
+            uncaptured_inputs: snapshot
+                .uncaptured
+                .values()
+                .map(|source| source.reason())
+                .collect(),
+            checks,
+            reused_task_ids: reused,
+            limitations,
+            baseline: None,
+        },
+    )
+    .map_err(error)?;
+    let given_baseline = invocation.value("baseline").unwrap_or_default().to_owned();
+    let regenerate = regenerate_baseline_command(&invocation.command(), &given_baseline);
+    let mut legacy_baseline = None;
+    let mut legacy_baseline_suite = None;
+    let mut baseline_gate_failures = vec![];
+    if let Some(baseline) = baseline {
+        let comparison = ici_application::baseline::compare(
+            &result.findings,
+            &result.identity,
+            result.checks.as_deref(),
+            &baseline,
+            baseline_path.expect("baseline path").to_string_lossy(),
+        );
+        let mut comparison = comparison;
+        if comparison.state == ici_domain::BaselineState::Incompatible {
+            // Native addition after the frozen reason; like frozen, the refusal is the baseline's
+            // own state and adds no gate reason (the verdict line already counts the findings).
+            comparison.reason = format!("{}; regenerate it with: {regenerate}", comparison.reason);
+        }
+        result.baseline = Some(comparison);
+        if let Some(document) = &baseline_document {
+            raw_fingerprints.extend(crate::coverage_regression::apply(
+                &mut result,
+                &mut outputs,
+                &prepared.plan,
+                &baseline,
+                document,
+                &suppressions,
+                &crate::coverage_regression::configured_checks(&prepared),
+            ));
+        }
+        // After coverage-regression findings joined the comparison: one delta for every view.
+        if let Some(comparison) = &result.baseline {
+            legacy_baseline = ici_reporting::legacy_baseline_comparison(
+                &result,
+                &baseline,
+                comparison,
+                &engine_names(&prepared),
+                invocation.flag("fail_on_new"),
+            );
+            // Frozen `compare_with_baseline`: the source is the root-relative POSIX path.
+            if let Some(value) = legacy_baseline.as_mut()
+                && let Some(relative) = value["source_path"]
+                    .as_str()
+                    .and_then(|origin| {
+                        std::path::Path::new(origin)
+                            .strip_prefix(&prepared.project.root)
+                            .ok()
+                    })
+                    .map(|relative| relative.to_string_lossy().replace('\\', "/"))
+            {
+                value["source_path"] = serde_json::json!(relative);
+            }
+            baseline_gate_failures =
+                ici_reporting::baseline_gate_failures(&result, &baseline, comparison);
+            if legacy_baseline.is_some()
+                && let Some(ici_reporting::StoredResult::Legacy(document)) = &baseline_document
+            {
+                let document = document.as_value();
+                legacy_baseline_suite = Some(serde_json::json!({
+                    "results": document["results"],
+                    "analysis_metadata": document["analysis_metadata"],
+                }));
+            }
+        }
+    } else if let Some(ici_reporting::StoredResult::Legacy(legacy)) = baseline_document {
+        let previous = legacy
+            .engines()
+            .iter()
+            .flat_map(|engine| engine["findings"].as_array().into_iter().flatten())
+            .filter_map(|finding| finding["fingerprint"].as_str().map(str::to_owned))
+            .collect::<BTreeSet<_>>()
+            .len();
+        result.baseline = Some(ici_domain::BaselineComparison {
+            state: ici_domain::BaselineState::Incompatible,
+            origin: baseline_path
+                .expect("baseline path")
+                .to_string_lossy()
+                .into_owned(),
+            reason: format!(
+                "historical inventory of {previous} findings is readable, but native provider policy and completed check scope were not recorded; no finding delta is inferred and the original baseline is preserved; regenerate it with: {regenerate}"
+            ),
+            ..Default::default()
+        });
+    }
+    if !core_known && result.gate.selected == GateVerdict::Pass {
+        result.gate.selected = GateVerdict::Incomplete;
+        result.gate.workspace = GateVerdict::NotEvaluated;
+        result.execution.required_complete = false;
+        result.gate.reasons.push("core identity unavailable".into());
+    }
+    result = RunResult::from_value(ici_execution::redaction::redact_value(
+        &result.to_value().map_err(error)?,
+    ))
+    .map_err(error)?;
+    storage::write_result(&result_path, &result, WriteMode::ReplaceRegular).map_err(error)?;
+    // Frozen next_path: a cancelled run first names why, then the completion carries the verdict.
+    if cancellation.is_cancelled() {
+        events.emit(
+            "diagnostic",
+            None,
+            None,
+            &format!(
+                "cancelled: {}",
+                cancellation
+                    .reason()
+                    .unwrap_or_else(|| "user request".into())
+            ),
+        );
+    }
+    events.emit(
+        "run.completed",
+        None,
+        None,
+        &format!(
+            "{}: {} finding(s)",
+            wire_label(&result.gate.selected),
+            result.findings.len()
+        ),
+    );
+    if let Some(failure) = events.failure()
+        && !result.limitations.contains(&failure)
+    {
+        result.limitations.push(failure);
+        storage::write_result(&result_path, &result, WriteMode::ReplaceRegular).map_err(error)?;
+    }
+    let announcement = crate::run_text::announce(&prepared.project, &prepared.request);
+    if let Some(failure) = events.failure() {
+        run_notes.insert(failure);
+    }
+    let notes = result
+        .limitations
+        .iter()
+        .filter(|note| run_notes.contains(*note))
+        .cloned()
+        .collect();
+    let executed = ExecutedRun {
+        announcement,
+        notes,
+        unit_notes,
+        result,
+        outputs,
+        result_path,
+        project_root: prepared.project.root.clone(),
+        raw_fingerprints,
+        cache_keys,
+        required_checks: prepared
+            .plan
+            .checks
+            .iter()
+            .map(|planned| (planned.task_id.clone(), planned.check.required))
+            .collect(),
+        engine_names: engine_names(&prepared),
+        project_name: prepared.project.workspace_name.clone(),
+        duration_seconds: started.elapsed().as_secs_f64(),
+        legacy_baseline,
+        legacy_baseline_suite,
+        baseline_gate_failures,
+        legacy_suite_snapshot,
+        legacy_capability_inventory,
+        legacy_package_flags,
+    };
+    crate::report::save_details(&prepared.project.root, &executed)?;
+    Ok(executed)
+}
+pub(crate) fn execute_artifact_prepare(
+    initial: &crate::artifact_build::ArtifactBuildPlan,
+    tasks: &[ici_domain::TaskSpec],
+    snapshot: &ici_application::snapshot::InputSnapshot,
+    scheduler: &Scheduler,
+    cancellation: &Cancellation,
+    events: &EventLog,
+) -> (
+    AnalysisOutput,
+    Option<crate::artifact_build::ArtifactBuildPlan>,
+) {
+    let started = Instant::now();
+    let id = initial.task.id.as_str();
+    let mut build = initial.clone();
+    let probes = &tasks[..tasks.len().saturating_sub(1)];
+    if !probes.is_empty() {
+        let schedule = match scheduler.run_with_start(probes, cancellation, |task| {
+            events.emit(
+                "task.started",
+                Some(&task.id),
+                Some(&initial.component_id),
+                "project version probe",
+            )
+        }) {
+            Ok(schedule) => schedule,
+            Err(reason) => {
+                return (
+                    unavailable(id, TaskState::Blocked, &reason.to_string()),
+                    None,
+                );
+            }
+        };
+        for outcome in schedule.outcomes {
+            events.emit(
+                "task.completed",
+                Some(&outcome.task_id),
+                Some(&initial.component_id),
+                &state_label(outcome.state),
+            );
+            if build
+                .version_probe
+                .as_ref()
+                .is_some_and(|probe| probe.id == outcome.task_id)
+            {
+                build = match crate::artifact_build::apply_version_probe(&build, &outcome) {
+                    Ok(build) => build,
+                    Err(reason) => {
+                        return (
+                            unavailable(
+                                id,
+                                if cancellation.is_cancelled() {
+                                    TaskState::Cancelled
+                                } else {
+                                    TaskState::Failed
+                                },
+                                &reason,
+                            ),
+                            None,
+                        );
+                    }
+                };
+            } else {
+                return (
+                    unavailable(
+                        id,
+                        TaskState::Failed,
+                        "native preparation has an unrecognized probe observer",
+                    ),
+                    None,
+                );
+            }
+        }
+    }
+    let leases = ici_execution::scheduler::ResourceLocks::acquire(
+        &build.root.join(".ici/rust-v1/locks/tasks"),
+        &build.task.resource_keys,
+        cancellation,
+        std::time::Duration::from_secs_f64(build.task.timeout_seconds.unwrap_or(300.0)),
+    );
+    let mut output = match leases {
+        Ok(_leases) => {
+            events.emit(
+                "task.started",
+                Some(id),
+                Some(&build.component_id),
+                "packaging declared project artifacts",
+            );
+            crate::artifact_build::execute(&build, snapshot, cancellation)
+        }
+        Err(reason) => unavailable(
+            id,
+            if cancellation.is_cancelled() {
+                TaskState::Cancelled
+            } else {
+                TaskState::Blocked
+            },
+            &reason.to_string(),
+        ),
+    };
+    output.observation.duration_seconds = Some(started.elapsed().as_secs_f64());
+    (output, Some(build))
+}
+
+/// Frozen `next` measures each component with the component root as its project root, so a C++
+/// duplicate or exception scope that holds a declared external member outside that root is
+/// refused (`outside-project`): the check FAILS incomplete and no file of it is analysed
+/// (decisions.md "component 밖 `external` 항목": frozen kept for scope safety). The other C++
+/// checks keep frozen's own behaviour.
+fn outside_component_root(
+    prepared: &crate::planning::PreparedPlan,
+    planned: &ici_application::plan::PlannedCheck,
+    id: &str,
+    request: &ici_domain::AnalysisRequest,
+) -> Option<AnalysisOutput> {
+    const OUTSIDE: &str = "outside-project: Selected analysis source is outside the project root";
+    if prepared.legacy_projection
+        || !matches!(planned.check.id.as_str(), "cpp.dup" | "cpp.exception")
+    {
+        return None;
+    }
+    let component = inputs::component(prepared, planned);
+    if component.root == "." {
+        return None;
+    }
+    let root = Path::new(&component.root);
+    request
+        .inputs
+        .iter()
+        .find(|input| !Path::new(&input.path).starts_with(root))?;
+    let mut output = AnalysisOutput::new(id, "ici");
+    output.observation.state = TaskState::Failed;
+    output.observation.limitations.push(OUTSIDE.into());
+    output.status = "ERROR".into();
+    output.summary = OUTSIDE.into();
+    Some(output)
+}
+
+/// Frozen next `schedule.py` blocks a dependent of a failed prerequisite with "prerequisite <id>
+/// did not run" and prints it as an execution note. Root ruling (2026-11-12, task 4): native keeps
+/// that wording only behind next's measured empty pytest suite (exit 5); a collection failure or
+/// another incomplete prerequisite keeps "has no complete evidence" (decisions.md "next pytest
+/// 빈 suite 뒤의 coverage 차단 문구").
+fn empty_pytest_suite(
+    prepared: &crate::planning::PreparedPlan,
+    dependency: &str,
+    outputs: &BTreeMap<String, AnalysisOutput>,
+) -> bool {
+    prepared
+        .plan
+        .checks
+        .iter()
+        .any(|planned| planned.task_id == dependency && planned.check.id == "python.test")
+        // The typed marker the suite observation carries, not the refusal's wording.
+        && outputs
+            .get(dependency)
+            .is_some_and(|output| ici_validation::python::empty_suite(output, dependency))
+}
+fn unavailable(id: &str, state: TaskState, reason: &str) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(id, "ici");
+    output.observation.state = state;
+    output.observation.limitations.push(reason.into());
+    output.status = "SKIP".into();
+    output.summary = reason.into();
+    output
+}
+pub(crate) fn redact(output: &mut AnalysisOutput) -> Result<()> {
+    let value = serde_json::to_value(&*output).map_err(error)?;
+    *output =
+        serde_json::from_value(ici_execution::redaction::redact_value(&value)).map_err(error)?;
+    Ok(())
+}
+fn lexical(path: &Path) -> PathBuf {
+    let mut output = PathBuf::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                output.pop();
+            }
+            other => output.push(other.as_os_str()),
+        }
+    }
+    output
+}
+fn protect_outputs(
+    prepared: &PreparedPlan,
+    result: &Path,
+    events: Option<&Path>,
+    baseline: Option<&Path>,
+) -> Result<()> {
+    let outputs: Vec<_> = std::iter::once(result).chain(events).collect();
+    if events.is_some_and(|events| lexical(events) == lexical(result)) {
+        return Err(CliError("result and event output paths must differ".into()));
+    }
+    for output in outputs {
+        let output = lexical(output);
+        if baseline.is_some_and(|baseline| {
+            lexical(baseline) == output
+                || baseline
+                    .canonicalize()
+                    .ok()
+                    .zip(output.canonicalize().ok())
+                    .is_some_and(|(baseline, output)| baseline == output)
+        }) {
+            return Err(CliError(
+                "an output cannot replace the comparison baseline".into(),
+            ));
+        }
+        let selected = prepared
+            .project
+            .components
+            .iter()
+            .flat_map(|component| component.files.iter())
+            .map(|path| prepared.project.root.join(path));
+        if selected
+            .chain(
+                prepared
+                    .legacy_lines
+                    .values()
+                    .flat_map(|scope| scope.inputs.iter())
+                    .map(|path| prepared.project.root.join(path)),
+            )
+            .chain(prepared.project.configuration_files.iter().cloned())
+            .any(|path| lexical(&path) == output)
+        {
+            return Err(CliError(
+                "an output cannot replace source or configuration inputs".into(),
+            ));
+        }
+    }
+    Ok(())
+}
+/// A rerun may replace an earlier `ici.next.event` stream at the same path. Any other
+/// existing file is user data and stays untouched.
+fn previous_event_stream(path: &Path) -> Result<bool> {
+    const MAX_STREAM: u64 = 64 * 1024 * 1024;
+    let metadata = match std::fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(failure) if failure.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(failure) => return Err(error(failure)),
+    };
+    if !metadata.file_type().is_file() || metadata.len() > MAX_STREAM {
+        return Ok(false);
+    }
+    let Ok(text) = String::from_utf8(std::fs::read(path).map_err(error)?) else {
+        return Ok(false);
+    };
+    if text.is_empty() {
+        return Ok(true);
+    }
+    let last = text.lines().count();
+    Ok(match ici_domain::read_events(&text) {
+        // Only a truncated final line (a killed writer) may be unparseable.
+        Ok((events, notes)) => {
+            !events.is_empty()
+                && notes
+                    .iter()
+                    .all(|note| note.starts_with(&format!("line {last}: not valid JSON")))
+        }
+        Err(_) => false,
+    })
+}
+pub(crate) fn validate_destination(path: &Path, create_new: bool) -> Result<()> {
+    match std::fs::symlink_metadata(path) {
+        Ok(metadata) => {
+            if create_new || !metadata.file_type().is_file() {
+                return Err(CliError(format!(
+                    "{} is not an available regular output",
+                    path.display()
+                )));
+            }
+        }
+        Err(failure) if failure.kind() == std::io::ErrorKind::NotFound => {}
+        Err(failure) => return Err(error(failure)),
+    }
+    let parent = path
+        .parent()
+        .ok_or_else(|| CliError("output has no parent directory".into()))?;
+    storage::prepare_directory(parent).map_err(error)?;
+    Ok(())
+}
+
+fn execute_validation(
+    id: &str,
+    plans: &[ici_validation::ValidationPlan],
+    scheduler: &Scheduler,
+    cancellation: &Cancellation,
+    events: &EventLog,
+    outcomes: &mut BTreeMap<String, ici_execution::TaskOutcome>,
+    owners: &mut BTreeMap<PathBuf, ici_validation::OwnedRun>,
+) -> AnalysisOutput {
+    let mut combined = AnalysisOutput::new(id, "ici-validation");
+    for original in plans {
+        let mut captured = original.clone();
+        if let Err(error) = ici_validation::capture_binary_headers(&mut captured) {
+            return unavailable(
+                id,
+                TaskState::Failed,
+                &format!("binary artifact header capture: {error}"),
+            );
+        }
+        let plan = &captured;
+        let directory = &plan.context.owned_run_dir;
+        if !owners.contains_key(directory) {
+            let prepare = directory
+                .parent()
+                .ok_or_else(|| "validation run has no parent".into())
+                .and_then(|parent| {
+                    storage::prepare_directory(parent).map_err(|error| error.to_string())
+                })
+                .and_then(|()| {
+                    ici_validation::OwnedRun::create(directory).map_err(|error| error.to_string())
+                });
+            match prepare {
+                Ok(owner) => {
+                    owners.insert(directory.clone(), owner);
+                }
+                Err(reason) => {
+                    return unavailable(
+                        id,
+                        TaskState::Failed,
+                        &format!("fresh validation directory: {reason}"),
+                    );
+                }
+            }
+        }
+        let mut failure = None;
+        loop {
+            let ready = match ici_validation::ready_steps(plan, outcomes) {
+                Ok(ready) => ready,
+                Err(error) => {
+                    failure = Some(error.to_string());
+                    break;
+                }
+            };
+            if ready.is_empty() {
+                break;
+            }
+            let tasks: Vec<_> = plan
+                .tasks
+                .iter()
+                .filter(|task| ready.contains(&task.id))
+                .cloned()
+                .collect();
+            match scheduler.run_with_start(&tasks, cancellation, |task| {
+                owners[directory].mark_started(plan, &task.id);
+                events.emit(
+                    "task.started",
+                    Some(&task.id),
+                    Some(&plan.context.component_id),
+                    "project validation",
+                )
+            }) {
+                Ok(schedule) => {
+                    for outcome in schedule.outcomes {
+                        events.emit(
+                            "task.completed",
+                            Some(&outcome.task_id),
+                            Some(&plan.context.component_id),
+                            &state_label(outcome.state),
+                        );
+                        outcomes.insert(outcome.task_id.clone(), outcome);
+                    }
+                }
+                Err(error) => {
+                    failure = Some(error.to_string());
+                    break;
+                }
+            }
+        }
+        let artifacts = match ici_validation::capture_artifacts(plan, &owners[directory], outcomes)
+        {
+            Ok(artifacts) => artifacts,
+            Err(error) => {
+                return unavailable(
+                    id,
+                    TaskState::Failed,
+                    &format!("validation artifact ownership: {error}"),
+                );
+            }
+        };
+        let mut output = ici_validation::observe(plan, outcomes, &artifacts);
+        if !output.observation.evidence_is_complete() {
+            output.extra["step_diagnostics"]=json!(plan.tasks.iter().filter_map(|task|outcomes.get(&task.id)).map(|outcome|json!({"task_id":outcome.task_id,"exit_code":outcome.exit_code,"stdout":String::from_utf8_lossy(&outcome.stdout).chars().take(4096).collect::<String>(),"stderr":String::from_utf8_lossy(&outcome.stderr).chars().take(4096).collect::<String>(),"error":outcome.error})).collect::<Vec<_>>());
+        }
+        if let Some(reason) = failure {
+            output.observation.state = if cancellation.is_cancelled() {
+                TaskState::Cancelled
+            } else {
+                TaskState::Blocked
+            };
+            output.observation.limitations.push(reason);
+        }
+        let complete = output.observation.evidence_is_complete();
+        // A frozen next suite step that ran but did not complete keeps its own gate reason.
+        if !complete && let Some(step) = &plan.context.options.suite_step_id {
+            combined.observation.incomplete_steps.push((
+                step.clone(),
+                output
+                    .observation
+                    .limitations
+                    .first()
+                    .cloned()
+                    .unwrap_or_default(),
+            ));
+        }
+        combined.observation.timed_out |= output.observation.timed_out;
+        combined.observation.truncated |= output.observation.truncated;
+        combined.observation.duration_seconds = Some(
+            combined.observation.duration_seconds.unwrap_or(0.0)
+                + output.observation.duration_seconds.unwrap_or(0.0),
+        );
+        combined
+            .observation
+            .tool_versions
+            .extend(output.observation.tool_versions);
+        // A later required FAIL must not be hidden by an earlier advisory WARN.
+        // Other states keep the original first-non-PASS rule; incompleteness is handled below.
+        let rank = |status: &str| match status {
+            "PASS" => Some(0),
+            "WARN" => Some(1),
+            "FAIL" => Some(2),
+            _ => None,
+        };
+        match (rank(&combined.status), rank(&output.status)) {
+            (Some(current), Some(next)) if next > current => {
+                combined.status = output.status.clone();
+            }
+            (Some(0), None) => combined.status = output.status.clone(),
+            _ => {}
+        }
+        if !complete {
+            combined.observation.state = output.observation.state;
+            combined.status = "SKIP".into();
+        }
+        combined
+            .observation
+            .findings
+            .extend(output.observation.findings);
+        combined
+            .observation
+            .measurements
+            .extend(output.observation.measurements);
+        combined
+            .observation
+            .limitations
+            .extend(output.observation.limitations);
+        combined.targets.extend(output.targets);
+        if !combined.summary.is_empty() {
+            combined.summary.push_str("; ");
+        }
+        combined.summary.push_str(&output.summary);
+        if combined.extra.is_null() {
+            combined.extra = json!({});
+        }
+        if let Some(details) = output
+            .extra
+            .get("finding_details")
+            .and_then(serde_json::Value::as_object)
+        {
+            if !combined
+                .extra
+                .get("finding_details")
+                .is_some_and(serde_json::Value::is_object)
+            {
+                combined.extra["finding_details"] = json!({});
+            }
+            combined.extra["finding_details"]
+                .as_object_mut()
+                .expect("details map")
+                .extend(details.clone());
+        }
+        combined.extra[&plan.context.task_id] = output.extra;
+    }
+    aggregate_integration_cases(plans, &mut combined);
+    combined
+}
+/// Frozen IntegrationEngine reports one case table and one summary for every declared case.
+fn aggregate_integration_cases(
+    plans: &[ici_validation::ValidationPlan],
+    combined: &mut AnalysisOutput,
+) {
+    if plans.is_empty()
+        || !combined.observation.evidence_is_complete()
+        || !plans.iter().all(|plan| {
+            plan.kind == ici_validation::ValidationKind::Integration
+                && plan.context.options.integration_case_name.is_some()
+        })
+    {
+        return;
+    }
+    let cases = plans
+        .iter()
+        .filter_map(|plan| {
+            combined.extra[&plan.context.task_id]
+                .pointer("/integration/cases/0")
+                .cloned()
+        })
+        .collect::<Vec<_>>();
+    if cases.len() != plans.len() {
+        return;
+    }
+    let violations = cases.iter().filter(|case| case["status"] != "PASS").count();
+    combined.summary = format!(
+        "Integration contracts: {} run, {violations} violation(s)",
+        cases.len()
+    );
+    combined.extra["integration"] = json!({"state":"MEASURED","cases":cases});
+    combined.extra["tool_evidence"] = json!(
+        plans
+            .iter()
+            .filter_map(|plan| {
+                combined.extra[&plan.context.task_id]
+                    .pointer("/tool_evidence/0")
+                    .cloned()
+            })
+            .collect::<Vec<_>>()
+    );
+}
+
+fn engine_names(prepared: &crate::planning::PreparedPlan) -> BTreeMap<String, String> {
+    prepared
+        .plan
+        .checks
+        .iter()
+        .filter_map(|planned| {
+            ici_application::plan::engine_name(&planned.check.id)
+                .map(|name| (planned.task_id.clone(), name.into()))
+        })
+        .collect()
+}
+
+/// The wire spelling of an enum value (`SUCCEEDED`, `INCOMPLETE`), as the frozen event messages use.
+fn wire_label<T: serde::Serialize>(value: &T) -> String {
+    serde_json::to_value(value)
+        .ok()
+        .and_then(|value| value.as_str().map(str::to_owned))
+        .unwrap_or_default()
+}
+pub(crate) fn state_label(state: ici_domain::TaskState) -> String {
+    wire_label(&state)
+}
+
+/// The build system of the planned C++ check's linked component build (`direct-gcc`, `cmake`...).
+/// The `cpp.tidy` task of a check's component.
+/// Frozen LintEngine projection of a legacy `cpp.diagnostics` output: the syntax targets, the
+/// clang tooling of the same component and the Qt generated-code verification.
+fn legacy_lint_projection(
+    prepared: &crate::planning::PreparedPlan,
+    planned: &ici_application::plan::PlannedCheck,
+    component: &ici_config::Component,
+    output: &mut AnalysisOutput,
+    outputs: &BTreeMap<String, AnalysisOutput>,
+    projected_lint: &mut BTreeMap<String, bool>,
+) {
+    let id = &planned.task_id;
+    let configurations = prepared
+        .cpp
+        .legacy_lint_configurations(&planned.component_id)
+        .filter(|_| !prepared.cpp.is_fallback(id));
+    // Frozen `_lint_cpp` runs `verify_qt_codegen` after a syntax stop on error context
+    // diagnostics too (a failed canonical preparation: no database, Qt context missing).
+    if prepared.legacy_projection
+        && planned.check.id == "cpp.diagnostics"
+        && prepared.cpp.is_legacy_context_error(id)
+        && configurations.is_none()
+    {
+        let qt = prepared
+            .cpp
+            .legacy_qt_codegen(&prepared.project, component, output);
+        legacy_qt_counters(output, &qt);
+        output.targets.extend(qt.targets.iter().cloned());
+        crate::cpp::legacy_qt_projection(output, &qt);
+        return;
+    }
+    if !(prepared.legacy_projection
+        && planned.check.id == "cpp.diagnostics"
+        && (prepared.cpp.is_fallback(id) || configurations.is_some()))
+    {
+        return;
+    }
+    let tooling = prepared
+        .plan
+        .checks
+        .iter()
+        .find(|check| check.component_id == planned.component_id && check.check.id == "cpp.tidy")
+        .and_then(|check| prepared.cpp.planned(&check.task_id));
+    let tooling =
+        tooling.or_else(|| tidy_task(prepared, planned).and_then(|task| outputs.get(&task)));
+    let qt = prepared
+        .cpp
+        .legacy_qt_codegen(&prepared.project, component, output);
+    legacy_qt_counters(output, &qt);
+    if crate::cpp::legacy_fallback_lint(
+        output,
+        tooling,
+        prepared.cpp.legacy_standalone,
+        configurations.as_ref(),
+        Some(&qt),
+    ) {
+        projected_lint.insert(id.clone(), configurations.is_none());
+    }
+}
+
+/// Frozen LintEngine Qt generated-code counters (`verify_qt_codegen` always runs).
+fn legacy_qt_counters(output: &mut AnalysisOutput, qt: &ici_cpp::QtCodegenOutcome) {
+    if !output.extra["legacy_lint_counters"].is_object() {
+        output.extra["legacy_lint_counters"] = serde_json::json!({});
+    }
+    for (key, value) in [
+        ("qt_codegen_mode", serde_json::json!(qt.mode)),
+        (
+            "qt_codegen_inputs_checked",
+            serde_json::json!(qt.inputs_checked),
+        ),
+        ("qt_codegen_ui_checked", serde_json::json!(qt.ui_checked)),
+        ("qt_codegen_qrc_checked", serde_json::json!(qt.qrc_checked)),
+        ("qt_codegen_moc_checked", serde_json::json!(qt.moc_checked)),
+        ("qt5_compile_units", serde_json::json!(qt.qt5_units)),
+        ("qt6_compile_units", serde_json::json!(qt.qt6_units)),
+    ] {
+        output.extra["legacy_lint_counters"][key] = value;
+    }
+}
+
+fn tidy_task(
+    prepared: &crate::planning::PreparedPlan,
+    planned: &ici_application::plan::PlannedCheck,
+) -> Option<String> {
+    prepared
+        .plan
+        .checks
+        .iter()
+        .find(|check| check.component_id == planned.component_id && check.check.id == "cpp.tidy")
+        .map(|check| check.task_id.clone())
+}
+
+/// The root build descriptor of the check's build (frozen `select_backend(...).descriptor`).
+/// Frozen `ToolEvidence` of one observed native process under a frozen record name.
+fn observed_record(
+    name: &str,
+    argv: &[String],
+    outcome: &ici_execution::TaskOutcome,
+) -> serde_json::Value {
+    json!({
+        "name": name,
+        "path": argv.first().cloned().unwrap_or_default(),
+        "version": "",
+        "argv": argv,
+        "returncode": crate::cpp::frozen_returncode(outcome),
+        "timed_out": outcome.timed_out,
+        "truncated": outcome.truncated,
+        "error": "",
+    })
+}
+
+/// A legacy C++ coverage check's `gcov capability` probe and `gcov` report runs.
+fn legacy_gcov_records(
+    plans: &[ici_validation::ValidationPlan],
+    step_outcomes: &BTreeMap<String, ici_execution::TaskOutcome>,
+) -> Vec<serde_json::Value> {
+    plans
+        .iter()
+        .flat_map(|plan| &plan.tasks)
+        .filter_map(|task| {
+            let outcome = step_outcomes.get(&task.id)?;
+            let name = if task.id.ends_with(".capability") {
+                "gcov capability"
+            } else if task.id.ends_with(".report") || task.id.ends_with(".text-report") {
+                "gcov"
+            } else {
+                return None;
+            };
+            Some(observed_record(name, &task.argv, outcome))
+        })
+        .collect()
+}
+
+/// Frozen runtime-engine tool evidence of a legacy C++ test, coverage or sanitizer check, built
+/// only from processes this run observed:
+/// * CMake (`BuildSession`): the backend selection, the variant's `cmake configure`/`cmake
+///   build` preparation and the `ctest` run on the test/sanitizer check; the coverage check
+///   carries `gcov capability` (the `--help` probe) and its `gcov` report runs.
+/// * direct g++ sanitizers: per test executable a `sanitizer compile` record (the link of that
+///   instrumented executable, whose objects compiled in the same preparation) followed by its
+///   `sanitizer execution`.
+///
+/// The legacy CMake preparation records frozen's `cmake --version` probe in the session's
+/// processes; native writes all GCOV reports with one `gcov` process, so frozen's per-directory
+/// `gcov` records have no native counterpart and are not synthesised.
+fn legacy_runtime_tool_evidence(
+    prepared: &crate::planning::PreparedPlan,
+    planned: &ici_application::plan::PlannedCheck,
+    plans: &[ici_validation::ValidationPlan],
+    step_outcomes: &BTreeMap<String, ici_execution::TaskOutcome>,
+    contexts: &[crate::export_context::PreparedContext],
+) -> Option<Vec<serde_json::Value>> {
+    let variants: &[&str] = match planned.check.id.as_str() {
+        "cpp.test" | "cpp.coverage" => &["coverage", "test"],
+        "cpp.sanitize" => &["sanitize"],
+        "cpp.tsan" => &["thread-sanitize"],
+        _ => return None,
+    };
+    // A stopped direct compile published no session; its coverage check still ran gcov.
+    if plans
+        .iter()
+        .any(|plan| plan.context.options.gcov_without_suite)
+    {
+        return Some(legacy_gcov_records(plans, step_outcomes));
+    }
+    let session = variants.iter().find_map(|variant| {
+        contexts.iter().find(|context| {
+            context.plan.component_id == planned.component_id
+                && context.plan.build.variant == *variant
+        })
+    })?;
+    let component = prepared
+        .project
+        .components
+        .iter()
+        .find(|component| component.id == planned.component_id)?;
+    let tasks = plans.iter().flat_map(|plan| &plan.tasks);
+    let mut evidence = vec![];
+    match session.plan.build.system.as_str() {
+        "cmake" | "make" | "qmake" | "direct-gcc" if planned.check.id == "cpp.coverage" => {
+            evidence = legacy_gcov_records(plans, step_outcomes);
+        }
+        "cmake" => {
+            let processes: Vec<serde_json::Value> = tasks
+                .filter(|task| {
+                    // A CTest inventory probe is not frozen's `ctest` run.
+                    task.kind != ici_domain::TaskKind::Probe
+                        && task
+                            .argv
+                            .first()
+                            .and_then(|path| Path::new(path).file_name())
+                            .is_some_and(|name| name == "ctest")
+                })
+                .filter_map(|task| {
+                    Some(observed_record(
+                        "ctest",
+                        &task.argv,
+                        step_outcomes.get(&task.id)?,
+                    ))
+                })
+                .collect();
+            let mut processes_with_build = session.process_evidence.clone();
+            processes_with_build.extend(processes);
+            evidence = crate::cpp::legacy_build_session_evidence(
+                &prepared.project.root,
+                &component.root,
+                "cmake",
+                &session.plan.descriptor,
+                &processes_with_build,
+            )
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        }
+        // Frozen `run_tests` of a Make or qmake session: the variant's preparation (`make
+        // configure|clean|build`, `qmake configure|build`) and the test command it ran (`make
+        // test`; qmake's `make check`).
+        system @ ("make" | "qmake") => {
+            let name = if system == "make" {
+                "make test"
+            } else {
+                "make check"
+            };
+            let mut processes = session.process_evidence.clone();
+            processes.extend(
+                tasks
+                    .filter(|task| task.kind != ici_domain::TaskKind::Probe)
+                    .filter_map(|task| {
+                        Some(observed_record(
+                            name,
+                            &task.argv,
+                            step_outcomes.get(&task.id)?,
+                        ))
+                    }),
+            );
+            evidence = crate::cpp::legacy_build_session_evidence(
+                &prepared.project.root,
+                &component.root,
+                system,
+                &session.plan.descriptor,
+                &processes,
+            )
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        }
+        // Frozen direct g++ `TestEngine`: the compiles (`g++ coverage compile` when instrumented
+        // for gcov, else `g++ test compile`), each test executable's link (`g++ test compile`)
+        // and its run (`C++ test`). Native compiles each source once and links every test from
+        // those objects, so the records are the processes it ran, in its order.
+        "direct-gcc" if planned.check.id == "cpp.test" => {
+            evidence = legacy_direct_compile_records(session.evidence.as_ref()?)?;
+            for task in tasks.filter(|task| task.kind != ici_domain::TaskKind::Probe) {
+                if let Some(outcome) = step_outcomes.get(&task.id) {
+                    evidence.push(observed_record("C++ test", &task.argv, outcome));
+                }
+            }
+        }
+        "direct-gcc" if planned.check.id != "cpp.test" && planned.check.id != "cpp.coverage" => {
+            let record = session.evidence.as_ref()?;
+            let links = record["link_tasks"].as_array()?;
+            let outcomes = record["outcomes"].as_array()?;
+            for task in tasks.filter(|task| task.kind != ici_domain::TaskKind::Probe) {
+                let Some(outcome) = step_outcomes.get(&task.id) else {
+                    continue;
+                };
+                let executable = task.argv.first()?;
+                let link = links.iter().find(|link| {
+                    link["argv"]
+                        .as_array()
+                        .and_then(|argv| argv.last())
+                        .and_then(serde_json::Value::as_str)
+                        == Some(executable.as_str())
+                })?;
+                let linked = outcomes
+                    .iter()
+                    .find(|outcome| outcome["task_id"] == link["id"])?;
+                evidence.push(json!({
+                    "name": "sanitizer compile",
+                    "path": link["argv"][0],
+                    "version": "",
+                    "argv": link["argv"],
+                    "returncode": linked["exit_code"],
+                    "timed_out": linked["timed_out"],
+                    "truncated": linked["truncated"],
+                    "error": "",
+                }));
+                evidence.push(observed_record("sanitizer execution", &task.argv, outcome));
+            }
+        }
+        _ => return None,
+    }
+    (!evidence.is_empty()).then_some(evidence)
+}
+
+/// Frozen direct g++ `TestEngine` compile records (`g++ coverage compile` when instrumented for
+/// gcov, else `g++ test compile`) and each test executable's link (`g++ test compile`), from a
+/// direct preparation's evidence (`compiler_tasks`, `link_tasks` or a failed phase's
+/// `link_task`, `outcomes`): the processes native ran, in its order, also when the preparation
+/// failed.
+pub(crate) fn legacy_direct_compile_records(
+    record: &serde_json::Value,
+) -> Option<Vec<serde_json::Value>> {
+    let mut evidence = vec![];
+    let outcomes = record["outcomes"].as_array()?;
+    let observed = |task: &serde_json::Value| {
+        outcomes
+            .iter()
+            .find(|outcome| outcome["task_id"] == task["id"])
+    };
+    let returncode = |outcome: &serde_json::Value| {
+        if outcome["timed_out"] == true {
+            json!(124)
+        } else if let Some(code) = outcome["exit_code"].as_i64() {
+            json!(code)
+        } else if let Some(signal) = outcome["signal"].as_i64() {
+            json!(-signal)
+        } else if !outcome["error"].is_null() {
+            json!(-1)
+        } else {
+            serde_json::Value::Null
+        }
+    };
+    let compiled = |name: &str, task: &serde_json::Value, outcome: &serde_json::Value| {
+        json!({
+            "name": name, "path": task["argv"][0], "version": "", "argv": task["argv"],
+            "returncode": returncode(outcome), "timed_out": outcome["timed_out"],
+            "truncated": outcome["truncated"], "error": "",
+        })
+    };
+    for task in record["compiler_tasks"].as_array()? {
+        let Some(outcome) = observed(task) else {
+            continue;
+        };
+        let instrumented = task["argv"]
+            .as_array()
+            .is_some_and(|argv| argv.iter().any(|argument| argument == "--coverage"));
+        let name = if instrumented {
+            "g++ coverage compile"
+        } else {
+            "g++ test compile"
+        };
+        evidence.push(compiled(name, task, outcome));
+    }
+    let links = record["link_tasks"]
+        .as_array()
+        .cloned()
+        .unwrap_or_else(|| record.get("link_task").cloned().into_iter().collect());
+    for task in &links {
+        if let Some(outcome) = observed(task) {
+            evidence.push(compiled("g++ test compile", task, outcome));
+        }
+    }
+    Some(evidence)
+}
+
+/// Frozen Python test/sanitize tool evidence (`TestEngine._record_tool`, the ResourceWarning
+/// scope's `_record_process`) from the processes this run observed, under frozen's names: the
+/// coverage capability probe (`coverage --version`), the covered suite (`coverage pytest`), the
+/// plain suite or the missing-coverage fallback (`pytest`), the unittest fallback (`unittest`),
+/// the coverage JSON report (`coverage json`), the ResourceWarning suite (`pytest resource
+/// warnings`), the deep quality reruns (`pytest repeat N`) and the mutation probe (`mutation
+/// capability`). A step that did not run has no record; the argv is native's (decisions.md "C++
+/// 도구 증거는 실제 실행 기록" and "pytest는 있으나 coverage가 없는 legacy test").
+fn legacy_python_tool_evidence(
+    planned: &ici_application::plan::PlannedCheck,
+    plans: &[ici_validation::ValidationPlan],
+    step_outcomes: &BTreeMap<String, ici_execution::TaskOutcome>,
+) -> Option<Vec<serde_json::Value>> {
+    let sanitize = match planned.check.id.as_str() {
+        "python.test" | "python.coverage" => false,
+        "python.sanitize" => true,
+        _ => return None,
+    };
+    let evidence: Vec<serde_json::Value> = plans
+        .iter()
+        .flat_map(|plan| &plan.tasks)
+        .filter_map(|task| {
+            let outcome = step_outcomes.get(&task.id)?;
+            let step = task.id.rsplit('.').next().unwrap_or_default();
+            let coverage = |command: &str| {
+                task.argv.windows(3).any(|window| {
+                    window[0] == "-m" && window[1] == "coverage" && window[2] == command
+                })
+            };
+            let rerun: String;
+            let name = match step {
+                "suite" if sanitize => "pytest resource warnings",
+                "coverage-probe" if coverage("--version") => "coverage --version",
+                "suite" if coverage("run") => "coverage pytest",
+                "suite" | "uncovered-suite" => "pytest",
+                "report" if coverage("json") => "coverage json",
+                _ if step.starts_with("unittest") => "unittest",
+                // Frozen `_run_quality_pytest` names rerun N+1 of the deep pass and
+                // `_probe_mutation_capability` its probe (test_quality.py:475, 567).
+                "mutation" => "mutation capability",
+                _ => {
+                    let index = step.strip_prefix("repeat")?.parse::<usize>().ok()?;
+                    rerun = format!("pytest repeat {}", index + 1);
+                    &rerun
+                }
+            };
+            let mut record = python_record(name, &task.argv, outcome);
+            if sanitize && record["error"] == "" {
+                record["error"] = json!(ici_validation::legacy_evidence_error(
+                    outcome,
+                    task.timeout_seconds,
+                ));
+            }
+            Some(record)
+        })
+        .collect();
+    (!evidence.is_empty()).then_some(evidence)
+}
+
+/// One legacy Python process record; `error` is the executor's own failure of the process
+/// (start, capture, cleanup). An exited process, failing or not, has none, like frozen's
+/// records of exited processes.
+fn python_record(
+    name: &str,
+    argv: &[String],
+    outcome: &ici_execution::TaskOutcome,
+) -> serde_json::Value {
+    let mut record = observed_record(name, argv, outcome);
+    record["error"] = json!(outcome.error.clone().unwrap_or_default());
+    record
+}
+
+fn build_descriptor(
+    prepared: &crate::planning::PreparedPlan,
+    planned: &ici_application::plan::PlannedCheck,
+) -> String {
+    prepared
+        .project
+        .components
+        .iter()
+        .find(|component| component.id == planned.component_id)
+        .and_then(|component| crate::cpp::linked_build(&prepared.project, component))
+        .and_then(|build| build.project.clone())
+        .unwrap_or_else(|| ".".into())
+}
+/// The binding refusal of a CMake sanitizer suite whose CTestTestfile.cmake does not exist (a
+/// project without `enable_testing()`): its ctest reports no test. Only an absent inventory is
+/// that case; a symlinked or uncontained one stays the refusal.
+fn absent_ctest_inventory(reason: &str) -> bool {
+    reason
+        .strip_suffix(" must be a contained existing regular artifact without symlink traversal")
+        .filter(|path| path.ends_with("/CTestTestfile.cmake"))
+        .is_some_and(|path| {
+            std::fs::symlink_metadata(path)
+                .is_err_and(|error| error.kind() == std::io::ErrorKind::NotFound)
+        })
+}
+fn build_system(
+    prepared: &crate::planning::PreparedPlan,
+    planned: &ici_application::plan::PlannedCheck,
+) -> Option<String> {
+    let component = prepared
+        .project
+        .components
+        .iter()
+        .find(|component| component.id == planned.component_id)?;
+    // A runtime check runs on its own prepared variant (a legacy direct test compile is not the
+    // component's linked build); other checks use the linked build.
+    let variants: &[&str] = match planned.check.id.as_str() {
+        "cpp.test" | "cpp.coverage" => &["coverage", "test"],
+        "cpp.sanitize" => &["sanitize"],
+        "cpp.tsan" => &["thread-sanitize"],
+        _ => &[],
+    };
+    variants
+        .iter()
+        .find_map(|variant| {
+            let id = component
+                .settings
+                .pointer(&format!("/native_build_variants/{variant}/build_id"))?
+                .as_str()?;
+            prepared.project.builds.iter().find(|build| build.id == id)
+        })
+        .or_else(|| crate::cpp::linked_build(&prepared.project, component))
+        .and_then(|build| build.system.clone())
+}
+
+#[cfg(test)]
+mod python_record_tests {
+    #[test]
+    fn a_python_record_carries_the_executor_failure_and_nothing_for_an_exit() {
+        let argv = vec!["python".to_owned(), "-m".into(), "pytest".into()];
+        let mut exited = ici_execution::TaskOutcome::empty("project.python.test.suite");
+        exited.exit_code = Some(1);
+        let record = super::python_record("pytest", &argv, &exited);
+        assert_eq!(record["error"], "");
+        assert_eq!(record["returncode"], 1);
+        let mut failed = ici_execution::TaskOutcome::empty("project.python.test.suite");
+        failed.error = Some("cannot start process: No such file or directory (os error 2)".into());
+        let record = super::python_record("pytest", &argv, &failed);
+        assert_eq!(
+            record["error"],
+            "cannot start process: No such file or directory (os error 2)"
+        );
+    }
+}

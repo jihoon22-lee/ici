@@ -1,0 +1,251 @@
+{
+  "oracle_source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "oracle_file": "src/ici/analysis/_python_metrics.py",
+  "oracle_file_sha256": "86cd5b637c4f92efdfc57646285f185367d879e594638518f9c88d50120dc8e9",
+  "oracle_python": "3.14.7",
+  "cases": [
+    {
+      "id": "flat",
+      "source": "def answer():\n    return 42\n",
+      "functions": [
+        {
+          "name": "answer",
+          "line": 1,
+          "end_line": 2,
+          "complexity": 1,
+          "nesting": 0,
+          "cognitive": 0,
+          "cognitive_nesting": 0
+        }
+      ]
+    },
+    {
+      "id": "branches",
+      "source": "def choose(x, y):\n    if x and y:\n        return x\n    elif y:\n        return y\n    elif x:\n        return 0\n    else:\n        return -1\n",
+      "functions": [
+        {
+          "name": "choose",
+          "line": 1,
+          "end_line": 9,
+          "complexity": 5,
+          "nesting": 3,
+          "cognitive": 5,
+          "cognitive_nesting": 1
+        }
+      ]
+    },
+    {
+      "id": "else_nested",
+      "source": "def choose(x,y):\n    if x:\n        pass\n    else:\n        if y:\n            pass\n",
+      "functions": [
+        {
+          "name": "choose",
+          "line": 1,
+          "end_line": 6,
+          "complexity": 3,
+          "nesting": 2,
+          "cognitive": 2,
+          "cognitive_nesting": 1
+        }
+      ]
+    },
+    {
+      "id": "loops",
+      "source": "def scan(rows):\n    for row in rows:\n        while row:\n            if row == 1:\n                break\n            else:\n                continue\n    else:\n        assert rows\n",
+      "functions": [
+        {
+          "name": "scan",
+          "line": 1,
+          "end_line": 9,
+          "complexity": 4,
+          "nesting": 3,
+          "cognitive": 10,
+          "cognitive_nesting": 3
+        }
+      ]
+    },
+    {
+      "id": "comprehensions",
+      "source": "def values(items):\n    return [x for x in items if x for y in items if y and x], {x:y for x,y in items if y}, (x for x in items if x)\n",
+      "functions": [
+        {
+          "name": "values",
+          "line": 1,
+          "end_line": 2,
+          "complexity": 6,
+          "nesting": 0,
+          "cognitive": 5,
+          "cognitive_nesting": 0
+        }
+      ]
+    },
+    {
+      "id": "nested_scopes",
+      "source": "def outer(items):\n    def inner(flag=(1 if items else 0)):\n        if flag:\n            for value in items:\n                if value:\n                    return value\n    callback = lambda x: x if x else 0\n    return inner\n",
+      "functions": [
+        {
+          "name": "outer",
+          "line": 1,
+          "end_line": 8,
+          "complexity": 2,
+          "nesting": 0,
+          "cognitive": 0,
+          "cognitive_nesting": 0
+        },
+        {
+          "name": "inner",
+          "line": 2,
+          "end_line": 6,
+          "complexity": 5,
+          "nesting": 3,
+          "cognitive": 6,
+          "cognitive_nesting": 3
+        }
+      ]
+    },
+    {
+      "id": "class_scope",
+      "source": "def factory(flag):\n    class Built(Base if flag else object):\n        @decorate(flag and other)\n        def method(self):\n            if flag:\n                return 1\n    return Built\n",
+      "functions": [
+        {
+          "name": "factory",
+          "line": 1,
+          "end_line": 7,
+          "complexity": 2,
+          "nesting": 0,
+          "cognitive": 0,
+          "cognitive_nesting": 0
+        },
+        {
+          "name": "method",
+          "line": 4,
+          "end_line": 6,
+          "complexity": 3,
+          "nesting": 1,
+          "cognitive": 2,
+          "cognitive_nesting": 1
+        }
+      ]
+    },
+    {
+      "id": "handlers",
+      "source": "def run(items):\n    try:\n        with acquire() as value:\n            if value:\n                return value\n    except ValueError:\n        assert items\n    except RuntimeError:\n        return 0\n    else:\n        return 1\n    finally:\n        cleanup()\n",
+      "functions": [
+        {
+          "name": "run",
+          "line": 1,
+          "end_line": 13,
+          "complexity": 5,
+          "nesting": 3,
+          "cognitive": 7,
+          "cognitive_nesting": 2
+        }
+      ]
+    },
+    {
+      "id": "except_star",
+      "source": "def run():\n    try:\n        action()\n    except* ValueError:\n        if available:\n            handle()\n",
+      "functions": [
+        {
+          "name": "run",
+          "line": 1,
+          "end_line": 6,
+          "complexity": 3,
+          "nesting": 1,
+          "cognitive": 3,
+          "cognitive_nesting": 2
+        }
+      ]
+    },
+    {
+      "id": "async_scopes",
+      "source": "async def run(items):\n    async with acquire() as resource:\n        async for item in items:\n            if item:\n                await item\n    return [item async for item in items if item]\n",
+      "functions": [
+        {
+          "name": "run",
+          "line": 1,
+          "end_line": 6,
+          "complexity": 5,
+          "nesting": 2,
+          "cognitive": 7,
+          "cognitive_nesting": 3
+        }
+      ]
+    },
+    {
+      "id": "booleans",
+      "source": "def combine(a,b,c,d):\n    return (a and b) or (c and d), a if b else c\n",
+      "functions": [
+        {
+          "name": "combine",
+          "line": 1,
+          "end_line": 2,
+          "complexity": 5,
+          "nesting": 0,
+          "cognitive": 3,
+          "cognitive_nesting": 0
+        }
+      ]
+    },
+    {
+      "id": "match_guards",
+      "source": "def choose(value):\n    match value:\n        case {\"x\": x} if x and value:\n            return x\n        case [x, y] if y:\n            return y\n        case _:\n            return 0\n",
+      "functions": [
+        {
+          "name": "choose",
+          "line": 1,
+          "end_line": 8,
+          "complexity": 5,
+          "nesting": 0,
+          "cognitive": 1,
+          "cognitive_nesting": 0
+        }
+      ]
+    },
+    {
+      "id": "signatures",
+      "source": "@decorate(1 if yes else 0)\ndef answer(value: marker(a and b) = (lambda x: 1 if x else 0)) -> marker(c or d):\n    return value\n",
+      "functions": [
+        {
+          "name": "answer",
+          "line": 2,
+          "end_line": 3,
+          "complexity": 4,
+          "nesting": 0,
+          "cognitive": 2,
+          "cognitive_nesting": 0
+        }
+      ]
+    },
+    {
+      "id": "unicode",
+      "source": "def 이름(값):\n    if 값:\n        return 값\n    return 0\n",
+      "functions": [
+        {
+          "name": "이름",
+          "line": 1,
+          "end_line": 4,
+          "complexity": 2,
+          "nesting": 1,
+          "cognitive": 1,
+          "cognitive_nesting": 1
+        }
+      ]
+    },
+    {
+      "id": "generic",
+      "source": "def identity[T = str](value: T) -> T:\n    return value\n",
+      "functions": [
+        {
+          "name": "identity",
+          "line": 1,
+          "end_line": 2,
+          "complexity": 1,
+          "nesting": 0,
+          "cognitive": 0,
+          "cognitive_nesting": 0
+        }
+      ]
+    }
+  ]
+}

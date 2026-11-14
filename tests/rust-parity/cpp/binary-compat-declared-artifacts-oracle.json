@@ -1,0 +1,1885 @@
+{
+ "cases": {
+  "control": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\n",
+   "frozen": {
+    "context_manifests": [],
+    "counters": {
+     "error_count": 6,
+     "failed_count": 7,
+     "passed_count": 5,
+     "skipped_count": 6,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "No executable or shared-library manifest artifacts were selected",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "SKIP",
+      "summary": "Binary compatibility not applicable: no selected manifest artifacts",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "No executable or shared-library manifest artifacts were selected",
+        "start_line": 1,
+        "status": "SKIP",
+        "target_name": "BinaryCompatibility:NotApplicable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "declared-elf-truncated": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:project:tool.bin']\n[build.artifacts]\nreport=['tool.bin']\n",
+   "files": {
+    "tool.bin": "ELF"
+   },
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [],
+        "id": "release:project:tool.bin",
+        "kind": "report",
+        "mode": 420,
+        "path": "tool.bin",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:3bdbb4fe8397cd2b842430b39ccff01a8663c751945ef5e9a09e267fb8b1d359",
+        "size": 4,
+        "target": "tool.bin"
+       }
+      ],
+      "config_digest": "sha256:ade714fd475c105b35735e253279295db1498781c909181e9f0eb8e214f6afd5",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": null,
+      "source_commit": "unavailable",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+      "variant": "release"
+     }
+    ],
+    "counters": {
+     "error_count": 7,
+     "failed_count": 8,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "readelf did not produce complete evidence for tool.bin",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Binary compatibility analysis incomplete: readelf did not produce complete evidence for tool.bin",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "readelf did not produce complete evidence for tool.bin",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BinaryCompatibility:AnalysisUnavailable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Recorded 1 declared artifact(s)",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       },
+       {
+        "file_path": ".",
+        "message": "Recorded 1 declared artifact(s)",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "DeclaredArtifacts"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   },
+   "hidden": []
+  },
+  "declared-max-artifacts": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:project:tests/test_pass.cpp', 'release:project:tests/test_fail.cpp']\nmax_artifacts=1\n[build.artifacts]\nreport=['tests/*.cpp']\n",
+   "files": {},
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [],
+        "id": "release:project:tests/test_fail.cpp",
+        "kind": "report",
+        "mode": 420,
+        "path": "tests/test_fail.cpp",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:8801c565f6f212f53f44407e4f767a40b77ae190dc2fd147dc69e1493f1dc82a",
+        "size": 117,
+        "target": "test_fail.cpp"
+       },
+       {
+        "command": [],
+        "id": "release:project:tests/test_pass.cpp",
+        "kind": "report",
+        "mode": 420,
+        "path": "tests/test_pass.cpp",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:7c723c91390c6472c7b49e42aa2671fc7275f7bcad8822a24d1d51f4f4dfa18d",
+        "size": 69,
+        "target": "test_pass.cpp"
+       }
+      ],
+      "config_digest": "sha256:20d2dd8a072162ae975cec0214692140e169e29e4f86f0e4f7ae6608c279b8e9",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": null,
+      "source_commit": "unavailable",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+      "variant": "release"
+     }
+    ],
+    "counters": {
+     "error_count": 7,
+     "failed_count": 8,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "binary artifact count exceeds configured maximum 1",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Binary compatibility analysis incomplete: binary artifact count exceeds configured maximum 1",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "binary artifact count exceeds configured maximum 1",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BinaryCompatibility:AnalysisUnavailable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Recorded 2 declared artifact(s)",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       },
+       {
+        "file_path": ".",
+        "message": "Recorded 2 declared artifact(s)",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "DeclaredArtifacts"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   },
+   "hidden": []
+  },
+  "declared-readelf-unavailable": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:project:CMakeLists.txt']\n[build.artifacts]\nreport=['CMakeLists.txt']\n",
+   "files": {},
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [],
+        "id": "release:project:CMakeLists.txt",
+        "kind": "report",
+        "mode": 420,
+        "path": "CMakeLists.txt",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:a9c6aff8d41dd621030edb7cd0f4cbba00642f276281d3a512043e263f819c79",
+        "size": 402,
+        "target": "CMakeLists.txt"
+       }
+      ],
+      "config_digest": "sha256:27d49d2f680e1574fbdc16e35951b2472551a5f2df727ead12b8e4ce3f5de051",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": null,
+      "source_commit": "unavailable",
+      "toolchain_digest": "sha256:a46c240063d6e138c3e67496efc4eb90f74eb14bc00e2be0e40b5d45a681fc5b",
+      "variant": "release"
+     }
+    ],
+    "counters": {
+     "error_count": 7,
+     "failed_count": 8,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "readelf capability is unavailable",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Binary compatibility analysis incomplete: readelf capability is unavailable",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "readelf capability is unavailable",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BinaryCompatibility:AnalysisUnavailable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Recorded 1 declared artifact(s)",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       },
+       {
+        "file_path": ".",
+        "message": "Recorded 1 declared artifact(s)",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "DeclaredArtifacts"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   },
+   "hidden": [
+    "readelf"
+   ]
+  },
+  "declared-report": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\n[build.artifacts]\nreport=['CMakeLists.txt']\n",
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [],
+        "id": "release:project:CMakeLists.txt",
+        "kind": "report",
+        "mode": 420,
+        "path": "CMakeLists.txt",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:a9c6aff8d41dd621030edb7cd0f4cbba00642f276281d3a512043e263f819c79",
+        "size": 402,
+        "target": "CMakeLists.txt"
+       }
+      ],
+      "config_digest": "sha256:a7eeb04a0a37d10e35b594afe596fc12dae15b64c08a81cb733316e12d938701",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": null,
+      "source_commit": "unavailable",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+      "variant": "release"
+     }
+    ],
+    "counters": {
+     "error_count": 6,
+     "failed_count": 7,
+     "passed_count": 5,
+     "skipped_count": 6,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "No executable or shared-library manifest artifacts were selected",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "SKIP",
+      "summary": "Binary compatibility not applicable: no selected manifest artifacts",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "No executable or shared-library manifest artifacts were selected",
+        "start_line": 1,
+        "status": "SKIP",
+        "target_name": "BinaryCompatibility:NotApplicable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Recorded 1 declared artifact(s)",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       },
+       {
+        "file_path": ".",
+        "message": "Recorded 1 declared artifact(s)",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "DeclaredArtifacts"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "declared-selected-allow-non-elf": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:project:CMakeLists.txt']\nallow_non_elf=true\n[build.artifacts]\nreport=['CMakeLists.txt']\n",
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [],
+        "id": "release:project:CMakeLists.txt",
+        "kind": "report",
+        "mode": 420,
+        "path": "CMakeLists.txt",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:a9c6aff8d41dd621030edb7cd0f4cbba00642f276281d3a512043e263f819c79",
+        "size": 402,
+        "target": "CMakeLists.txt"
+       }
+      ],
+      "config_digest": "sha256:fd163b3e6b66043d611816c62be84cc622d9ea388db7e38049efaf34feca0275",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": null,
+      "source_commit": "unavailable",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+      "variant": "release"
+     }
+    ],
+    "counters": {
+     "error_count": 6,
+     "failed_count": 7,
+     "passed_count": 6,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "high",
+        "message": "Manifest artifact is not ELF and policy allows it",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "PASS",
+      "summary": "ELF compatibility: 0 checked, 0 violation(s), 1 skipped",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Manifest artifact is not ELF and policy allows it",
+        "start_line": 1,
+        "status": "SKIP",
+        "target_name": "BinaryCompatibility:NonElf"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Recorded 1 declared artifact(s)",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       },
+       {
+        "file_path": ".",
+        "message": "Recorded 1 declared artifact(s)",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "DeclaredArtifacts"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "declared-selected-declared": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:project:CMakeLists.txt']\n[build.artifacts]\nreport=['CMakeLists.txt']\n",
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [],
+        "id": "release:project:CMakeLists.txt",
+        "kind": "report",
+        "mode": 420,
+        "path": "CMakeLists.txt",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:a9c6aff8d41dd621030edb7cd0f4cbba00642f276281d3a512043e263f819c79",
+        "size": 402,
+        "target": "CMakeLists.txt"
+       }
+      ],
+      "config_digest": "sha256:27d49d2f680e1574fbdc16e35951b2472551a5f2df727ead12b8e4ce3f5de051",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": null,
+      "source_commit": "unavailable",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+      "variant": "release"
+     }
+    ],
+    "counters": {
+     "error_count": 6,
+     "failed_count": 8,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "high",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "high"
+       },
+       {
+        "category": "compatibility",
+        "confidence": "exact",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "rule_id": "ici.binary.non-elf",
+        "severity": "high"
+       }
+      ],
+      "required": false,
+      "status": "FAIL",
+      "summary": "ELF compatibility: 0 checked, 1 violation(s), 0 skipped",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "BinaryCompatibility:release:project:CMakeLists.txt"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Recorded 1 declared artifact(s)",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       },
+       {
+        "file_path": ".",
+        "message": "Recorded 1 declared artifact(s)",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "DeclaredArtifacts"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "declared-selected-missing": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:shadow:calc']\n[build.artifacts]\nreport=['CMakeLists.txt']\n",
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [],
+        "id": "release:project:CMakeLists.txt",
+        "kind": "report",
+        "mode": 420,
+        "path": "CMakeLists.txt",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:a9c6aff8d41dd621030edb7cd0f4cbba00642f276281d3a512043e263f819c79",
+        "size": 402,
+        "target": "CMakeLists.txt"
+       }
+      ],
+      "config_digest": "sha256:20c13ca997c4ed6a8ab6dee24c374417e741a065e0eeaac0b5731e64b2b0e90f",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": null,
+      "source_commit": "unavailable",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+      "variant": "release"
+     }
+    ],
+    "counters": {
+     "error_count": 7,
+     "failed_count": 8,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "configured artifact was not published: release:shadow:calc",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Binary compatibility analysis incomplete: configured artifact was not published: release:shadow:calc",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "configured artifact was not published: release:shadow:calc",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BinaryCompatibility:AnalysisUnavailable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Recorded 1 declared artifact(s)",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       },
+       {
+        "file_path": ".",
+        "message": "Recorded 1 declared artifact(s)",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "DeclaredArtifacts"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "declared-selected-mixed": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['CMakeLists.txt', 'release:shadow:calc']\n[build.artifacts]\nreport=['CMakeLists.txt']\n",
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [],
+        "id": "release:project:CMakeLists.txt",
+        "kind": "report",
+        "mode": 420,
+        "path": "CMakeLists.txt",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:a9c6aff8d41dd621030edb7cd0f4cbba00642f276281d3a512043e263f819c79",
+        "size": 402,
+        "target": "CMakeLists.txt"
+       }
+      ],
+      "config_digest": "sha256:df7ef0928c4702a6e1796b058bb1c1b6298217ba54b5945b988f2c47a51fcddd",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": null,
+      "source_commit": "unavailable",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+      "variant": "release"
+     }
+    ],
+    "counters": {
+     "error_count": 7,
+     "failed_count": 8,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "configured artifact was not published: release:shadow:calc",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Binary compatibility analysis incomplete: configured artifact was not published: release:shadow:calc",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "configured artifact was not published: release:shadow:calc",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BinaryCompatibility:AnalysisUnavailable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Recorded 1 declared artifact(s)",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       },
+       {
+        "file_path": ".",
+        "message": "Recorded 1 declared artifact(s)",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "DeclaredArtifacts"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "declared-selected-two": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:project:tests/test_pass.cpp', 'CMakeLists.txt']\n[build.artifacts]\nreport=['tests/*.cpp', 'CMakeLists.txt']\n",
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [],
+        "id": "release:project:CMakeLists.txt",
+        "kind": "report",
+        "mode": 420,
+        "path": "CMakeLists.txt",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:a9c6aff8d41dd621030edb7cd0f4cbba00642f276281d3a512043e263f819c79",
+        "size": 402,
+        "target": "CMakeLists.txt"
+       },
+       {
+        "command": [],
+        "id": "release:project:tests/test_fail.cpp",
+        "kind": "report",
+        "mode": 420,
+        "path": "tests/test_fail.cpp",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:8801c565f6f212f53f44407e4f767a40b77ae190dc2fd147dc69e1493f1dc82a",
+        "size": 117,
+        "target": "test_fail.cpp"
+       },
+       {
+        "command": [],
+        "id": "release:project:tests/test_pass.cpp",
+        "kind": "report",
+        "mode": 420,
+        "path": "tests/test_pass.cpp",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:7c723c91390c6472c7b49e42aa2671fc7275f7bcad8822a24d1d51f4f4dfa18d",
+        "size": 69,
+        "target": "test_pass.cpp"
+       }
+      ],
+      "config_digest": "sha256:13834e24bf032aaea1a1aafddd2098c2c4875a6d35fe8ff8c5ef92702c6bead8",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": null,
+      "source_commit": "unavailable",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+      "variant": "release"
+     }
+    ],
+    "counters": {
+     "error_count": 6,
+     "failed_count": 8,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "high",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "high"
+       },
+       {
+        "category": "compatibility",
+        "confidence": "exact",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "rule_id": "ici.binary.non-elf",
+        "severity": "high"
+       },
+       {
+        "category": "compatibility",
+        "confidence": "exact",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "rule_id": "ici.binary.non-elf",
+        "severity": "high"
+       },
+       {
+        "category": "compatibility",
+        "confidence": "high",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "high"
+       }
+      ],
+      "required": false,
+      "status": "FAIL",
+      "summary": "ELF compatibility: 0 checked, 2 violation(s), 0 skipped",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "BinaryCompatibility:release:project:CMakeLists.txt"
+       },
+       {
+        "file_path": "tests/test_pass.cpp",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "BinaryCompatibility:release:project:tests/test_pass.cpp"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Recorded 3 declared artifact(s)",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       },
+       {
+        "file_path": ".",
+        "message": "Recorded 3 declared artifact(s)",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "DeclaredArtifacts"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "glob-selected-declared": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:project:tests/test_fail.cpp']\n[build.artifacts]\nreport=['tests/*.cpp']\n",
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [],
+        "id": "release:project:tests/test_fail.cpp",
+        "kind": "report",
+        "mode": 420,
+        "path": "tests/test_fail.cpp",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:8801c565f6f212f53f44407e4f767a40b77ae190dc2fd147dc69e1493f1dc82a",
+        "size": 117,
+        "target": "test_fail.cpp"
+       },
+       {
+        "command": [],
+        "id": "release:project:tests/test_pass.cpp",
+        "kind": "report",
+        "mode": 420,
+        "path": "tests/test_pass.cpp",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:7c723c91390c6472c7b49e42aa2671fc7275f7bcad8822a24d1d51f4f4dfa18d",
+        "size": 69,
+        "target": "test_pass.cpp"
+       }
+      ],
+      "config_digest": "sha256:68b267e398d75806ff61f55c37d98475a2b05972c56e29e1fa0afe4db69959e0",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": null,
+      "source_commit": "unavailable",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+      "variant": "release"
+     }
+    ],
+    "counters": {
+     "error_count": 6,
+     "failed_count": 8,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "high",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "high"
+       },
+       {
+        "category": "compatibility",
+        "confidence": "exact",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "rule_id": "ici.binary.non-elf",
+        "severity": "high"
+       }
+      ],
+      "required": false,
+      "status": "FAIL",
+      "summary": "ELF compatibility: 0 checked, 1 violation(s), 0 skipped",
+      "targets": [
+       {
+        "file_path": "tests/test_fail.cpp",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "BinaryCompatibility:release:project:tests/test_fail.cpp"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Recorded 2 declared artifact(s)",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       },
+       {
+        "file_path": ".",
+        "message": "Recorded 2 declared artifact(s)",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "DeclaredArtifacts"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "glob-selected-missing": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:shadow:calc']\n[build.artifacts]\nreport=['*.txt']\n",
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [],
+        "id": "release:project:CMakeLists.txt",
+        "kind": "report",
+        "mode": 420,
+        "path": "CMakeLists.txt",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:a9c6aff8d41dd621030edb7cd0f4cbba00642f276281d3a512043e263f819c79",
+        "size": 402,
+        "target": "CMakeLists.txt"
+       }
+      ],
+      "config_digest": "sha256:34796a841512adc58e8a38a5f7d30ae1d1019917304add59287e92ea6f6398da",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": null,
+      "source_commit": "unavailable",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+      "variant": "release"
+     }
+    ],
+    "counters": {
+     "error_count": 7,
+     "failed_count": 8,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "configured artifact was not published: release:shadow:calc",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Binary compatibility analysis incomplete: configured artifact was not published: release:shadow:calc",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "configured artifact was not published: release:shadow:calc",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BinaryCompatibility:AnalysisUnavailable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Recorded 1 declared artifact(s)",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       },
+       {
+        "file_path": ".",
+        "message": "Recorded 1 declared artifact(s)",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "DeclaredArtifacts"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "glob-unmatched-selected": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['CMakeLists.txt']\n[build.artifacts]\nreport=['CMakeLists.txt', '*.none']\n",
+   "frozen": {
+    "context_manifests": [],
+    "counters": {
+     "error_count": 7,
+     "failed_count": 8,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "configured artifact was not published: CMakeLists.txt",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Binary compatibility analysis incomplete: configured artifact was not published: CMakeLists.txt",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "configured artifact was not published: CMakeLists.txt",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BinaryCompatibility:AnalysisUnavailable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Declared artifacts could not be recorded: declared artifact glob matched nothing: report: *.none",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n; Declared artifacts could not be recorded: declared artifact glob matched nothing: report: *.none",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       },
+       {
+        "file_path": ".",
+        "message": "Declared artifacts could not be recorded: declared artifact glob matched nothing: report: *.none",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "python-control": {
+   "config": "[project]\ntype='hybrid'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\n",
+   "frozen": {
+    "context_manifests": [],
+    "counters": {
+     "error_count": 6,
+     "failed_count": 7,
+     "passed_count": 8,
+     "skipped_count": 1,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 2
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "No executable or shared-library manifest artifacts were selected",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "SKIP",
+      "summary": "Binary compatibility not applicable: no selected manifest artifacts",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "No executable or shared-library manifest artifacts were selected",
+        "start_line": 1,
+        "status": "SKIP",
+        "target_name": "BinaryCompatibility:NotApplicable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Packaged Python source calcpy/__init__.py",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "v0.1.0/x86_64/lib/calcpy/__init__.py",
+        "message": "Packaged Python source calcpy/__init__.py",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "PythonLibrary"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "python-selected": {
+   "config": "[project]\ntype='hybrid'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:shadow:calc', '0.1.0/x86_64/lib/calcpy/__init__.py']\n",
+   "frozen": {
+    "context_manifests": [],
+    "counters": {
+     "error_count": 7,
+     "failed_count": 8,
+     "passed_count": 8,
+     "skipped_count": 0,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 2
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "configured artifact was not published: 0.1.0/x86_64/lib/calcpy/__init__.py, release:shadow:calc",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Binary compatibility analysis incomplete: configured artifact was not published: 0.1.0/x86_64/lib/calcpy/__init__.py, release:shadow:calc",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "configured artifact was not published: 0.1.0/x86_64/lib/calcpy/__init__.py, release:shadow:calc",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BinaryCompatibility:AnalysisUnavailable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Packaged Python source calcpy/__init__.py",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "v0.1.0/x86_64/lib/calcpy/__init__.py",
+        "message": "Packaged Python source calcpy/__init__.py",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "PythonLibrary"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "python-selected-declared": {
+   "config": "[project]\ntype='hybrid'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:project:pyproject.toml']\n[build.artifacts]\nreport=['pyproject.toml']\n",
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [],
+        "id": "release:project:pyproject.toml",
+        "kind": "report",
+        "mode": 420,
+        "path": "pyproject.toml",
+        "producer": "config.artifacts",
+        "scope": "project",
+        "sha256": "sha256:980967901e64cea17c88d6a9cad49c72d30123308b744a3d1aaa6f5bb9557af1",
+        "size": 44,
+        "target": "pyproject.toml"
+       }
+      ],
+      "config_digest": "sha256:b30515d12f5d0432945293e102a35f1ff72ba8eb62d15c29c99d4edea21fc8cf",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": null,
+      "source_commit": "unavailable",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+      "variant": "release"
+     }
+    ],
+    "counters": {
+     "error_count": 6,
+     "failed_count": 8,
+     "passed_count": 8,
+     "skipped_count": 0,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 2
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "high",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "high"
+       },
+       {
+        "category": "compatibility",
+        "confidence": "exact",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "rule_id": "ici.binary.non-elf",
+        "severity": "high"
+       }
+      ],
+      "required": false,
+      "status": "FAIL",
+      "summary": "ELF compatibility: 0 checked, 1 violation(s), 0 skipped",
+      "targets": [
+       {
+        "file_path": "pyproject.toml",
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "BinaryCompatibility:release:project:pyproject.toml"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Packaged Python source calcpy/__init__.py",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       },
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "Recorded 1 declared artifact(s)",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "v0.1.0/x86_64/lib/calcpy/__init__.py",
+        "message": "Packaged Python source calcpy/__init__.py",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "PythonLibrary"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       },
+       {
+        "file_path": ".",
+        "message": "Recorded 1 declared artifact(s)",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "DeclaredArtifacts"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "selected-artifact": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:shadow:calc']\n",
+   "frozen": {
+    "context_manifests": [],
+    "counters": {
+     "error_count": 7,
+     "failed_count": 8,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "configured artifact was not published: release:shadow:calc",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Binary compatibility analysis incomplete: configured artifact was not published: release:shadow:calc",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "configured artifact was not published: release:shadow:calc",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BinaryCompatibility:AnalysisUnavailable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "selected-artifact-required": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:shadow:calc']\nrequired=true\n",
+   "frozen": {
+    "context_manifests": [],
+    "counters": {
+     "error_count": 7,
+     "failed_count": 8,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "configured artifact was not published: release:shadow:calc",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "critical"
+       }
+      ],
+      "required": true,
+      "status": "ERROR",
+      "summary": "Binary compatibility analysis incomplete: configured artifact was not published: release:shadow:calc",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "configured artifact was not published: release:shadow:calc",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BinaryCompatibility:AnalysisUnavailable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "selected-two": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:shadow:zeta', 'bin/alpha']\n",
+   "frozen": {
+    "context_manifests": [],
+    "counters": {
+     "error_count": 7,
+     "failed_count": 8,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "total_count": 18,
+     "warned_count": 0
+    },
+    "engines": {
+     "binary_compat": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "compatibility",
+        "confidence": "low",
+        "message": "configured artifact was not published: bin/alpha, release:shadow:zeta",
+        "rule_id": "ici.legacy.binary-compat.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Binary compatibility analysis incomplete: configured artifact was not published: bin/alpha, release:shadow:zeta",
+      "targets": [
+       {
+        "file_path": ".",
+        "message": "configured artifact was not published: bin/alpha, release:shadow:zeta",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BinaryCompatibility:AnalysisUnavailable"
+       }
+      ]
+     },
+     "build": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "low",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "rule_id": "ici.legacy.build.target",
+        "severity": "critical"
+       }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake configure failed: CMake Error at CMakeLists.txt:12 (message):\n  boom\n\n\n",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "BuildError"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  }
+ },
+ "cmake": "cmake version 4.2.3",
+ "cmake_lists": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nenable_testing()\nadd_library(calc STATIC src/calc.cpp)\nforeach(name test_pass test_fail)\n  add_executable(${name} tests/${name}.cpp)\n  target_link_libraries(${name} calc)\n  add_test(NAME ${name} COMMAND ${name})\nendforeach()\nadd_test(NAME orphan_check COMMAND test_pass)\nadd_test(NAME calc COMMAND test_pass)\nmessage(FATAL_ERROR \"boom\")\n",
+ "fixture": "test-cmake/plain",
+ "hybrid_files": {
+  "pyproject.toml": "[project]\nname = 'calcpy'\nversion = '0.1.0'\n",
+  "src/calcpy/__init__.py": "def add(a, b):\n    return a + b\n"
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

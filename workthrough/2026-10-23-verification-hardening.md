@@ -12,14 +12,14 @@
 
 |검토 항목|수정 후 동작|PR·회귀 근거|
 |---|---|---|
-|1. Ruff 설정의 자동 수정|stable/next가 fix·fix-only·unsafe-fixes를 명시적으로 끄고 원본 바이트와 F401 진단을 보존|[#287](https://github.com/jihoon22-lee/ici/pull/287), [소스 보존](../tests/test_verify_source_preservation.py)|
-|2. AST 분석 미완료 PASS|파싱·읽기 실패와 분석 예산 초과는 필수 검사 INCOMPLETE. 확인한 finding과 측정값은 보존|[#288](https://github.com/jihoon22-lee/ici/pull/288), [분석 완결성](../tests/next/test_analysis_completeness.py)|
-|3. 설정 변경 후 과거 PASS 재사용|자동 설정/import 입력을 완전히 식별하지 못하는 Ruff·mypy·ty observation 캐시를 끄고 사유 기록|[#289](https://github.com/jihoon22-lee/ici/pull/289), [실제 설정 변경](../tests/next/test_provider_cache_inputs.py)|
-|4. finding 충돌·suppression 전파|소비자의 component·analysis unit·variant를 귀속한 뒤 fingerprint·required·suppression·dedup을 평가|[#292](https://github.com/jihoon22-lee/ici/pull/292), [소비자별 정체성](../tests/next/test_finding_scope_identity.py)|
-|5. 다른 component의 exclude가 입력 삭제|component 내부에서 포함/제외를 적용한 다음 소유권을 합집합으로 구성|[#290](https://github.com/jihoon22-lee/ici/pull/290), [입력 소유권](../tests/next/test_workspace_inventory.py)|
-|6. hybrid 테스트 capability 충돌|Python/C++ 테스트 증거의 이름을 구분|[#291](https://github.com/jihoon22-lee/ici/pull/291), [테스트 의존성](../tests/next/test_test_evidence_dependencies.py)|
+|1. Ruff 설정의 자동 수정|stable/next가 fix·fix-only·unsafe-fixes를 명시적으로 끄고 원본 바이트와 F401 진단을 보존|[#287](https://github.com/jihoon22-lee/ici/pull/287), [소스 보존](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/test_verify_source_preservation.py)|
+|2. AST 분석 미완료 PASS|파싱·읽기 실패와 분석 예산 초과는 필수 검사 INCOMPLETE. 확인한 finding과 측정값은 보존|[#288](https://github.com/jihoon22-lee/ici/pull/288), [분석 완결성](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_analysis_completeness.py)|
+|3. 설정 변경 후 과거 PASS 재사용|자동 설정/import 입력을 완전히 식별하지 못하는 Ruff·mypy·ty observation 캐시를 끄고 사유 기록|[#289](https://github.com/jihoon22-lee/ici/pull/289), [실제 설정 변경](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_provider_cache_inputs.py)|
+|4. finding 충돌·suppression 전파|소비자의 component·analysis unit·variant를 귀속한 뒤 fingerprint·required·suppression·dedup을 평가|[#292](https://github.com/jihoon22-lee/ici/pull/292), [소비자별 정체성](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_finding_scope_identity.py)|
+|5. 다른 component의 exclude가 입력 삭제|component 내부에서 포함/제외를 적용한 다음 소유권을 합집합으로 구성|[#290](https://github.com/jihoon22-lee/ici/pull/290), [입력 소유권](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_workspace_inventory.py)|
+|6. hybrid 테스트 capability 충돌|Python/C++ 테스트 증거의 이름을 구분|[#291](https://github.com/jihoon22-lee/ici/pull/291), [테스트 의존성](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_test_evidence_dependencies.py)|
 |7. 다중 QTest suite의 중복 producer|suite별 증거를 만들고 coverage가 모든 suite를 요구. 중복 실행·측정 집계 없이 단일 producer 불변식 유지|동일 PR·회귀 파일|
-|8. 미검사 finding의 거짓 resolved|같은 검사·입력 범위가 완료된 경우에만 resolved. 미선택·실패·차단·취소·부분 증거·범위 변경은 carried|[#293](https://github.com/jihoon22-lee/ici/pull/293), [저장된 완료 범위](../tests/next/test_baseline_execution_scope.py)|
+|8. 미검사 finding의 거짓 resolved|같은 검사·입력 범위가 완료된 경우에만 resolved. 미선택·실패·차단·취소·부분 증거·범위 변경은 carried|[#293](https://github.com/jihoon22-lee/ici/pull/293), [저장된 완료 범위](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_baseline_execution_scope.py)|
 
 ## 결과·캐시 이전
 
@@ -53,7 +53,7 @@ variant는 workspace 기준 명령·작업 디렉터리·출력으로 식별한�
 파일의 생성·삭제·내용 변경과 디렉터리의 멤버·내용 변경을 실행 전후에 비교해, 달라진
 입력으로 수행한 검사를 완료 증거로 쓰지 않는다. 잘못된 baseline JSON의 findings/metrics
 형식도 파일을 지목하는 설정 오류로 안내한다. 이 경계의 회귀 14건과 정상 입력 대조군을
-추가했고, [실제 CLI 회귀](../tests/next/test_baseline_external_inputs.py)로 부분 선택과
+추가했고, [실제 CLI 회귀](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_baseline_external_inputs.py)로 부분 선택과
 실행 중 변경이 baseline 해결 여부에 미치는 결과를 확인했다.
 
 개발 회귀 환경은 Python 3.10.21, uv 0.12.5, Ruff 0.16.4이다. `uvx ruff` 게이트는

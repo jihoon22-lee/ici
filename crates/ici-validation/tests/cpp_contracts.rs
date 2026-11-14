@@ -1,0 +1,723 @@
+use ici_domain::{SourceInput, TaskState, sha256};
+use ici_execution::TaskOutcome;
+use ici_providers::resolver::{ResolvedTool, ToolSource};
+use ici_validation::*;
+use std::{collections::BTreeMap, path::Path};
+fn request(root: &Path, kind: ValidationKind) -> ValidationRequest {
+    ValidationRequest {
+        kind,
+        task_id: format!("component.{}", kind.provider()),
+        component_id: "component".into(),
+        root: root.into(),
+        cwd: root.into(),
+        owned_run_dir: root.join("run"),
+        tool: ResolvedTool {
+            id: "native".into(),
+            path: "/tools/native".into(),
+            source: ToolSource::Explicit,
+            digest: sha256("fixture"),
+            version: None,
+            configuration: vec![],
+        },
+        targets: vec!["suite".into()],
+        source_files: vec!["src/suite.cpp".into()],
+        functions: vec![],
+        options: ValidationOptions {
+            build_dir: Some(root.join("build")),
+            ..Default::default()
+        },
+    }
+}
+fn outcome(id: &str, stdout: &str, stderr: &str, exit: i32) -> TaskOutcome {
+    let mut result = TaskOutcome::empty(id);
+    result.state = TaskState::Succeeded;
+    result.exit_code = Some(exit);
+    result.stdout = stdout.as_bytes().to_vec();
+    result.stderr = stderr.as_bytes().to_vec();
+    result
+}
+#[test]
+fn ctest_partial_skipped_and_missing_terminal_counts_are_distinct_from_failures() {
+    let root = tempfile::tempdir().unwrap();
+    let planned = plan(&request(root.path(), ValidationKind::Ctest)).unwrap();
+    let id = planned.tasks[0].id.clone();
+    for (text, exit, state, findings) in [
+        (
+            "1/1 Test #1: suite ........ Passed 0.01 sec\n100% tests passed, 0 tests failed out of 1\n",
+            0,
+            TaskState::Succeeded,
+            0,
+        ),
+        (
+            "1/1 Test #1: suite ........ ***Failed 0.01 sec\n0% tests passed, 1 tests failed out of 1\n",
+            8,
+            TaskState::Succeeded,
+            1,
+        ),
+        (
+            "1/1 Test #1: suite ........ ***Not Run (Disabled) 0.00 sec\n100% tests passed, 0 tests failed out of 0\n",
+            0,
+            TaskState::Failed,
+            0,
+        ),
+        ("No tests were found!!!", 0, TaskState::Failed, 0),
+        (
+            "1/1 Test #1: suite ........ Passed 0.01 sec\n",
+            0,
+            TaskState::Failed,
+            0,
+        ),
+    ] {
+        let output = observe(
+            &planned,
+            &BTreeMap::from([(id.clone(), outcome(&id, text, "", exit))]),
+            &CapturedArtifacts::default(),
+        );
+        assert_eq!(output.observation.state, state, "{output:?}");
+        assert_eq!(output.observation.findings.len(), findings);
+        if text.starts_with("1/1") {
+            assert_eq!(
+                output.extra["test_outcomes"]["ctest:suite"],
+                if text.contains("Passed") {
+                    "PASSED"
+                } else if text.contains("Disabled") {
+                    "SKIPPED"
+                } else {
+                    "FAILED"
+                }
+            );
+        }
+    }
+}
+#[test]
+fn ctest_terminal_count_leaves_disabled_tests_out_like_actual_ctest() {
+    // Verdict and summary lines as ctest 4.2.3 printed them for one passing, one DISABLED, one
+    // SKIP_RETURN_CODE and one missing-executable test (parity-fixtures/cpp/test-cmake).
+    let root = tempfile::tempdir().unwrap();
+    let planned = plan(&request(root.path(), ValidationKind::Ctest)).unwrap();
+    let id = planned.tasks[0].id.clone();
+    let text = "1/4 Test #1: test_pass ........................   Passed    0.00 sec\n\
+        2/4 Test #2: test_skipped .....................***Not Run (Disabled)   0.00 sec\n\
+        3/4 Test #3: test_skipcode ....................***Skipped   0.00 sec\n\
+        4/4 Test #4: test_missing .....................***Not Run   0.00 sec\n\
+        67% tests passed, 1 tests failed out of 3\n";
+    let output = observe(
+        &planned,
+        &BTreeMap::from([(id.clone(), outcome(&id, text, "", 8))]),
+        &CapturedArtifacts::default(),
+    );
+    let limitations = output.observation.limitations.join("; ");
+    assert!(!limitations.contains("terminal count"), "{limitations}");
+    assert!(
+        limitations.contains("3 CTest suites were not run"),
+        "{limitations}"
+    );
+    // Frozen legacy TestEngine: not-run cases are SKIP targets of a measured run.
+    let mut legacy = request(root.path(), ValidationKind::Ctest);
+    legacy.options.ctest_not_run_measured = true;
+    let legacy = plan(&legacy).unwrap();
+    let output = observe(
+        &legacy,
+        &BTreeMap::from([(id.clone(), outcome(&id, text, "", 8))]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert!(
+        output
+            .observation
+            .limitations
+            .iter()
+            .any(|item| item == "3 CTest suites were not run")
+    );
+    assert_eq!(
+        output
+            .targets
+            .iter()
+            .filter(|target| target.status == "SKIP")
+            .count(),
+        3
+    );
+    let miscounted = text.replace("out of 3", "out of 4");
+    let output = observe(
+        &planned,
+        &BTreeMap::from([(id.clone(), outcome(&id, &miscounted, "", 8))]),
+        &CapturedArtifacts::default(),
+    );
+    assert!(
+        output
+            .observation
+            .limitations
+            .iter()
+            .any(|item| item.contains("terminal count does not match")),
+        "{output:?}"
+    );
+}
+/// CTest 4.4.5 (the ubuntu-26.04 runner's) prints "100% tests passed out of N" without the
+/// ", 0 tests failed" clause 4.2.3 printed; with a failure it keeps the clause. Frozen never
+/// reads the summary line, so an all-passing 4.4.5 run is complete evidence (CI run
+/// 43566463718 refused the viewer's 7 passing cases as a terminal-count mismatch).
+#[test]
+fn ctest_4_4_5_terminal_count_without_a_failure_clause_matches_case_evidence() {
+    let root = tempfile::tempdir().unwrap();
+    let planned = plan(&request(root.path(), ValidationKind::Ctest)).unwrap();
+    let id = planned.tasks[0].id.clone();
+    // The viewer's run with ctest 4.4.5 (`ctest --test-dir <tree> --output-on-failure`).
+    let viewer = "Test project /work/viewer/build\n\
+        \x20   Start 1: test_json_parser\n\
+        1/7 Test #1: test_json_parser ........................   Passed    0.00 sec\n\
+        \x20   Start 2: test_report_model\n\
+        2/7 Test #2: test_report_model .......................   Passed    0.31 sec\n\
+        \x20   Start 3: test_summary\n\
+        3/7 Test #3: test_summary ............................   Passed    0.34 sec\n\
+        \x20   Start 4: test_cli_support_matrix_scope\n\
+        4/7 Test #4: test_cli_support_matrix_scope ...........   Passed    0.00 sec\n\
+        \x20   Start 5: test_cli_support_matrix_header\n\
+        5/7 Test #5: test_cli_support_matrix_header ..........   Passed    0.00 sec\n\
+        \x20   Start 6: test_cli_support_matrix_framework_row\n\
+        6/7 Test #6: test_cli_support_matrix_framework_row ...   Passed    0.00 sec\n\
+        \x20   Start 7: test_main_window\n\
+        7/7 Test #7: test_main_window ........................   Passed    1.05 sec\n\
+        \n\
+        100% tests passed out of 7\n\
+        \n\
+        Total Test time (real) =   1.72 sec\n";
+    let output = observe(
+        &planned,
+        &BTreeMap::from([(id.clone(), outcome(&id, viewer, "", 0))]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert!(output.observation.findings.is_empty());
+    assert_eq!(output.summary, "7/7 CTest suites passed");
+    assert_eq!(
+        output
+            .targets
+            .iter()
+            .filter(|target| target.status == "PASS")
+            .count(),
+        7
+    );
+    // ctest 4.4.5 with a pass, a failure, SKIP_RETURN_CODE, DISABLED and a missing executable
+    // (`--parallel 2`, completion order): DISABLED stays out of "out of 4".
+    let mixed = "1/5 Test #1: a ................................   Passed    0.00 sec\n\
+        2/5 Test #3: c ................................***Skipped   0.00 sec\n\
+        3/5 Test #4: d ................................***Not Run (Disabled)   0.00 sec\n\
+        Unable to find executable: /nonexistent/x\n\
+        4/5 Test #5: e ................................***Not Run   0.00 sec\n\
+        5/5 Test #2: b ................................***Failed    0.01 sec\n\
+        \n\
+        50% tests passed, 2 tests failed out of 4\n";
+    let mut legacy = request(root.path(), ValidationKind::Ctest);
+    legacy.options.ctest_not_run_measured = true;
+    let legacy = plan(&legacy).unwrap();
+    let output = observe(
+        &legacy,
+        &BTreeMap::from([(id.clone(), outcome(&id, mixed, "", 8))]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert_eq!(output.observation.findings.len(), 1);
+    // Negative: the 4.4.5 form still has to agree with the case lines.
+    let miscounted = viewer.replace("out of 7", "out of 8");
+    let output = observe(
+        &planned,
+        &BTreeMap::from([(id.clone(), outcome(&id, &miscounted, "", 0))]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(output.observation.state, TaskState::Failed, "{output:?}");
+    assert!(
+        output
+            .observation
+            .limitations
+            .iter()
+            .any(|item| item.contains("terminal count does not match")),
+        "{output:?}"
+    );
+}
+#[test]
+fn qtest_retains_following_failure_location_and_validates_totals() {
+    let root = tempfile::tempdir().unwrap();
+    let planned = plan(&request(root.path(), ValidationKind::Qtest)).unwrap();
+    let id = planned.tasks[0].id.clone();
+    let text = "PASS   : Suite::initTestCase()\nFAIL!  : Suite::red() condition failed\n   Loc: [src/suite.cpp(42)]\nPASS   : Suite::cleanupTestCase()\nTotals: 2 passed, 1 failed, 0 skipped, 0 blacklisted, 1ms\n";
+    let output = observe(
+        &planned,
+        &BTreeMap::from([(id.clone(), outcome(&id, text, "", 1))]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert_eq!(
+        output.observation.findings[0].primary_location.start_line,
+        42
+    );
+    assert_eq!(
+        output.observation.findings[0].primary_location.path,
+        "src/suite.cpp"
+    );
+    assert_eq!(output.observation.measurements[0].denominator, Some(3));
+    assert_eq!(
+        output.extra["test_outcomes"]["qtest:Suite::red()"],
+        "FAILED"
+    );
+    assert_eq!(
+        output.extra["test_outcomes"]["qtest:Suite::initTestCase()"],
+        "PASSED"
+    );
+    let bad = text.replace("2 passed", "9 passed");
+    assert_eq!(
+        observe(
+            &planned,
+            &BTreeMap::from([(id.clone(), outcome(&id, &bad, "", 1))]),
+            &CapturedArtifacts::default()
+        )
+        .observation
+        .state,
+        TaskState::Failed
+    );
+}
+#[test]
+fn sanitizer_is_instrumentation_gated_and_normalizes_bounded_owned_stacks() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path(), ValidationKind::Sanitizer);
+    request
+        .options
+        .auxiliary_tools
+        .insert("readelf".into(), request.tool.clone());
+    let mut planned = plan(&request).unwrap();
+    attach_sources(
+        &mut planned,
+        ici_providers::source_coordinates(&[SourceInput {
+            path: "src/suite.cpp".into(),
+            bytes: b"int main() {\n int* value = nullptr;\n return *value;\n}\n".to_vec(),
+        }]),
+    );
+    assert_eq!(
+        ready_steps(&planned, &BTreeMap::new()).unwrap(),
+        vec![planned.tasks[0].id.clone()]
+    );
+    let bad = outcome(
+        &planned.tasks[0].id,
+        "Symbol table '.dynsym' contains 1 entry:\n 0 no_symbols\n",
+        "",
+        0,
+    );
+    assert!(ready_steps(&planned, &BTreeMap::from([(bad.task_id.clone(), bad)])).is_err());
+    let probe = outcome(
+        &planned.tasks[0].id,
+        "Symbol table '.dynsym' contains 1 entry:\n 0 __asan_init\n",
+        "",
+        0,
+    );
+    let transcript = format!(
+        "==123==ERROR: AddressSanitizer: heap-use-after-free on address 0x123\n    #0 0xabc in main {}/src/suite.cpp:3:9\n    #1 0xdef in external /usr/lib/c.cpp:20:1\nSUMMARY: AddressSanitizer: heap-use-after-free\n",
+        root.path().display()
+    );
+    let suite = outcome(&planned.tasks[1].id, "", &transcript, 1);
+    let output = observe(
+        &planned,
+        &BTreeMap::from([
+            (probe.task_id.clone(), probe),
+            (suite.task_id.clone(), suite),
+        ]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert_eq!(
+        output.observation.findings[0].rule_id,
+        "ici.sanitize.asan.heap-use-after-free"
+    );
+    assert_eq!(
+        output.observation.findings[0].primary_location.path,
+        "src/suite.cpp"
+    );
+    assert_eq!(
+        output.observation.findings[0].primary_location.start_line,
+        3
+    );
+    assert_eq!(
+        output.observation.findings[0].primary_location.start_column,
+        Some(9)
+    );
+    let huge = format!(
+        "{transcript}{}",
+        (0..33)
+            .map(|index| format!(
+                "#{index} in main {}/src/suite.cpp:3\n",
+                root.path().display()
+            ))
+            .collect::<String>()
+    );
+    assert!(ici_validation::sanitizer::parse(&huge, &planned).is_err());
+}
+#[test]
+fn integration_checks_declared_streams_exit_and_fresh_output_without_touching_user_files() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path(), ValidationKind::Integration);
+    request.options.argv = vec![request.tool.path.to_string_lossy().into_owned()];
+    request.options.expected_exit = 3;
+    request.options.stdout_contains = vec!["ready".into()];
+    request.options.stderr_not_contains = vec!["token".into()];
+    request.options.outputs = vec![OutputAssertion {
+        path: "result.bin".into(),
+        min_size: 2,
+    }];
+    let planned = plan(&request).unwrap();
+    let owner = OwnedRun::create(&request.owned_run_dir).unwrap();
+    let id = planned.tasks[0].id.clone();
+    std::fs::write(root.path().join("result.bin"), b"old").unwrap();
+    let outcomes = BTreeMap::from([(id.clone(), outcome(&id, "ready", "", 3))]);
+    owner.mark_started(&planned, &id);
+    let artifacts = capture_artifacts(&planned, &owner, &outcomes).unwrap();
+    let stale = observe(&planned, &outcomes, &artifacts);
+    assert_eq!(stale.observation.state, TaskState::Succeeded);
+    assert_eq!(stale.observation.findings.len(), 1);
+    // Frozen `integration.assertions`: passed checks over every declared check
+    // (exit + stdout must + stderr never + output = 4, the stale output failed).
+    let metric = &stale.observation.measurements[0];
+    assert_eq!(metric.name, "integration.assertions");
+    assert_eq!(
+        (metric.value, metric.numerator, metric.denominator),
+        (3.0, Some(3), Some(4))
+    );
+    assert_eq!(metric.unit, "assertions");
+    assert_eq!(
+        std::fs::read(root.path().join("result.bin")).unwrap(),
+        b"old"
+    );
+    std::fs::write(root.path().join("result.bin"), b"new output").unwrap();
+    let artifacts = capture_artifacts(&planned, &owner, &outcomes).unwrap();
+    assert!(
+        observe(&planned, &outcomes, &artifacts)
+            .observation
+            .findings
+            .is_empty()
+    );
+    for failure in ["timeout", "truncated", "signal", "cancelled"] {
+        let mut bad = outcomes.clone();
+        let outcome = bad.get_mut(&id).unwrap();
+        match failure {
+            "timeout" => outcome.timed_out = true,
+            "truncated" => outcome.truncated = true,
+            "signal" => {
+                outcome.signal = Some(9);
+                outcome.exit_code = None;
+            }
+            _ => {
+                outcome.cancelled = true;
+                outcome.state = TaskState::Cancelled;
+            }
+        }
+        let observed = observe(&planned, &bad, &artifacts);
+        // Incomplete process evidence is never a contract finding (frozen: ConfigurationError).
+        assert_ne!(
+            observed.observation.state,
+            TaskState::Succeeded,
+            "{failure}"
+        );
+        assert!(observed.observation.findings.is_empty(), "{failure}");
+    }
+    // A declared requirement is echoed with the frozen wording; ici never probes it.
+    let mut declared = request.clone();
+    declared.options.requires = vec!["postgres".into(), "redis".into()];
+    declared.options.integration_case_name = Some("smoke".into());
+    assert!(
+        plan(&declared)
+            .unwrap()
+            .limitations
+            .contains(&"case 'smoke' declares external requirements: postgres, redis".to_string())
+    );
+}
+#[test]
+fn native_binary_header_policy_distinguishes_non_elf_from_tool_failure_and_honors_limits() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path(), ValidationKind::BinaryCompatibility);
+    std::fs::write(root.path().join("suite"), b"plain declared artifact").unwrap();
+    let mut planned = plan(&request).unwrap();
+    capture_binary_headers(&mut planned).unwrap();
+    assert!(ready_steps(&planned, &BTreeMap::new()).unwrap().is_empty());
+    let output = observe(&planned, &BTreeMap::new(), &CapturedArtifacts::default());
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert_eq!(output.observation.findings[0].rule_id, "ici.binary.non-elf");
+    planned.context.options.allow_non_elf = true;
+    let output = observe(&planned, &BTreeMap::new(), &CapturedArtifacts::default());
+    assert!(output.observation.findings.is_empty());
+    assert_eq!(output.targets[0].status, "SKIP");
+    assert_eq!(output.extra["artifact_headers"]["suite"]["is_elf"], false);
+    let owner = OwnedRun::create(&planned.context.owned_run_dir).unwrap();
+    std::fs::write(root.path().join("suite"), b"changed after capture").unwrap();
+    assert!(capture_artifacts(&planned, &owner, &BTreeMap::new()).is_err());
+    request.options.max_artifacts = 1;
+    request.targets.push("second".into());
+    assert!(plan(&request).is_err());
+    request.options.max_artifacts = 2;
+    request.targets = vec!["suite".into(), "suite".into()];
+    assert!(plan(&request).is_err());
+}
+
+/// Frozen legacy `core/cmake.run_tests` runs a sanitizer adapter suite under `run_process`'s
+/// default 1,000,000-byte bound per stream (root ruling 2026-11-13); a native suite keeps 1 MiB.
+/// Only the suite step changes: the inventory and instrumentation probes keep their 8 MiB.
+#[test]
+fn a_legacy_sanitizer_adapter_suite_keeps_the_frozen_output_bound() {
+    for (legacy, wanted) in [(false, 1024 * 1024), (true, 1_000_000)] {
+        let root = tempfile::tempdir().unwrap();
+        let mut context = request(root.path(), ValidationKind::Sanitizer);
+        context.options.sanitizer_suite_kind = Some(ValidationKind::Ctest);
+        context.options.legacy_unlocated_sanitizer_scope = legacy;
+        context.options.instrumented_artifacts = vec!["build/suite".into()];
+        context
+            .options
+            .auxiliary_tools
+            .insert("readelf".into(), context.tool.clone());
+        let planned = plan(&context).unwrap();
+        let limits: Vec<(String, Option<usize>)> = planned
+            .tasks
+            .iter()
+            .map(|task| (task.id.clone(), task.output_limit_bytes))
+            .collect();
+        let id = |name: &str| format!("{}.{name}", context.task_id);
+        assert_eq!(
+            limits,
+            [
+                (id("inventory"), Some(8 * 1024 * 1024)),
+                (id("artifact0.instrumentation"), Some(8 * 1024 * 1024)),
+                (id("suite"), Some(wanted)),
+            ],
+            "legacy: {legacy}"
+        );
+    }
+}
+
+#[test]
+fn ctest_sanitizers_bind_inventory_executables_and_all_instrumentation_before_suite() {
+    for kind in [ValidationKind::Sanitizer, ValidationKind::ThreadSanitizer] {
+        let root = tempfile::tempdir().unwrap();
+        let mut context = request(root.path(), kind);
+        context.options.sanitizer_suite_kind = Some(ValidationKind::Ctest);
+        context.options.instrumented_artifacts = vec!["build/suite".into()];
+        context
+            .options
+            .auxiliary_tools
+            .insert("readelf".into(), context.tool.clone());
+        let planned = plan(&context).unwrap();
+        assert_eq!(planned.tasks.len(), 3);
+        let inventory_id = format!("{}.inventory", context.task_id);
+        let probe_id = format!("{}.artifact0.instrumentation", context.task_id);
+        let suite_id = format!("{}.suite", context.task_id);
+        assert_eq!(
+            ready_steps(&planned, &BTreeMap::new()).unwrap(),
+            vec![inventory_id.clone()]
+        );
+        assert_eq!(
+            planned.tasks[1].argv.last().unwrap(),
+            &root.path().join("build/suite").to_string_lossy()
+        );
+        let inventory=serde_json::json!({"kind":"ctestInfo","version":{"major":1,"minor":0},"tests":[{"name":"first case","command":[root.path().join("build/suite")],"properties":[]}]}).to_string();
+        let mut outcomes = BTreeMap::from([(
+            inventory_id.clone(),
+            outcome(&inventory_id, &inventory, "", 0),
+        )]);
+        assert_eq!(
+            ready_steps(&planned, &outcomes).unwrap(),
+            vec![probe_id.clone()]
+        );
+        let symbol = if kind == ValidationKind::ThreadSanitizer {
+            "__tsan_init"
+        } else {
+            "__asan_init"
+        };
+        outcomes.insert(probe_id.clone(),outcome(&probe_id,&format!("Symbol table '.dynsym' contains 2 entries:\n  1: 0000 0 FUNC GLOBAL DEFAULT UND {symbol}\n"),"",0));
+        assert_eq!(
+            ready_steps(&planned, &outcomes).unwrap(),
+            vec![suite_id.clone()]
+        );
+        outcomes.insert(suite_id.clone(),outcome(&suite_id,"1/1 Test #1: first case ........ Passed 0.01 sec\n100% tests passed, 0 tests failed out of 1\n","",0));
+        let observed = observe(&planned, &outcomes, &CapturedArtifacts::default());
+        assert_eq!(
+            observed.observation.state,
+            TaskState::Succeeded,
+            "{observed:?}"
+        );
+        assert!(observed.observation.findings.is_empty());
+        assert!(
+            observed
+                .targets
+                .iter()
+                .any(|target| target.target_name == "first case")
+        );
+        let disabled=serde_json::json!({"kind":"ctestInfo","version":{"major":1},"tests":[{"name":"suite","command":[root.path().join("build/suite")],"properties":[{"name":"DISABLED","value":true}]}]}).to_string();
+        let mut bad = BTreeMap::from([(
+            inventory_id.clone(),
+            outcome(&inventory_id, &disabled, "", 0),
+        )]);
+        assert!(ready_steps(&planned, &bad).is_err());
+        let wrapper = inventory.replace(
+            &root
+                .path()
+                .join("build/suite")
+                .to_string_lossy()
+                .to_string(),
+            "/usr/bin/cmake",
+        );
+        bad.insert(
+            inventory_id.clone(),
+            outcome(&inventory_id, &wrapper, "", 0),
+        );
+        assert!(
+            ready_steps(&planned, &bad)
+                .unwrap_err()
+                .to_string()
+                .contains("wrappers or external commands")
+        );
+        let mut no_symbols = outcomes.clone();
+        no_symbols.remove(&suite_id);
+        no_symbols.insert(
+            probe_id.clone(),
+            outcome(
+                &probe_id,
+                "Symbol table '.dynsym' contains 0 entries:\n",
+                "",
+                0,
+            ),
+        );
+        assert!(ready_steps(&planned, &no_symbols).is_err());
+        assert_eq!(
+            observe(&planned, &no_symbols, &CapturedArtifacts::default())
+                .observation
+                .state,
+            TaskState::Failed
+        );
+        outcomes.get_mut(&suite_id).unwrap().stdout = b"No tests were found!!!".to_vec();
+        assert_eq!(
+            observe(&planned, &outcomes, &CapturedArtifacts::default())
+                .observation
+                .state,
+            TaskState::Failed
+        );
+    }
+}
+
+#[test]
+fn measured_qt5_qt6_expected_failure_annotations_keep_terminal_counts_and_partial_nodes() {
+    let document: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/validation/qtest-scope.json"
+    ))
+    .unwrap();
+    assert_eq!(
+        sha256(document["source"].as_str().unwrap()),
+        document["source_sha256"]
+    );
+    for observation in document["observations"].as_array().unwrap() {
+        let root = tempfile::tempdir().unwrap();
+        let mut request = request(root.path(), ValidationKind::Qtest);
+        request.cwd = root.path().join("qt");
+        request.source_files = vec!["main.cpp".into()];
+        let planned = plan(&request).unwrap();
+        let id = &planned.tasks[0].id;
+        let output = observe(
+            &planned,
+            &BTreeMap::from([(
+                id.clone(),
+                outcome(id, observation["stdout"].as_str().unwrap(), "", 2),
+            )]),
+            &CapturedArtifacts::default(),
+        );
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{observation:?}: {output:?}"
+        );
+        assert_eq!(output.observation.measurements[0].numerator, Some(4));
+        assert_eq!(output.observation.measurements[0].denominator, Some(7));
+        assert_eq!(output.observation.findings.len(), 2);
+        for finding in &output.observation.findings {
+            assert_eq!(finding.primary_location.path, "main.cpp");
+        }
+        for (node, expected) in observation["expected"]["outcomes"].as_object().unwrap() {
+            assert_eq!(&output.extra["test_outcomes"][node], expected);
+        }
+        let missing_terminal = observation["stdout"]
+            .as_str()
+            .unwrap()
+            .replace("PASS   : Suite::expected()\n", "");
+        let missing = observe(
+            &planned,
+            &BTreeMap::from([(id.clone(), outcome(id, &missing_terminal, "", 2))]),
+            &CapturedArtifacts::default(),
+        );
+        assert_eq!(missing.observation.state, TaskState::Failed);
+        let external = observation["stdout"]
+            .as_str()
+            .unwrap()
+            .replace("../main.cpp", "../../../outside.cpp");
+        let external = observe(
+            &planned,
+            &BTreeMap::from([(id.clone(), outcome(id, &external, "", 2))]),
+            &CapturedArtifacts::default(),
+        );
+        assert_eq!(external.observation.state, TaskState::Failed);
+        assert!(
+            external
+                .observation
+                .limitations
+                .iter()
+                .any(|limit| limit.contains("external validation location"))
+        );
+    }
+}
+
+#[test]
+fn integration_preserves_declared_signed_exit_policy_as_measured_assertion_data() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path(), ValidationKind::Integration);
+    request.options.argv = vec![request.tool.path.to_string_lossy().into_owned()];
+    for expected in [-1, 256, i32::MIN, i32::MAX] {
+        request.options.expected_exit = expected;
+        let planned = plan(&request).unwrap();
+        let id = planned.tasks[0].id.clone();
+        let output = observe(
+            &planned,
+            &BTreeMap::from([(id.clone(), outcome(&id, "", "", 0))]),
+            &CapturedArtifacts::default(),
+        );
+        assert_eq!(output.observation.state, TaskState::Succeeded);
+        assert_eq!(output.observation.findings.len(), 1);
+        assert_eq!(output.observation.findings[0].rule_id, "integration.exit");
+        assert!(
+            output.observation.findings[0]
+                .message
+                .contains(&expected.to_string())
+        );
+    }
+}
+
+/// Frozen legacy ThreadSanitizeEngine appends `halt_on_error=1` (one report per run); a native
+/// run keeps reporting every race (`halt_on_error=0`). The caller's options are kept in front.
+#[test]
+fn ctest_thread_sanitizer_halts_at_the_first_report_only_for_the_legacy_engine() {
+    for (legacy, expected) in [(false, "halt_on_error=0"), (true, "halt_on_error=1")] {
+        let root = tempfile::tempdir().unwrap();
+        let mut context = request(root.path(), ValidationKind::ThreadSanitizer);
+        context.options.sanitizer_suite_kind = Some(ValidationKind::Ctest);
+        context.options.instrumented_artifacts = vec!["build/suite".into()];
+        context.options.legacy_tsan_halt_on_error = legacy;
+        context
+            .options
+            .environment
+            .insert("TSAN_OPTIONS".into(), "history_size=4".into());
+        context
+            .options
+            .auxiliary_tools
+            .insert("readelf".into(), context.tool.clone());
+        let planned = plan(&context).unwrap();
+        let suite = planned
+            .tasks
+            .iter()
+            .find(|task| task.id == format!("{}.suite", context.task_id))
+            .unwrap();
+        assert_eq!(
+            suite.env_overlay["TSAN_OPTIONS"],
+            format!("history_size=4:{expected}")
+        );
+    }
+}

@@ -1,0 +1,1 @@
+[{"directory": ".", "file": "src/main.cpp", "arguments": ["/usr/bin/g++", "-c", "src/main.cpp", "-o", "main.o"]}, {"directory": ".", "file": "src/util.cpp", "arguments": ["/usr/bin/g++", "-c", "src/util.cpp", "-o", "util.o"]}]

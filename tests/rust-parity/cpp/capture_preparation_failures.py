@@ -1,0 +1,671 @@
+"""Development-only full saved-result captures of frozen C++ compile-database preparation.
+
+Never called by the Rust product. Frozen `prepare_qmake_compilation_context` and
+`prepare_cmake_compilation_context` (core/qmake_context.py, core/cmake_context.py) run before
+the legacy `ici verify` engines. When the canonical configure, capture build or capture fails,
+the run keeps going without a database and the compile_db engine reports the preparation
+diagnostic (`qmake-configure-failed`, `qmake-capture-build-failed`, `qmake-capture-unavailable`,
+`cmake-configure-failed`); a capture that misses a production unit adds
+`qmake-capture-incomplete`. Each case copies a parity-fixtures/cpp tree into a fresh temporary
+project (with an empty `.git`; the case directory holds a `.hg` marker and is the
+`GIT_CEILING_DIRECTORIES` bound), writes its `ici.toml` (every engine but compile_db disabled) and
+case files, runs the frozen oracle `ici verify --report` with PATH=/usr/bin:/bin and records the
+exit code, stdout and the whole saved `verify_report.json`. Only the project root is normalized
+(`<root>`). The Rust replay is `crates/ici-cli/tests/legacy_engine_extras.rs`
+`legacy_cpp_preparation_failures_equal_frozen_except_allowed`. The `export:` cases run
+`ici export-compilation-context --prepare` (frozen core/compilation_export.load_export_context)
+over the same failing preparations and record its exit code, stdout and stderr. `verify-sources:`
+cases also run lint, cycle, dead and complexity; `verify-deep:` runs `ici verify --profile deep`
+with build and binary_compat enabled. A case PATH kind links every /usr/bin and /bin entry but a
+missing tool (`no-cmake`) or puts wrapper scripts first; that directory is `<compiler-bin>`.
+
+Usage: `capture_preparation_failures.py [case-prefix ...]` recaptures the named cases (all when
+none) and keeps the other cases of the existing golden file.
+"""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+ORACLE = Path("/tmp/ici-rust-replacement-20261028/oracle")
+EXPECTED = "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+PYTHON = "/home/jihoon/projects/ici/.venv/bin/python"
+GOLDEN = ROOT / "tests/rust-parity/cpp/preparation-failures-oracle.json"
+FIXTURES = ROOT / "parity-fixtures/cpp"
+assert (
+    subprocess.check_output(["git", "-C", str(ORACLE), "rev-parse", "HEAD"], text=True).strip()
+    == EXPECTED
+)
+ENGINES = (
+    "lint",
+    "line",
+    "test",
+    "type",
+    "python_compat",
+    "cognitive",
+    "resource",
+    "security",
+    "cycle",
+    "complexity",
+    "sanitize",
+    "thread_sanitize",
+    "dead",
+    "dup",
+    "exception",
+    "build",
+    "binary_compat",
+    "integration",
+)
+ONLY_COMPILE_DB = "".join(f"[engines.{name}]\nenabled=false\n" for name in ENGINES)
+QMAKE = "[project]\ntype='cpp'\nsource_dirs=['tests']\n" + ONLY_COMPILE_DB
+CMAKE = "[project]\ntype='cpp'\nsource_dirs=['src']\n" + ONLY_COMPILE_DB
+# No selected check consumes the analysis database: only the line engine runs, so the suite's
+# `analysis_context` alone shows what the canonical preparation produced.
+CMAKE_NO_CONSUMER = (
+    "[project]\ntype='cpp'\nsource_dirs=['src']\n"
+    + "".join(f"[engines.{name}]\nenabled=false\n" for name in ENGINES if name != "line")
+    + "[engines.compile_db]\nenabled=false\n"
+)
+# The context consumers beside compile_db: lint, cycle, dead and complexity also run.
+SOURCE_ENGINES = "".join(
+    f"[engines.{name}]\nenabled=false\n"
+    for name in ENGINES
+    if name not in ("lint", "cycle", "dead", "complexity")
+)
+QMAKE_SOURCES = "[project]\ntype='cpp'\nsource_dirs=['tests']\n" + SOURCE_ENGINES
+CMAKE_SOURCES = "[project]\ntype='cpp'\nsource_dirs=['src']\n" + SOURCE_ENGINES
+# The deep BuildEngine and BinaryCompatibilityEngine beside compile_db (frozen leaves both
+# disabled by default, config/__init__.py:67/217).
+CMAKE_DEEP = (
+    "[project]\ntype='cpp'\nsource_dirs=['src']\n"
+    + "".join(
+        f"[engines.{name}]\nenabled=false\n"
+        for name in ENGINES
+        if name not in ("build", "binary_compat")
+    )
+    + "[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\n"
+)
+# The same deep run with every default engine kept (only build and binary_compat turned on), so
+# the native plan also holds the test, sanitizer and artifact-publishing checks.
+CMAKE_DEEP_DEFAULT = (
+    "[project]\ntype='cpp'\nsource_dirs=['src']\n"
+    + "[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\n"
+)
+PRO = (FIXTURES / "test-qmake/tests/tests.pro").read_text(encoding="utf-8")
+UNIT = (FIXTURES / "test-qmake/tests/test_unit.cpp").read_text(encoding="utf-8")
+LISTS = (FIXTURES / "test-cmake/plain/CMakeLists.txt").read_text(encoding="utf-8")
+# A PATH `qmake6` that refuses only the recorder-wrapped capture configure (frozen's
+# `compiler-wrapper` under `ici-qmake-capture-*`, native's `__qmake-record` mode); every other
+# call runs the real qmake6.
+REFUSING_QMAKE = (
+    "#!/bin/sh\n"
+    'for argument in "$@"; do\n'
+    '  case "$argument" in\n'
+    "    *compiler-wrapper*|*__qmake-record*) echo 'capture configure refused' >&2; exit 3;;\n"
+    "  esac\n"
+    "done\n"
+    'exec /usr/bin/qmake6 "$@"\n'
+)
+
+
+def damaging_cmake(action: str) -> str:
+    """A `cmake` that runs the real one and, after a configure that succeeded, damages the cache
+    it wrote (`-B <dir>`) while still exiting 0: a tool wrapper's incomplete output."""
+
+    return (
+        "#!/bin/sh\n"
+        '/usr/bin/cmake "$@"\n'
+        "status=$?\n"
+        'build=""\n'
+        'previous=""\n'
+        'for argument in "$@"; do\n'
+        '  [ "$previous" = -B ] && build="$argument"\n'
+        '  previous="$argument"\n'
+        "done\n"
+        f'if [ "$status" -eq 0 ] && [ -n "$build" ]; then {action}; fi\n'
+        'exit "$status"\n'
+    )
+
+
+WRAPPED = {
+    "wrapped-qmake": {"qmake6": REFUSING_QMAKE},
+    "wrapped-cmake-cache-removed": {"cmake": damaging_cmake('rm -f "$build/CMakeCache.txt"')},
+    "wrapped-cmake-generator-removed": {
+        "cmake": damaging_cmake("sed -i '/^CMAKE_GENERATOR:/d' \"$build/CMakeCache.txt\"")
+    },
+    "wrapped-cmake-generator-multi-config": {
+        "cmake": damaging_cmake(
+            "sed -i 's/^CMAKE_GENERATOR:INTERNAL=.*/CMAKE_GENERATOR:INTERNAL=Ninja Multi-Config/'"
+            ' "$build/CMakeCache.txt"'
+        )
+    },
+}
+# The real Ninja E2E: `ninja` (ICI_CAPTURE_NINJA, a work-owned binary) linked first on PATH and
+# CMake told to use the multi-configuration Ninja generator through the environment, as a user
+# would. Distinct from the `wrapped-cmake-generator-multi-config` cache fixture.
+NINJA = {"wrapped-ninja": "ninja"}
+ENVIRONMENTS = {"wrapped-ninja": {"CMAKE_GENERATOR": "Ninja Multi-Config"}}
+# PATH kinds that link every /usr/bin and /bin entry except one tool.
+MISSING = {"no-cmake": "cmake"}
+
+
+def forced(line: str) -> str:
+    """The fixture's CMakeLists with a cache value forced before `project()`."""
+
+    return LISTS.replace("project(", line + "\nproject(", 1)
+
+
+# A library over a source the build writes into its own binary directory.
+GENERATED = (
+    "add_custom_command(OUTPUT ${{CMAKE_BINARY_DIR}}/gen.cpp COMMAND {command})\n"
+    "add_library(generated STATIC ${{CMAKE_BINARY_DIR}}/gen.cpp)\n"
+)
+COPY_GENERATED = (
+    "${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/calc.cpp ${CMAKE_BINARY_DIR}/gen.cpp"
+)
+# A valid generated source, so a failed build reports the production source alone.
+GOOD_SOURCE = "int good() { return 1; }\n"
+COPY_GOOD = "${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/good.in ${CMAKE_BINARY_DIR}/gen.cpp"
+# A project database over the production source (paths relative to the database).
+OWN_ROW = '{"directory": ".", "file": "src/calc.cpp", "arguments": ["/usr/bin/g++", "-c", "src/calc.cpp"]}'
+OWN_DATABASE = "[" + OWN_ROW + "]\n"
+OWN_DATABASE_NO_DIRECTORY = (
+    "["
+    + OWN_ROW
+    + ', {"file": "src/calc.cpp", "arguments": ["/usr/bin/g++", "-c", "src/calc.cpp"]}]\n'
+)
+OWN_DATABASE_GONE_DIRECTORY = (
+    '[{"directory": "gone", "file": "../src/calc.cpp", '
+    '"arguments": ["/usr/bin/g++", "-c", "../src/calc.cpp"]}]\n'
+)
+# name: (fixture, ici.toml, files written over the fixture[, PATH kind])
+CASES = {
+    # Positive: the capture covers every production unit (no diagnostic).
+    "verify:qmake-captured": ("test-qmake", QMAKE, {}),
+    # A production unit the qmake build never compiles: frozen `_with_capture_coverage`.
+    "verify:qmake-capture-incomplete": (
+        "test-qmake",
+        QMAKE,
+        {"tests/extra.cpp": "int extra() { return 1; }\n"},
+    ),
+    # The canonical probe configure fails (qmake `error()`).
+    "verify:qmake-configure-failed": (
+        "test-qmake",
+        QMAKE,
+        {"tests/tests.pro": PRO + "error(boom)\n"},
+    ),
+    # The capture build fails on a production unit that does not compile.
+    "verify:qmake-capture-build-failed": (
+        "test-qmake",
+        QMAKE,
+        {"tests/test_unit.cpp": UNIT + "int broken( {\n"},
+    ),
+    # QMAKE_CXX is not one resolvable compiler program: the capture is unavailable (warning).
+    "verify:qmake-capture-unavailable": (
+        "test-qmake",
+        QMAKE,
+        {"tests/tests.pro": PRO + "QMAKE_CXX = /usr/bin/env g++\n"},
+    ),
+    # The probe configure succeeds, the recorder-wrapped capture configure fails.
+    "verify:qmake-capture-configure-failed": ("test-qmake", QMAKE, {}, "wrapped-qmake"),
+    # The same failures with the other context consumers (lint, cycle, dead, complexity).
+    "verify-sources:qmake-configure-failed": (
+        "test-qmake",
+        QMAKE_SOURCES,
+        {"tests/tests.pro": PRO + "error(boom)\n"},
+    ),
+    "verify-sources:qmake-capture-unavailable": (
+        "test-qmake",
+        QMAKE_SOURCES,
+        {"tests/tests.pro": PRO + "QMAKE_CXX = /usr/bin/env g++\n"},
+    ),
+    "verify-sources:qmake-capture-incomplete": (
+        "test-qmake",
+        QMAKE_SOURCES,
+        {"tests/extra.cpp": "int extra() { return 1; }\n"},
+    ),
+    "verify-sources:cmake-configure-failed": (
+        "test-cmake/plain",
+        CMAKE_SOURCES,
+        {"CMakeLists.txt": LISTS + 'message(FATAL_ERROR "boom")\n'},
+    ),
+    # Positive: the canonical CMake configure exports the database.
+    "verify:cmake-configured": ("test-cmake/plain", CMAKE, {}),
+    # The canonical CMake configure fails.
+    "verify:cmake-configure-failed": (
+        "test-cmake/plain",
+        CMAKE,
+        {"CMakeLists.txt": LISTS + 'message(FATAL_ERROR "boom")\n'},
+    ),
+    # No `cmake` on PATH: frozen `prepare_cmake_compilation_context` cannot configure
+    # (`cmake-configure-failed`) and every engine keeps analysing without a database.
+    "verify:cmake-missing": ("test-cmake/plain", CMAKE, {}, "no-cmake"),
+    # `verify --profile deep` with the failing configure: the BuildEngine's own BuildError and
+    # binary_compat without a published manifest (NOT_APPLICABLE).
+    "verify-deep:cmake-configure-failed": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {"CMakeLists.txt": LISTS + 'message(FATAL_ERROR "boom")\n'},
+    ),
+    "verify-deep:cmake-configure-failed-default": (
+        "test-cmake/plain",
+        CMAKE_DEEP_DEFAULT,
+        {"CMakeLists.txt": LISTS + 'message(FATAL_ERROR "boom")\n'},
+    ),
+    "verify-sources:cmake-missing": ("test-cmake/plain", CMAKE_SOURCES, {}, "no-cmake"),
+    # Frozen core/cmake_context.py reads the canonical cache after a configure that completed
+    # (`_read_cmake_metadata`) and the generated database's units (`_has_unity_units`,
+    # `_needs_generation_build`). The project's own CMakeLists can force cache values over the
+    # configure's -D options.
+    "verify:cmake-export-disabled": (
+        "test-cmake/plain",
+        CMAKE,
+        {"CMakeLists.txt": forced('set(CMAKE_EXPORT_COMPILE_COMMANDS OFF CACHE BOOL "" FORCE)')},
+    ),
+    "verify:cmake-unity-unknown": (
+        "test-cmake/plain",
+        CMAKE,
+        {"CMakeLists.txt": forced('set(CMAKE_UNITY_BUILD "maybe" CACHE STRING "" FORCE)')},
+    ),
+    # A cache value over frozen's 512-character bound.
+    "verify:cmake-cache-invalid": (
+        "test-cmake/plain",
+        CMAKE,
+        {"CMakeLists.txt": forced(f'set(CMAKE_UNITY_BUILD "{"x" * 600}" CACHE STRING "" FORCE)')},
+    ),
+    "verify:cmake-unity-on": (
+        "test-cmake/plain",
+        CMAKE,
+        {"CMakeLists.txt": forced('set(CMAKE_UNITY_BUILD ON CACHE BOOL "" FORCE)')},
+    ),
+    # The project removes the configure's -DCMAKE_UNITY_BUILD=OFF from the cache: frozen
+    # `_read_cmake_metadata` reads no value, so the setting is unknown (null), not false.
+    "verify:cmake-unity-null": (
+        "test-cmake/plain",
+        CMAKE,
+        {"CMakeLists.txt": forced("unset(CMAKE_UNITY_BUILD CACHE)")},
+    ),
+    # Unity sources by name: a `unity` path part or a `unity_` file name, casefolded.
+    "verify:cmake-unity-directory": (
+        "test-cmake/plain",
+        CMAKE,
+        {
+            "unity/all.cpp": "int unity_all() { return 1; }\n",
+            "CMakeLists.txt": LISTS.replace("src/calc.cpp", "src/calc.cpp unity/all.cpp"),
+        },
+    ),
+    "verify:cmake-unity-file": (
+        "test-cmake/plain",
+        CMAKE,
+        {
+            "src/Unity_all.cpp": "int unity_all() { return 1; }\n",
+            "CMakeLists.txt": LISTS.replace("src/calc.cpp", "src/calc.cpp src/Unity_all.cpp"),
+        },
+    ),
+    # Negative: `unity_` inside a longer name is not a unity source.
+    "verify:cmake-community-source": (
+        "test-cmake/plain",
+        CMAKE,
+        {
+            "src/community_util.cpp": "int community() { return 1; }\n",
+            "CMakeLists.txt": LISTS.replace("src/calc.cpp", "src/calc.cpp src/community_util.cpp"),
+        },
+    ),
+    # The configure exits 0 but leaves no cache, a cache without its generator, or one naming a
+    # multi-configuration generator (frozen `_read_cmake_metadata`).
+    "verify:cmake-cache-missing": ("test-cmake/plain", CMAKE, {}, "wrapped-cmake-cache-removed"),
+    "verify:cmake-generator-missing": (
+        "test-cmake/plain",
+        CMAKE,
+        {},
+        "wrapped-cmake-generator-removed",
+    ),
+    "verify:cmake-generator-unsupported": (
+        "test-cmake/plain",
+        CMAKE,
+        {},
+        "wrapped-cmake-generator-multi-config",
+    ),
+    # The project configures but a production source does not compile: frozen's analysis
+    # preparation only configures, so the database stands; the deep BuildEngine's own build fails.
+    "verify:cmake-build-failure": (
+        "test-cmake/plain",
+        CMAKE,
+        {"src/calc.cpp": "int broken( {\n"},
+    ),
+    "verify-deep:cmake-build-failure": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {"src/calc.cpp": "int broken( {\n"},
+    ),
+    "verify-deep:cmake-generation-failed": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {"CMakeLists.txt": LISTS + GENERATED.format(command="${CMAKE_COMMAND} -E false")},
+    ),
+    "verify:cmake-ninja-multi-config": ("test-cmake/plain", CMAKE, {}, "wrapped-ninja"),
+    # A source the build generates into the shadow: one generation build, then the database.
+    "verify:cmake-generated-source": (
+        "test-cmake/plain",
+        CMAKE,
+        {
+            "CMakeLists.txt": LISTS
+            + GENERATED.format(
+                command="${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/calc.cpp ${CMAKE_BINARY_DIR}/gen.cpp"
+            )
+        },
+    ),
+    "verify:cmake-generation-failed": (
+        "test-cmake/plain",
+        CMAKE,
+        {"CMakeLists.txt": LISTS + GENERATED.format(command="${CMAKE_COMMAND} -E false")},
+    ),
+    # The generation build writes the source, then the build fails (a production source that
+    # does not compile; a generation command that fails after writing its output): frozen
+    # decided from the configured database and keeps it, with `cmake-generation-failed`.
+    "verify:cmake-generated-then-build-failure": (
+        "test-cmake/plain",
+        CMAKE,
+        {
+            "CMakeLists.txt": LISTS + GENERATED.format(command=COPY_GOOD),
+            "src/good.in": GOOD_SOURCE,
+            "src/calc.cpp": "int broken( {\n",
+        },
+    ),
+    "verify-deep:cmake-generated-then-build-failure": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {
+            "CMakeLists.txt": LISTS + GENERATED.format(command=COPY_GOOD),
+            "src/good.in": GOOD_SOURCE,
+            "src/calc.cpp": "int broken( {\n",
+        },
+    ),
+    "verify:cmake-generation-partial": (
+        "test-cmake/plain",
+        CMAKE,
+        {
+            "CMakeLists.txt": LISTS
+            + GENERATED.format(command=COPY_GENERATED + " COMMAND ${CMAKE_COMMAND} -E false")
+        },
+    ),
+    "verify-deep:cmake-generation-partial": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {
+            "CMakeLists.txt": LISTS
+            + GENERATED.format(command=COPY_GENERATED + " COMMAND ${CMAKE_COMMAND} -E false")
+        },
+    ),
+    # The project's own database wins (frozen `existing.database_path is not None`): nothing is
+    # configured for analysis; the deep BuildEngine still builds its release artifacts.
+    "verify:cmake-own-database": (
+        "test-cmake/plain",
+        CMAKE,
+        {"compile_commands.json": OWN_DATABASE},
+    ),
+    "verify-deep:cmake-own-database": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {"compile_commands.json": OWN_DATABASE},
+    ),
+    # Both conventional locations: frozen `_select_database` takes the root one.
+    "verify:cmake-own-database-two-candidates": (
+        "test-cmake/plain",
+        CMAKE,
+        {"compile_commands.json": OWN_DATABASE, "build/compile_commands.json": "[]\n"},
+    ),
+    # The BuildEngine's configure fails; the project's database still serves the analysis.
+    "verify-deep:cmake-own-database-configure-failed": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {
+            "compile_commands.json": OWN_DATABASE,
+            "CMakeLists.txt": LISTS + 'message(FATAL_ERROR "boom")\n',
+        },
+    ),
+    # A row without a `directory` field is a row error (frozen `_RowError`, level error); a
+    # unit whose recorded working directory is gone is a warning.
+    "verify:cmake-own-database-directory-field": (
+        "test-cmake/plain",
+        CMAKE,
+        {"compile_commands.json": OWN_DATABASE_NO_DIRECTORY},
+    ),
+    "verify:cmake-own-database-gone-directory": (
+        "test-cmake/plain",
+        CMAKE,
+        {"compile_commands.json": OWN_DATABASE_GONE_DIRECTORY},
+    ),
+    # Lint (Qt generated-code inputs), cycle, dead and complexity over a complete qmake capture.
+    "verify-sources:qmake-captured": ("test-qmake", QMAKE_SOURCES, {}),
+}
+
+
+# Export cases: the verify case whose project and files they reuse.
+
+# An explicit project database under `.ici/` (frozen `load_compilation_context` returns it before
+# any source check), with and without a compilable C++ source in scope.
+ICI_ROW = '{"directory": "../..", "file": "src/calc.cpp", "arguments": ["/usr/bin/g++", "-c", "src/calc.cpp"]}'
+ICI_DATABASE = {".ici/custom/compile_commands.json": "[" + ICI_ROW + "]\n"}
+EXPLICIT_ICI = "compile_database='.ici/custom/compile_commands.json'\n"
+CASES.update(
+    {
+        "verify:cmake-explicit-ici-database": (
+            "test-cmake/plain",
+            CMAKE.replace("source_dirs=['src']\n", "source_dirs=['src']\n" + EXPLICIT_ICI),
+            ICI_DATABASE,
+        ),
+        "verify:cmake-explicit-ici-database-no-source": (
+            "test-cmake/plain",
+            CMAKE.replace("source_dirs=['src']\n", "source_dirs=['nosrc']\n" + EXPLICIT_ICI),
+            ICI_DATABASE,
+        ),
+        "verify:qmake-explicit-ici-database-no-source": (
+            "test-qmake",
+            QMAKE.replace("source_dirs=['tests']\n", "source_dirs=['nosrc']\n" + EXPLICIT_ICI),
+            ICI_DATABASE,
+        ),
+    }
+)
+
+# The same preparations with no database consumer selected (`CMAKE_NO_CONSUMER`).
+CASES.update(
+    {
+        f"verify-no-consumer:{name}": (
+            CASES[f"verify:{name}"][0],
+            CMAKE_NO_CONSUMER,
+            *CASES[f"verify:{name}"][2:],
+        )
+        for name in (
+            "cmake-configured",
+            "cmake-configure-failed",
+            "cmake-generation-failed",
+            "cmake-generated-then-build-failure",
+            "cmake-own-database",
+            "cmake-cache-missing",
+        )
+    }
+)
+
+EXPORTS = (
+    "verify:qmake-captured",
+    "verify:cmake-configured",
+    "verify:qmake-capture-incomplete",
+    "verify:qmake-configure-failed",
+    "verify:qmake-capture-build-failed",
+    "verify:qmake-capture-unavailable",
+    "verify:qmake-capture-configure-failed",
+    "verify:cmake-configure-failed",
+    "verify:cmake-export-disabled",
+    "verify:cmake-unity-unknown",
+    "verify:cmake-cache-invalid",
+    "verify:cmake-unity-on",
+    "verify:cmake-unity-null",
+    "verify:cmake-unity-directory",
+    "verify:cmake-unity-file",
+    "verify:cmake-community-source",
+    "verify:cmake-generated-source",
+    "verify:cmake-generation-failed",
+    "verify:cmake-cache-missing",
+    "verify:cmake-generator-missing",
+    "verify:cmake-generator-unsupported",
+    "verify:cmake-ninja-multi-config",
+    "verify:cmake-build-failure",
+    "verify:cmake-generated-then-build-failure",
+    "verify:cmake-generation-partial",
+    "verify:cmake-own-database",
+    "verify:cmake-own-database-directory-field",
+    "verify:cmake-own-database-gone-directory",
+)
+
+
+def wrapped_path(directory: Path, path_kind: str) -> str:
+    """The case's scripts first, then every /usr/bin and /bin entry (but a missing tool) as a
+    symlink."""
+
+    directory.mkdir()
+    if path_kind in NINJA:
+        (directory / NINJA[path_kind]).symlink_to(os.environ["ICI_CAPTURE_NINJA"])
+    for name, script in WRAPPED.get(path_kind, {}).items():
+        (directory / name).write_text(script, encoding="utf-8")
+        (directory / name).chmod(0o755)
+    for parent in ("/usr/bin", "/bin"):
+        for entry in sorted(os.listdir(parent)):
+            if entry == MISSING.get(path_kind):
+                continue
+            if not (directory / entry).exists() and not (directory / entry).is_symlink():
+                (directory / entry).symlink_to(Path(parent) / entry)
+    return str(directory)
+
+
+def run(
+    fixture: str,
+    config: str,
+    files: dict,
+    path_kind: str = "tools",
+    export: bool = False,
+    deep: bool = False,
+) -> dict:
+    work = Path(tempfile.mkdtemp(prefix="ici-cppval-capture-"))
+    try:
+        project = work / "project"
+        shutil.copytree(FIXTURES / fixture, project)
+        (project / ".git").mkdir()
+        # Bound VCS discovery at the case directory: an empty `.git` is not a repository, so
+        # Git (frozen `git describe`) and the native discovery would otherwise walk upward.
+        (work / ".hg").mkdir()
+        (project / "ici.toml").write_text(config, encoding="utf-8")
+        for relative, text in files.items():
+            (project / relative).parent.mkdir(parents=True, exist_ok=True)
+            (project / relative).write_text(text, encoding="utf-8")
+        path = "/usr/bin:/bin" if path_kind == "tools" else wrapped_path(work / "bin", path_kind)
+        argv = (
+            ["export-compilation-context", "--prepare"]
+            if export
+            else ["verify", "--profile", "deep", "--report"]
+            if deep
+            else ["verify", "--report"]
+        )
+        result = subprocess.run(
+            [PYTHON, "-m", "ici", *argv],
+            cwd=project,
+            env={
+                "PATH": path,
+                "HOME": str(work),
+                "GIT_CEILING_DIRECTORIES": str(work),
+                "LC_CTYPE": "C.UTF-8",
+                "PYTHONPATH": str(ORACLE / "src"),
+                **ENVIRONMENTS.get(path_kind, {}),
+            },
+            capture_output=True,
+            text=True,
+            timeout=900,
+            check=False,
+        )
+        if export:
+            return {
+                "fixture": fixture,
+                "command": "export-compilation-context",
+                "config": config,
+                "path": path_kind,
+                "exit_code": result.returncode,
+                "stdout": result.stdout.replace(str(project), "<root>"),
+                "stderr": result.stderr.replace(str(project), "<root>"),
+                "report": None,
+                **({"files": files} if files else {}),
+                **({"scripts": WRAPPED[path_kind]} if path_kind in WRAPPED else {}),
+                **({"environment": ENVIRONMENTS[path_kind]} if path_kind in ENVIRONMENTS else {}),
+            }
+        report = project / "verify_report.json"
+        text = report.read_text(encoding="utf-8") if report.exists() else "null"
+        # A PATH directory of the case's own (wrapped or missing tools) is the replay's
+        # `<compiler-bin>`.
+        text = text.replace(str(work / "bin"), "<compiler-bin>")
+        case = {
+            "fixture": fixture,
+            "command": "verify-deep" if deep else "verify",
+            "config": config,
+            "path": path_kind,
+            "exit_code": result.returncode,
+            "stdout": result.stdout.replace(str(project), "<root>").replace(
+                str(work / "bin"), "<compiler-bin>"
+            ),
+            "report": json.loads(text.replace(str(project), "<root>")),
+        }
+        if files:
+            case["files"] = files
+        if path_kind in WRAPPED:
+            # The replay writes the same PATH scripts.
+            case["scripts"] = WRAPPED[path_kind]
+        if path_kind in ENVIRONMENTS:
+            case["environment"] = ENVIRONMENTS[path_kind]
+        return case
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def first_line(argv: list) -> str:
+    return subprocess.check_output(argv, text=True).splitlines()[0]
+
+
+def main() -> None:
+    prefixes = sys.argv[1:]
+    existing = json.loads(GOLDEN.read_text(encoding="utf-8")) if GOLDEN.exists() else {}
+    cases = dict(existing.get("cases", {}))
+    for name, spec in CASES.items():
+        if prefixes and not any(name.startswith(prefix) for prefix in prefixes):
+            continue
+        cases[name] = run(*spec, deep=name.startswith("verify-deep:"))
+        print(
+            name, cases[name]["exit_code"], (cases[name]["report"] or {}).get("status"), flush=True
+        )
+    for name in EXPORTS:
+        export = name.replace("verify:", "export:")
+        if prefixes and not any(export.startswith(prefix) for prefix in prefixes):
+            continue
+        cases[export] = run(*CASES[name], export=True)
+        print(export, cases[export]["exit_code"], cases[export]["stderr"].strip(), flush=True)
+    GOLDEN.write_text(
+        json.dumps(
+            {
+                "oracle": EXPECTED,
+                "gxx": first_line(["/usr/bin/g++", "--version"]),
+                "cmake": first_line(["/usr/bin/cmake", "--version"]),
+                "qmake": first_line(["/usr/bin/qmake6", "--version"]),
+                "cases": dict(sorted(cases.items())),
+            },
+            indent=1,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+if __name__ == "__main__":
+    main()

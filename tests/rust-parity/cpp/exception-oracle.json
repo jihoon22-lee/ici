@@ -1,0 +1,203 @@
+{
+ "cases": {
+  "exception": {
+   "exit_code": 1,
+   "status": "FAIL",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/catch.cpp",
+     "message": "Silent catch(...) block without logging or re-throw",
+     "start_line": 5,
+     "status": "FAIL",
+     "target_name": "CatchAllSwallowed"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/catch.cpp",
+     "message": "Silent catch(...) block without logging or re-throw",
+     "start_line": 6,
+     "status": "FAIL",
+     "target_name": "CatchAllSwallowed"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/catch.cpp",
+     "message": "Silent catch(...) block without logging or re-throw",
+     "start_line": 9,
+     "status": "FAIL",
+     "target_name": "CatchAllSwallowed"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/catch.cpp",
+     "message": "Silent catch(...) block without logging or re-throw",
+     "start_line": 18,
+     "status": "FAIL",
+     "target_name": "CatchAllSwallowed"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/catch.cpp",
+     "message": "C++ exception constructs were inspected; see findings above",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppExceptionSafety"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/clean.cc",
+     "message": "C++ exception constructs were inspected",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppExceptionSafety"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/crlf.cpp",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 3,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/crlf.cpp",
+     "message": "Silent catch(...) block without logging or re-throw",
+     "start_line": 7,
+     "status": "FAIL",
+     "target_name": "CatchAllSwallowed"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/crlf.cpp",
+     "message": "C++ exception constructs were inspected; see findings above",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppExceptionSafety"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/dtor.cpp",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 3,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/dtor.cpp",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 4,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/dtor.cpp",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 10,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/dtor.cpp",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 17,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/dtor.cpp",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 22,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/dtor.cpp",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 25,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/dtor.cpp",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 27,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/dtor.cpp",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 32,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/dtor.cpp",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 37,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/dtor.cpp",
+     "message": "Silent catch(...) block without logging or re-throw",
+     "start_line": 22,
+     "status": "FAIL",
+     "target_name": "CatchAllSwallowed"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/dtor.cpp",
+     "message": "C++ exception constructs were inspected; see findings above",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppExceptionSafety"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/literals.cpp",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 5,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/literals.cpp",
+     "message": "Silent catch(...) block without logging or re-throw",
+     "start_line": 7,
+     "status": "FAIL",
+     "target_name": "CatchAllSwallowed"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/literals.cpp",
+     "message": "Silent catch(...) block without logging or re-throw",
+     "start_line": 8,
+     "status": "FAIL",
+     "target_name": "CatchAllSwallowed"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/literals.cpp",
+     "message": "C++ exception constructs were inspected; see findings above",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppExceptionSafety"
+    }
+   ]
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

@@ -4,8 +4,8 @@
 |---|---|
 |상태|**PR A 완료**. 등록부와 계약 harness가 존재하고, 기존 fixture 17개가 전부 등록됐다. real seed 확충은 PR B.|
 |근거 이슈|[WP03 #201](https://github.com/jihoon22-lee/ici/issues/201) 작업 1·2·4|
-|구현|[`tests/fixtures/manifest.toml`](../../../tests/fixtures/manifest.toml), [`tests/fixture_manifest.py`](../../../tests/fixture_manifest.py), [`tests/toolcontract.py`](../../../tests/toolcontract.py)|
-|검증|[`tests/test_fixture_corpus.py`](../../../tests/test_fixture_corpus.py)|
+|구현|[`tests/fixtures/manifest.toml`](../../../tests/fixtures/manifest.toml), [`tests/fixture_manifest.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/fixture_manifest.py), [`tests/toolcontract.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/toolcontract.py)|
+|검증|[`tests/test_fixture_corpus.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/test_fixture_corpus.py)|
 
 ## 왜 등록부가 필요했나 — 실제로 있던 결함
 
@@ -121,7 +121,7 @@ scope 모델은 #207의 몫이고(R05), 그것을 corpus 변경 안에서 바꾸
 ## harness가 실제로 무엇을 증명하는가
 
 harness만 있고 그것을 쓰는 테스트가 없으면 아무것도 검증되지 않는다.
-[`tests/test_process_contract.py`](../../../tests/test_process_contract.py)가 `run_process`
+[`tests/test_process_contract.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/test_process_contract.py)가 `run_process`
 — ici가 무언가를 spawn하는 **유일한 지점** — 에 대해 다음을 실측으로 고정한다.
 한 지점을 시험하므로 새 엔진은 이 보장을 자동으로 물려받는다.
 
@@ -144,7 +144,7 @@ R01의 "셸 초기화 파일 source 금지"는 그동안 아키텍처 주장이�
 
 ## snapshot 비교: 네 축이 서로를 대신하지 않는다
 
-[`src/ici/execution/snapshot.py`](../../../src/ici/execution/snapshot.py).
+[`src/ici/execution/snapshot.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/execution/snapshot.py).
 이슈가 요구하는 축 분리(finding / source scope / metric / evidence)를 구현한다.
 
 **왜 source scope가 별도 축이어야 하는가.** [#234](https://github.com/jihoon22-lee/ici/pull/234)가

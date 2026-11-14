@@ -1,0 +1,1806 @@
+{
+ "cases": {
+  "v2_invalid_cwd_doctor_json": {
+   "argv": [
+    "doctor",
+    "--json"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_cwd_export": {
+   "argv": [
+    "export-compilation-context"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_cwd_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_cwd_line_report": {
+   "argv": [
+    "line",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_cwd_publish": {
+   "argv": [
+    "publish"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_cwd_verify_report": {
+   "argv": [
+    "verify",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_invalid_cwd_doctor_json": {
+   "argv": [
+    "doctor",
+    "--json"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_invalid_cwd_export": {
+   "argv": [
+    "export-compilation-context"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_invalid_cwd_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_invalid_cwd_line_report": {
+   "argv": [
+    "line",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_invalid_cwd_publish": {
+   "argv": [
+    "publish"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_invalid_cwd_verify_report": {
+   "argv": [
+    "verify",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_legacy_cwd_doctor_json": {
+   "argv": [
+    "doctor",
+    "--json"
+   ],
+   "cwd": "sub",
+   "doctor": {
+    "analysis_profile": "standard",
+    "effective_required_tools": [
+     "pytest",
+     "python3",
+     "ruff"
+    ],
+    "required_tools": [
+     "ruff"
+    ]
+   },
+   "exit_code": 0,
+   "home_written": [],
+   "reports": {},
+   "stderr": "",
+   "stdout": "<doctor --json: the keys under doctor>",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_legacy_cwd_export": {
+   "argv": [
+    "export-compilation-context"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Compilation export error: no measured compilation database is available; use --database or --prepare\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_legacy_cwd_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [],
+   "reports": {},
+   "stderr": "",
+   "stdout": "✔ Total 8 lines (6 code, 0 comment, 2 blank) across 2 files\n Code Lines    [█████████████████████████████████████             ]      6 \n(75.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [▒▒▒▒▒▒▒▒▒▒▒▒                                      ]      2 \n(25.0%)\n\n Total Volume: 8 Lines\n",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_legacy_cwd_line_report": {
+   "argv": [
+    "line",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [],
+   "reports": {
+    "line_report.json": {
+     "all": {
+      "blank": 2,
+      "code": 11,
+      "comment": 0,
+      "files": 3,
+      "total": 13
+     },
+     "files_data": [
+      {
+       "blank": 0,
+       "code": 5,
+       "comment": 0,
+       "lang": "TOML",
+       "path": "ici.toml",
+       "scope": "extra",
+       "status": "PASS",
+       "total": 5
+      },
+      {
+       "blank": 2,
+       "code": 4,
+       "comment": 0,
+       "lang": "Python",
+       "path": "lib/lib.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 6
+      },
+      {
+       "blank": 0,
+       "code": 2,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/inner.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 2
+      }
+     ]
+    }
+   },
+   "stderr": "",
+   "stdout": "✔ Total 8 lines (6 code, 0 comment, 2 blank) across 2 files\n Code Lines    [█████████████████████████████████████             ]      6 \n(75.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [▒▒▒▒▒▒▒▒▒▒▒▒                                      ]      2 \n(25.0%)\n\n Total Volume: 8 Lines\nReport saved to: line_report.json\n",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": [
+    "sub/line_report.json"
+   ]
+  },
+  "v2_invalid_legacy_cwd_publish": {
+   "argv": [
+    "publish"
+   ],
+   "cwd": "sub",
+   "exit_code": 1,
+   "home_written": [],
+   "reports": {},
+   "stderr": "<traceback> AttributeError: 'NoneType' object has no attribute 'results'\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_legacy_cwd_verify_report": {
+   "argv": [
+    "verify",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 1,
+   "home_written": [
+    ".cache/ici/analysis/entries-v1/<digest>.json"
+   ],
+   "reports": {
+    "verify_report.json": {
+     "engines": [
+      [
+       "line",
+       "PASS",
+       "MEASURED",
+       true
+      ],
+      [
+       "lint",
+       "WARN",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "compile_db",
+       "SKIP",
+       "NOT_APPLICABLE",
+       true
+      ],
+      [
+       "test",
+       "FAIL",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "type",
+       "PASS",
+       "MEASURED",
+       true
+      ],
+      [
+       "python_compat",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "resource",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "security",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "cycle",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "complexity",
+       "PASS",
+       "MEASURED",
+       true
+      ],
+      [
+       "sanitize",
+       "ERROR",
+       "NOT_RUN",
+       true
+      ],
+      [
+       "dead",
+       "PASS",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "dup",
+       "PASS",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "exception",
+       "PASS",
+       "MEASURED",
+       true
+      ]
+     ],
+     "suite_status": "ERROR"
+    }
+   },
+   "stderr": "",
+   "stdout": "<verify suite frame omitted>",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": [
+    "sub/.mypy_cache/.gitignore",
+    "sub/.mypy_cache/3.10/cache.0.db",
+    "sub/.mypy_cache/3.10/cache.1.db",
+    "sub/.mypy_cache/3.10/cache.10.db",
+    "sub/.mypy_cache/3.10/cache.11.db",
+    "sub/.mypy_cache/3.10/cache.12.db",
+    "sub/.mypy_cache/3.10/cache.13.db",
+    "sub/.mypy_cache/3.10/cache.14.db",
+    "sub/.mypy_cache/3.10/cache.15.db",
+    "sub/.mypy_cache/3.10/cache.2.db",
+    "sub/.mypy_cache/3.10/cache.3.db",
+    "sub/.mypy_cache/3.10/cache.4.db",
+    "sub/.mypy_cache/3.10/cache.5.db",
+    "sub/.mypy_cache/3.10/cache.6.db",
+    "sub/.mypy_cache/3.10/cache.7.db",
+    "sub/.mypy_cache/3.10/cache.8.db",
+    "sub/.mypy_cache/3.10/cache.9.db",
+    "sub/.mypy_cache/CACHEDIR.TAG",
+    "sub/verify_report.json"
+   ]
+  },
+  "v2_invalid_no_cwd_config_doctor_json": {
+   "argv": [
+    "doctor",
+    "--json"
+   ],
+   "cwd": "sub",
+   "doctor": {
+    "analysis_profile": "standard",
+    "effective_required_tools": [
+     "pytest",
+     "python3"
+    ],
+    "required_tools": []
+   },
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "reports": {},
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "<doctor --json: the keys under doctor>",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_no_cwd_config_export": {
+   "argv": [
+    "export-compilation-context"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Compilation export error: no measured compilation database is available; use --database or --prepare\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_no_cwd_config_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "reports": {},
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "✔ Total 8 lines (6 code, 0 comment, 2 blank) across 2 files\n Code Lines    [█████████████████████████████████████             ]      6 \n(75.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [▒▒▒▒▒▒▒▒▒▒▒▒                                      ]      2 \n(25.0%)\n\n Total Volume: 8 Lines\n",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_no_cwd_config_line_report": {
+   "argv": [
+    "line",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "reports": {
+    "line_report.json": {
+     "all": {
+      "blank": 2,
+      "code": 6,
+      "comment": 0,
+      "files": 2,
+      "total": 8
+     },
+     "files_data": [
+      {
+       "blank": 2,
+       "code": 4,
+       "comment": 0,
+       "lang": "Python",
+       "path": "lib/lib.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 6
+      },
+      {
+       "blank": 0,
+       "code": 2,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/inner.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 2
+      }
+     ]
+    }
+   },
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "✔ Total 8 lines (6 code, 0 comment, 2 blank) across 2 files\n Code Lines    [█████████████████████████████████████             ]      6 \n(75.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [▒▒▒▒▒▒▒▒▒▒▒▒                                      ]      2 \n(25.0%)\n\n Total Volume: 8 Lines\nReport saved to: line_report.json\n",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": [
+    "sub/line_report.json"
+   ]
+  },
+  "v2_invalid_no_cwd_config_publish": {
+   "argv": [
+    "publish"
+   ],
+   "cwd": "sub",
+   "exit_code": 1,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "reports": {},
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n<traceback> AttributeError: 'NoneType' object has no attribute 'results'\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_invalid_no_cwd_config_verify_report": {
+   "argv": [
+    "verify",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 1,
+   "home_written": [
+    ".cache/ici/analysis/entries-v1/<digest>.json",
+    "ici/ici.toml"
+   ],
+   "reports": {
+    "verify_report.json": {
+     "engines": [
+      [
+       "line",
+       "PASS",
+       "MEASURED",
+       true
+      ],
+      [
+       "lint",
+       "WARN",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "compile_db",
+       "SKIP",
+       "NOT_APPLICABLE",
+       true
+      ],
+      [
+       "test",
+       "FAIL",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "type",
+       "PASS",
+       "MEASURED",
+       true
+      ],
+      [
+       "python_compat",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "resource",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "security",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "cycle",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "complexity",
+       "PASS",
+       "MEASURED",
+       true
+      ],
+      [
+       "sanitize",
+       "ERROR",
+       "NOT_RUN",
+       true
+      ],
+      [
+       "dead",
+       "PASS",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "dup",
+       "PASS",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "exception",
+       "PASS",
+       "MEASURED",
+       true
+      ]
+     ],
+     "suite_status": "ERROR"
+    }
+   },
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "<verify suite frame omitted>",
+   "tree": {
+    "ici.toml": "schema_version = 2\nbogus = 1\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": [
+    "sub/.mypy_cache/.gitignore",
+    "sub/.mypy_cache/3.10/cache.0.db",
+    "sub/.mypy_cache/3.10/cache.1.db",
+    "sub/.mypy_cache/3.10/cache.10.db",
+    "sub/.mypy_cache/3.10/cache.11.db",
+    "sub/.mypy_cache/3.10/cache.12.db",
+    "sub/.mypy_cache/3.10/cache.13.db",
+    "sub/.mypy_cache/3.10/cache.14.db",
+    "sub/.mypy_cache/3.10/cache.15.db",
+    "sub/.mypy_cache/3.10/cache.2.db",
+    "sub/.mypy_cache/3.10/cache.3.db",
+    "sub/.mypy_cache/3.10/cache.4.db",
+    "sub/.mypy_cache/3.10/cache.5.db",
+    "sub/.mypy_cache/3.10/cache.6.db",
+    "sub/.mypy_cache/3.10/cache.7.db",
+    "sub/.mypy_cache/3.10/cache.8.db",
+    "sub/.mypy_cache/3.10/cache.9.db",
+    "sub/.mypy_cache/CACHEDIR.TAG",
+    "sub/verify_report.json"
+   ]
+  },
+  "v2_legacy_cwd_doctor_json": {
+   "argv": [
+    "doctor",
+    "--json"
+   ],
+   "cwd": "sub",
+   "doctor": {
+    "analysis_profile": "standard",
+    "effective_required_tools": [
+     "pytest",
+     "python3",
+     "ruff"
+    ],
+    "required_tools": [
+     "ruff"
+    ]
+   },
+   "exit_code": 0,
+   "home_written": [],
+   "reports": {},
+   "stderr": "",
+   "stdout": "<doctor --json: the keys under doctor>",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_legacy_cwd_export": {
+   "argv": [
+    "export-compilation-context"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Compilation export error: no measured compilation database is available; use --database or --prepare\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_legacy_cwd_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [],
+   "reports": {},
+   "stderr": "",
+   "stdout": "✔ Total 8 lines (6 code, 0 comment, 2 blank) across 2 files\n Code Lines    [█████████████████████████████████████             ]      6 \n(75.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [▒▒▒▒▒▒▒▒▒▒▒▒                                      ]      2 \n(25.0%)\n\n Total Volume: 8 Lines\n",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_legacy_cwd_line_report": {
+   "argv": [
+    "line",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [],
+   "reports": {
+    "line_report.json": {
+     "all": {
+      "blank": 2,
+      "code": 11,
+      "comment": 0,
+      "files": 3,
+      "total": 13
+     },
+     "files_data": [
+      {
+       "blank": 0,
+       "code": 5,
+       "comment": 0,
+       "lang": "TOML",
+       "path": "ici.toml",
+       "scope": "extra",
+       "status": "PASS",
+       "total": 5
+      },
+      {
+       "blank": 2,
+       "code": 4,
+       "comment": 0,
+       "lang": "Python",
+       "path": "lib/lib.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 6
+      },
+      {
+       "blank": 0,
+       "code": 2,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/inner.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 2
+      }
+     ]
+    }
+   },
+   "stderr": "",
+   "stdout": "✔ Total 8 lines (6 code, 0 comment, 2 blank) across 2 files\n Code Lines    [█████████████████████████████████████             ]      6 \n(75.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [▒▒▒▒▒▒▒▒▒▒▒▒                                      ]      2 \n(25.0%)\n\n Total Volume: 8 Lines\nReport saved to: line_report.json\n",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": [
+    "sub/line_report.json"
+   ]
+  },
+  "v2_legacy_cwd_publish": {
+   "argv": [
+    "publish"
+   ],
+   "cwd": "sub",
+   "exit_code": 1,
+   "home_written": [],
+   "reports": {},
+   "stderr": "<traceback> AttributeError: 'NoneType' object has no attribute 'results'\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_legacy_cwd_verify_report": {
+   "argv": [
+    "verify",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 1,
+   "home_written": [
+    ".cache/ici/analysis/entries-v1/<digest>.json"
+   ],
+   "reports": {
+    "verify_report.json": {
+     "engines": [
+      [
+       "line",
+       "PASS",
+       "MEASURED",
+       true
+      ],
+      [
+       "lint",
+       "WARN",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "compile_db",
+       "SKIP",
+       "NOT_APPLICABLE",
+       true
+      ],
+      [
+       "test",
+       "FAIL",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "type",
+       "PASS",
+       "MEASURED",
+       true
+      ],
+      [
+       "python_compat",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "resource",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "security",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "cycle",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "complexity",
+       "PASS",
+       "MEASURED",
+       true
+      ],
+      [
+       "sanitize",
+       "ERROR",
+       "NOT_RUN",
+       true
+      ],
+      [
+       "dead",
+       "PASS",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "dup",
+       "PASS",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "exception",
+       "PASS",
+       "MEASURED",
+       true
+      ]
+     ],
+     "suite_status": "ERROR"
+    }
+   },
+   "stderr": "",
+   "stdout": "<verify suite frame omitted>",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": [
+    "sub/.mypy_cache/.gitignore",
+    "sub/.mypy_cache/3.10/cache.0.db",
+    "sub/.mypy_cache/3.10/cache.1.db",
+    "sub/.mypy_cache/3.10/cache.10.db",
+    "sub/.mypy_cache/3.10/cache.11.db",
+    "sub/.mypy_cache/3.10/cache.12.db",
+    "sub/.mypy_cache/3.10/cache.13.db",
+    "sub/.mypy_cache/3.10/cache.14.db",
+    "sub/.mypy_cache/3.10/cache.15.db",
+    "sub/.mypy_cache/3.10/cache.2.db",
+    "sub/.mypy_cache/3.10/cache.3.db",
+    "sub/.mypy_cache/3.10/cache.4.db",
+    "sub/.mypy_cache/3.10/cache.5.db",
+    "sub/.mypy_cache/3.10/cache.6.db",
+    "sub/.mypy_cache/3.10/cache.7.db",
+    "sub/.mypy_cache/3.10/cache.8.db",
+    "sub/.mypy_cache/3.10/cache.9.db",
+    "sub/.mypy_cache/CACHEDIR.TAG",
+    "sub/verify_report.json"
+   ]
+  },
+  "v2_no_cwd_config_doctor_json": {
+   "argv": [
+    "doctor",
+    "--json"
+   ],
+   "cwd": "sub",
+   "doctor": {
+    "analysis_profile": "standard",
+    "effective_required_tools": [
+     "pytest",
+     "python3"
+    ],
+    "required_tools": []
+   },
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "reports": {},
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "<doctor --json: the keys under doctor>",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_no_cwd_config_export": {
+   "argv": [
+    "export-compilation-context"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Compilation export error: no measured compilation database is available; use --database or --prepare\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_no_cwd_config_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "reports": {},
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "✔ Total 8 lines (6 code, 0 comment, 2 blank) across 2 files\n Code Lines    [█████████████████████████████████████             ]      6 \n(75.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [▒▒▒▒▒▒▒▒▒▒▒▒                                      ]      2 \n(25.0%)\n\n Total Volume: 8 Lines\n",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_no_cwd_config_line_report": {
+   "argv": [
+    "line",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "reports": {
+    "line_report.json": {
+     "all": {
+      "blank": 2,
+      "code": 6,
+      "comment": 0,
+      "files": 2,
+      "total": 8
+     },
+     "files_data": [
+      {
+       "blank": 2,
+       "code": 4,
+       "comment": 0,
+       "lang": "Python",
+       "path": "lib/lib.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 6
+      },
+      {
+       "blank": 0,
+       "code": 2,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/inner.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 2
+      }
+     ]
+    }
+   },
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "✔ Total 8 lines (6 code, 0 comment, 2 blank) across 2 files\n Code Lines    [█████████████████████████████████████             ]      6 \n(75.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [▒▒▒▒▒▒▒▒▒▒▒▒                                      ]      2 \n(25.0%)\n\n Total Volume: 8 Lines\nReport saved to: line_report.json\n",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": [
+    "sub/line_report.json"
+   ]
+  },
+  "v2_no_cwd_config_publish": {
+   "argv": [
+    "publish"
+   ],
+   "cwd": "sub",
+   "exit_code": 1,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "reports": {},
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n<traceback> AttributeError: 'NoneType' object has no attribute 'results'\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_no_cwd_config_verify_report": {
+   "argv": [
+    "verify",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 1,
+   "home_written": [
+    ".cache/ici/analysis/entries-v1/<digest>.json",
+    "ici/ici.toml"
+   ],
+   "reports": {
+    "verify_report.json": {
+     "engines": [
+      [
+       "line",
+       "PASS",
+       "MEASURED",
+       true
+      ],
+      [
+       "lint",
+       "WARN",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "compile_db",
+       "SKIP",
+       "NOT_APPLICABLE",
+       true
+      ],
+      [
+       "test",
+       "FAIL",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "type",
+       "PASS",
+       "MEASURED",
+       true
+      ],
+      [
+       "python_compat",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "resource",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "security",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "cycle",
+       "PASS",
+       "MEASURED",
+       false
+      ],
+      [
+       "complexity",
+       "PASS",
+       "MEASURED",
+       true
+      ],
+      [
+       "sanitize",
+       "ERROR",
+       "NOT_RUN",
+       true
+      ],
+      [
+       "dead",
+       "PASS",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "dup",
+       "PASS",
+       "ESTIMATED",
+       true
+      ],
+      [
+       "exception",
+       "PASS",
+       "MEASURED",
+       true
+      ]
+     ],
+     "suite_status": "ERROR"
+    }
+   },
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "<verify suite frame omitted>",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": [
+    "sub/.mypy_cache/.gitignore",
+    "sub/.mypy_cache/3.10/cache.0.db",
+    "sub/.mypy_cache/3.10/cache.1.db",
+    "sub/.mypy_cache/3.10/cache.10.db",
+    "sub/.mypy_cache/3.10/cache.11.db",
+    "sub/.mypy_cache/3.10/cache.12.db",
+    "sub/.mypy_cache/3.10/cache.13.db",
+    "sub/.mypy_cache/3.10/cache.14.db",
+    "sub/.mypy_cache/3.10/cache.15.db",
+    "sub/.mypy_cache/3.10/cache.2.db",
+    "sub/.mypy_cache/3.10/cache.3.db",
+    "sub/.mypy_cache/3.10/cache.4.db",
+    "sub/.mypy_cache/3.10/cache.5.db",
+    "sub/.mypy_cache/3.10/cache.6.db",
+    "sub/.mypy_cache/3.10/cache.7.db",
+    "sub/.mypy_cache/3.10/cache.8.db",
+    "sub/.mypy_cache/3.10/cache.9.db",
+    "sub/.mypy_cache/CACHEDIR.TAG",
+    "sub/verify_report.json"
+   ]
+  },
+  "v2_workspace_invalid_cwd_doctor_json": {
+   "argv": [
+    "doctor",
+    "--json"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_invalid_cwd_export": {
+   "argv": [
+    "export-compilation-context"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_invalid_cwd_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_invalid_cwd_line_report": {
+   "argv": [
+    "line",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_invalid_cwd_publish": {
+   "argv": [
+    "publish"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_invalid_cwd_verify_report": {
+   "argv": [
+    "verify",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "ici-next: [workspace] config found — running the next engine path (`ici next verify` is the same run)\nconfig: <root>/ici.toml: schema_version: schema_version 2 is not supported (this ici reads version 1)\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\n[engines.line]\nwarn_limit = \"many\"\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_legacy_cwd_doctor_json": {
+   "argv": [
+    "doctor",
+    "--json"
+   ],
+   "cwd": "sub",
+   "doctor": {
+    "analysis_profile": "standard",
+    "effective_required_tools": [
+     "pytest",
+     "python3",
+     "ruff"
+    ],
+    "required_tools": [
+     "ruff"
+    ]
+   },
+   "exit_code": 0,
+   "home_written": [],
+   "reports": {},
+   "stderr": "",
+   "stdout": "<doctor --json: the keys under doctor>",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_legacy_cwd_export": {
+   "argv": [
+    "export-compilation-context"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Compilation export error: no measured compilation database is available; use --database or --prepare\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_legacy_cwd_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [],
+   "reports": {},
+   "stderr": "",
+   "stdout": "✔ Total 8 lines (6 code, 0 comment, 2 blank) across 2 files\n Code Lines    [█████████████████████████████████████             ]      6 \n(75.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [▒▒▒▒▒▒▒▒▒▒▒▒                                      ]      2 \n(25.0%)\n\n Total Volume: 8 Lines\n",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_legacy_cwd_line_report": {
+   "argv": [
+    "line",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [],
+   "reports": {
+    "line_report.json": {
+     "all": {
+      "blank": 2,
+      "code": 11,
+      "comment": 0,
+      "files": 3,
+      "total": 13
+     },
+     "files_data": [
+      {
+       "blank": 0,
+       "code": 5,
+       "comment": 0,
+       "lang": "TOML",
+       "path": "ici.toml",
+       "scope": "extra",
+       "status": "PASS",
+       "total": 5
+      },
+      {
+       "blank": 2,
+       "code": 4,
+       "comment": 0,
+       "lang": "Python",
+       "path": "lib/lib.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 6
+      },
+      {
+       "blank": 0,
+       "code": 2,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/inner.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 2
+      }
+     ]
+    }
+   },
+   "stderr": "",
+   "stdout": "✔ Total 8 lines (6 code, 0 comment, 2 blank) across 2 files\n Code Lines    [█████████████████████████████████████             ]      6 \n(75.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [▒▒▒▒▒▒▒▒▒▒▒▒                                      ]      2 \n(25.0%)\n\n Total Volume: 8 Lines\nReport saved to: line_report.json\n",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": [
+    "sub/line_report.json"
+   ]
+  },
+  "v2_workspace_legacy_cwd_publish": {
+   "argv": [
+    "publish"
+   ],
+   "cwd": "sub",
+   "exit_code": 1,
+   "home_written": [],
+   "reports": {},
+   "stderr": "<traceback> AttributeError: 'NoneType' object has no attribute 'results'\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_legacy_cwd_verify_report": {
+   "argv": [
+    "verify",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "ici-next: [workspace] config found — running the next engine path (`ici next verify` is the same run)\nconfig: <root>/ici.toml: schema_version: schema_version 2 is not supported (this ici reads version 1)\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\"lib\"]\n[doctor]\nrequired_tools = [\"ruff\"]\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_no_cwd_config_doctor_json": {
+   "argv": [
+    "doctor",
+    "--json"
+   ],
+   "cwd": "sub",
+   "doctor": {
+    "analysis_profile": "standard",
+    "effective_required_tools": [
+     "pytest",
+     "python3"
+    ],
+    "required_tools": []
+   },
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "reports": {},
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "<doctor --json: the keys under doctor>",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_no_cwd_config_export": {
+   "argv": [
+    "export-compilation-context"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "Compilation export error: no measured compilation database is available; use --database or --prepare\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_no_cwd_config_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "reports": {},
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "✔ Total 8 lines (6 code, 0 comment, 2 blank) across 2 files\n Code Lines    [█████████████████████████████████████             ]      6 \n(75.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [▒▒▒▒▒▒▒▒▒▒▒▒                                      ]      2 \n(25.0%)\n\n Total Volume: 8 Lines\n",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_no_cwd_config_line_report": {
+   "argv": [
+    "line",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "reports": {
+    "line_report.json": {
+     "all": {
+      "blank": 2,
+      "code": 6,
+      "comment": 0,
+      "files": 2,
+      "total": 8
+     },
+     "files_data": [
+      {
+       "blank": 2,
+       "code": 4,
+       "comment": 0,
+       "lang": "Python",
+       "path": "lib/lib.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 6
+      },
+      {
+       "blank": 0,
+       "code": 2,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/inner.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 2
+      }
+     ]
+    }
+   },
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "✔ Total 8 lines (6 code, 0 comment, 2 blank) across 2 files\n Code Lines    [█████████████████████████████████████             ]      6 \n(75.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [▒▒▒▒▒▒▒▒▒▒▒▒                                      ]      2 \n(25.0%)\n\n Total Volume: 8 Lines\nReport saved to: line_report.json\n",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": [
+    "sub/line_report.json"
+   ]
+  },
+  "v2_workspace_no_cwd_config_publish": {
+   "argv": [
+    "publish"
+   ],
+   "cwd": "sub",
+   "exit_code": 1,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "reports": {},
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n<traceback> AttributeError: 'NoneType' object has no attribute 'results'\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "v2_workspace_no_cwd_config_verify_report": {
+   "argv": [
+    "verify",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 2,
+   "home_written": [],
+   "reports": {},
+   "stderr": "ici-next: [workspace] config found — running the next engine path (`ici next verify` is the same run)\nconfig: <root>/ici.toml: schema_version: schema_version 2 is not supported (this ici reads version 1)\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 2\n[workspace]\nname = \"demo\"\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/lib/lib.py": "def first():\n    return 1\n\n\ndef second():\n    return 2\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  }
+ },
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21"
+}

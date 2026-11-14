@@ -327,7 +327,7 @@ legacy failed_count와 함께 순수 ERROR 수인 error_count 및 skipped_count�
 화면 리포터에서 표시하는 순수 FAIL 수는 failed_count - error_count입니다.
 
 writer가 사용하는 JSON Schema는
-[`src/ici/schemas/ici-result-v3.schema.json`](../src/ici/schemas/ici-result-v3.schema.json)에
+[`schemas/ici-result-v3.schema.json`](../schemas/ici-result-v3.schema.json)에
 있습니다. v2 archive는 `migrate_report_payload()`로 v3 copy를 만들 수 있고 viewer는 두 버전을
 모두 읽습니다. reporter에 전달되는 모든 자유 형식 문자열은 공통 credential redaction을 거칩니다.
 

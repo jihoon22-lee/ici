@@ -15,7 +15,7 @@
 
 ## 2. 구·신 디퍼렌셜 (항목 2)
 
-자동화: [`tests/test_next_differential.py`](../../../tests/test_next_differential.py)
+자동화: [`tests/test_next_differential.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/test_next_differential.py)
 — 등록된 시드 결함 fixture를 stable 엔진과 `ici next verify` 양쪽으로 실행해
 파일 단위로 비교한다.
 
@@ -44,7 +44,7 @@
 
 ## 3. 성능 측정 (항목 3)
 
-자동화: [`scripts/benchmark_next.py`](../../../scripts/benchmark_next.py) —
+자동화: [`scripts/benchmark_next.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/scripts/benchmark_next.py) —
 고정 크기 fixture(기본 200개 모듈, 모듈당 고유 이름·분기)에서 cold/warm
 벽시계·peak RSS·태스크 수·산출물 크기·취소 지연을 측정하고 JSON 레코드를
 낸다. 추세 기록물이며 게이트가 아니다.
@@ -67,7 +67,7 @@
 
 ## 4. 보안 경계 (항목 4)
 
-자동화: [`tests/test_next_security.py`](../../../tests/next/test_next_security.py) +
+자동화: [`tests/test_next_security.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_next_security.py) +
 `tests/test_cache.py`의 integrity 케이스.
 
 | 경계 | 시험 | 결과 |
@@ -88,7 +88,7 @@ integrity를 재계산해 캐시를 오염시킬 수 있다 — 다이제스트�
 
 방법: `scripts/spikes/wp01/build-bundle.sh`로 로컬 PBS CPython **3.13.15**
 (uv store에 이미 있던 것 — 다운로드 없음)를 runtime으로 쓴 bundle을 조립하고,
-릴리스 경로의 [`scripts/bundle/smoke.sh`](../../../scripts/bundle/smoke.sh)를
+릴리스 경로의 [`scripts/bundle/smoke.sh`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/scripts/bundle/smoke.sh)를
 실행했다. 빌드 시점의 `pip --target`만 네트워크를 쓴다 — 실행 시점은 아래
 netns 케이스가 증명한다.
 

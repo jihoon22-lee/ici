@@ -40,18 +40,18 @@
 테스트가 그 사실을 고정한다.
 
 > **발행됨 (WP02 PR B)**: 정식 스키마는
-> [`src/ici/schemas/ici-next-run-v1.schema.json`](../../../src/ici/schemas/ici-next-run-v1.schema.json)이고
-> 코덱은 [`ici/domain/serialization.py`](../../../src/ici/domain/serialization.py)다.
+> [`schemas/ici-next-run-v1.schema.json`](../../../schemas/ici-next-run-v1.schema.json)이고
+> 코덱은 [`ici/domain/serialization.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/domain/serialization.py)다.
 > 완전한 fixture 5종(성공·코드 FAIL·필수 미완료·부분 선택·취소)이
 > [`tests/fixtures/ici-next/`](../../../tests/fixtures/ici-next)에 있으며 **축약 예시를 golden
 > 파일로 쓰지 않았다**. 스키마와 코드의 enum·required·additionalProperties 일치는
-> [`tests/test_next_schema_contract.py`](../../../tests/next/test_next_schema_contract.py)가
+> [`tests/test_next_schema_contract.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_next_schema_contract.py)가
 > `jsonschema` 없이도 기계 검증한다 — 이 저장소에도 CI에도 `jsonschema`가 없어서
 > 기존 v3 스키마는 사실상 검증되지 않고 있었다. 실행 시각·duration·request/profile·expected/selected/omitted scope·
 source path map·tool evidence·normalization/parser version·policy exceptions·result digest도 정식
 스키마에 포함한다.
 
-**v2 완료 범위 계약**: [ici-next-run-v2.schema.json](../../../src/ici/schemas/ici-next-run-v2.schema.json)의
+**v2 완료 범위 계약**: [ici-next-run-v2.schema.json](../../../schemas/ici-next-run-v2.schema.json)의
 `checks`는 필수 필드다. 배열의 각 항목은 `task_id`, `check_id`, `component_id`, `language`,
 `scope_digest`, `state`, `evidence_complete`, nullable `analysis_unit_id`·`variant`를 갖는다.
 `evidence_complete=true`는 `state=SUCCEEDED`에서만 가능하다. `checks=null`은 과거 결과를
@@ -80,14 +80,14 @@ policy에 없는 기능으로 전체 검증을 무조건 막지 않는다.
 INCOMPLETE이며 사유 있는 root 정책으로 허용한 empty suite만 별도로 표시한다. 미선택과 적용 불가를
 혼동하지 않는다.
 
-> **구현 시작됨 (WP02 PR A)**: 이 6개 축이 [`ici/domain/enums.py`](../../../src/ici/domain/enums.py)에
-> 독립 enum으로, 판정 불변식이 [`ici/domain/result.py`](../../../src/ici/domain/result.py)에
+> **구현 시작됨 (WP02 PR A)**: 이 6개 축이 [`ici/domain/enums.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/domain/enums.py)에
+> 독립 enum으로, 판정 불변식이 [`ici/domain/result.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/domain/result.py)에
 > 있다. 강제되는 것: 통과한 scope는 violation을 동시에 보고할 수 없고, FAIL·INCOMPLETE는 이유를
 > 반드시 갖고, 미완료 run은 PASS를 낼 수 없고, **INCOMPLETE가 FAIL보다 exit code에서 우선한다**
 > (미완료를 완료된 판정으로 보고하지 않기 위해). 게시 상태는 판정에 영향을 주지 않는다.
 > **외부 JSON Schema는 구현됐다** —
-> [`ici-next-run-v1.schema.json`](../../../src/ici/schemas/ici-next-run-v1.schema.json)과
-> [`ici-next-event-v1.schema.json`](../../../src/ici/schemas/ici-next-event-v1.schema.json).
+> [`ici-next-run-v1.schema.json`](../../../schemas/ici-next-run-v1.schema.json)과
+> [`ici-next-event-v1.schema.json`](../../../schemas/ici-next-event-v1.schema.json).
 >
 > **보존할 현행 자산 (확인됨)**: `EvidenceState`의 4개 값(MEASURED/ESTIMATED/NOT_RUN/
 > NOT_APPLICABLE)이 이미 존재하고(`src/ici/core/models.py:22`), `aggregate_suite_status`(`:321`)가
@@ -96,7 +96,7 @@ INCOMPLETE이며 사유 있는 root 정책으로 허용한 empty suite만 별도
 > Gate 축(PASS/FAIL/**INCOMPLETE**/NOT_EVALUATED)과 selected/workspace 이원화가 신규다.
 
 > **조합 규칙은 구현됨**: 축의 조합은
-> [`ici/domain/result.py`](../../../src/ici/domain/result.py)가 생성 시 거부한다.
+> [`ici/domain/result.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/domain/result.py)가 생성 시 거부한다.
 > 아래 표가 그 규칙의 전부다 — 이 표에 없는 조합만 유효한 결과로 저장·게시될 수 있다.
 >
 > |조합|판정|이유|
@@ -174,7 +174,7 @@ source/HTML/XML/Markdown 내용은 데이터로 취급하고 escape한다. file 
 `report`는 saved result만 읽고 도구/프로젝트 코드를 실행하지 않는다. legacy JSON viewer는 reader
 adapter 또는 명시 unsupported schema 진단으로 처리한다. 잘못 읽어 빈 PASS를 표시해서는 안 된다.
 
-> **구현됨 (WP02 PR B)**: [`ici/execution/results.py`](../../../src/ici/execution/results.py)가
+> **구현됨 (WP02 PR B)**: [`ici/execution/results.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/execution/results.py)가
 > `.ici/runs/<run_id>/`, atomic write, 진단 있는 read를 구현한다. 임시 파일을 **대상
 > 디렉터리 안에** 만든다 — `os.replace`는 같은 파일시스템 안에서만 원자적이라
 > `/tmp`를 쓰면 조용히 복사로 격하된다. 쓰기가 중간에 죽어도 이전 결과가 그대로 읽히고
@@ -204,9 +204,9 @@ mapping을 이용한다. 실제 idk 코드 수정은 idk 저장소의 별도 이
 producer와 fixture consumer 계약을 완료한다.
 
 > **구현 시작됨 (WP02 PR B)**: 스키마는
-> [`ici-next-event-v1.schema.json`](../../../src/ici/schemas/ici-next-event-v1.schema.json),
-> 모델은 [`ici/domain/events.py`](../../../src/ici/domain/events.py), 코덱은
-> [`eventstream.py`](../../../src/ici/domain/eventstream.py)다.
+> [`ici-next-event-v1.schema.json`](../../../schemas/ici-next-event-v1.schema.json),
+> 모델은 [`ici/domain/events.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/domain/events.py), 코덱은
+> [`eventstream.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/domain/eventstream.py)다.
 > `RunEvent`는 **gate도 finding도 갖지 않는다** — 최종 result가 authoritative이므로,
 > 스트림에서 통과/실패를 판단하려는 소비자는 result를 읽으러 가야 한다.
 > 검증되는 것: 잘린 마지막 줄은 그 앞 이벤트를 살린 채 skip으로 보고, unknown event_type은

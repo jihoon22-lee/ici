@@ -1,0 +1,105 @@
+{
+ "cases": {
+  "lint": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "cpp_analysis_mode": "heuristic",
+    "cpp_configurations_checked": 0,
+    "cpp_missing_context_sources": null,
+    "cpp_sources_checked": 0
+   },
+   "required": true,
+   "status": "ERROR",
+   "summary": "g++ is required when C++ sources are present without build context",
+   "targets": [
+    {
+     "file_path": ".",
+     "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "ClangTidyUnavailable"
+    },
+    {
+     "file_path": ".",
+     "message": "clazy requires an approved capability inventory and exact compilation context",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "ClazyUnavailable"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "error": "tool not found; no command was executed",
+     "name": "g++",
+     "path": "",
+     "returncode": null
+    },
+    {
+     "error": "analysis context unavailable",
+     "name": "clang-tidy",
+     "path": "",
+     "returncode": null
+    },
+    {
+     "error": "analysis context unavailable",
+     "name": "clazy",
+     "path": "",
+     "returncode": null
+    }
+   ]
+  },
+  "verify": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "cpp_analysis_mode": "heuristic",
+    "cpp_configurations_checked": 0,
+    "cpp_missing_context_sources": null,
+    "cpp_sources_checked": 0
+   },
+   "required": true,
+   "status": "ERROR",
+   "summary": "g++ is required when C++ sources are present without build context",
+   "targets": [
+    {
+     "file_path": ".",
+     "message": "clang-tidy is unavailable or incompletely probed",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "ClangTidyUnavailable"
+    },
+    {
+     "file_path": ".",
+     "message": "clazy is unavailable or incompletely probed",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "ClazyUnavailable"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "error": "tool not found; no command was executed",
+     "name": "g++",
+     "path": "",
+     "returncode": null
+    },
+    {
+     "error": "tool not found or capability probe incomplete; no command was executed",
+     "name": "clang-tidy",
+     "path": "",
+     "returncode": null
+    },
+    {
+     "error": "tool not found or capability probe incomplete; no command was executed",
+     "name": "clazy",
+     "path": "",
+     "returncode": null
+    }
+   ]
+  }
+ },
+ "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "source": "int main() { return 0; }\n"
+}

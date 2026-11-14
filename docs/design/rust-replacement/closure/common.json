@@ -1,0 +1,429 @@
+{
+ "requirements": {
+  "capability:auxiliary-import": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-reporting/src/auxiliary.rs",
+    "crates/ici-reporting/src/sarif_import.rs",
+    "crates/ici-reporting/src/junit_import.rs",
+    "crates/ici-reporting/src/lcov_import.rs",
+    "crates/ici-cli/src/report.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-reporting/tests/imports.rs::supporting_imports_never_claim_an_ici_gate_and_roundtrip_provenance",
+     "crates/ici-reporting/tests/imports.rs::junit_preserves_test_outcomes_failure_text_native_zero_lines_and_empty_suite_scope",
+     "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+    ],
+    "negative": [
+     "crates/ici-reporting/tests/imports.rs::sarif_uri_base_requires_explicit_mapping_and_unicode_columns_are_converted_once",
+     "crates/ici-reporting/tests/imports.rs::external_paths_and_invalid_sarif_shapes_do_not_escape_project_scope"
+    ],
+    "failure": [
+     "crates/ici-reporting/tests/imports.rs::junit_dtd_entities_malformed_xml_and_lcov_incomplete_records_are_refused",
+     "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+    ]
+   },
+   "evidence": [
+    "cargo test -p ici-reporting -p ici-domain -p ici-execution -p ici-application -p ici-config --locked -- --test-threads=2; all passed; strict corresponding all-targets Clippy passed; /tmp/ici-rust-replacement-20261028/root-common-audit-gates.log",
+    "cargo test -p ici-cli --test report_commands imported_evidence_is_separate --locked -- --test-threads=2; repeat import preserves earlier evidence and source/result bytes; /tmp/ici-rust-replacement-20261028/root-import-preservation.log",
+    "cargo clippy -p ici-application -p ici-cli --all-targets --locked -- -D warnings; passed after optional-coverage worker fixed an unrelated needless lifetime; /tmp/ici-rust-replacement-20261028/root-import-cache-lint-final.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
+   ],
+   "comparison": "Reviewed frozen application/import_report.py, cli/import_report.py and reporting/auxiliary.py including all parser branches, provenance, timezones, byte bounds, output ownership and independent NOT_EVALUATED status. Native imports retain SARIF diagnostics, JUnit statuses/native lines, and LCOV DA records; no tool runs and neither attaching HTML nor import changes saved gate bytes. Existing import outputs remain create-new even when recognized as auxiliary documents.",
+   "difference_reason": "Approved native output namespace is .ici/rust-v1. SARIF uriBaseId must be explicitly mapped or refused instead of silently ignored; native regions/column units remain separate until conversion is justified. Strict duplicate keys, malformed XML, unsafe paths and invalid timestamp rejection strengthens the existing bounded intake without removing valid evidence."
+  },
+  "command:ici import-report": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-reporting/src/auxiliary.rs",
+    "crates/ici-reporting/src/sarif_import.rs",
+    "crates/ici-reporting/src/junit_import.rs",
+    "crates/ici-reporting/src/lcov_import.rs",
+    "crates/ici-cli/src/report.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-reporting/tests/imports.rs::supporting_imports_never_claim_an_ici_gate_and_roundtrip_provenance",
+     "crates/ici-reporting/tests/imports.rs::junit_preserves_test_outcomes_failure_text_native_zero_lines_and_empty_suite_scope",
+     "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+    ],
+    "negative": [
+     "crates/ici-reporting/tests/imports.rs::sarif_uri_base_requires_explicit_mapping_and_unicode_columns_are_converted_once",
+     "crates/ici-reporting/tests/imports.rs::external_paths_and_invalid_sarif_shapes_do_not_escape_project_scope"
+    ],
+    "failure": [
+     "crates/ici-reporting/tests/imports.rs::junit_dtd_entities_malformed_xml_and_lcov_incomplete_records_are_refused",
+     "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+    ]
+   },
+   "evidence": [
+    "cargo test -p ici-reporting -p ici-domain -p ici-execution -p ici-application -p ici-config --locked -- --test-threads=2; all passed; strict corresponding all-targets Clippy passed; /tmp/ici-rust-replacement-20261028/root-common-audit-gates.log",
+    "cargo test -p ici-cli --test report_commands imported_evidence_is_separate --locked -- --test-threads=2; repeat import preserves earlier evidence and source/result bytes; /tmp/ici-rust-replacement-20261028/root-import-preservation.log",
+    "cargo clippy -p ici-application -p ici-cli --all-targets --locked -- -D warnings; passed after optional-coverage worker fixed an unrelated needless lifetime; /tmp/ici-rust-replacement-20261028/root-import-cache-lint-final.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
+   ],
+   "comparison": "Reviewed frozen application/import_report.py, cli/import_report.py and reporting/auxiliary.py including all parser branches, provenance, timezones, byte bounds, output ownership and independent NOT_EVALUATED status. Native imports retain SARIF diagnostics, JUnit statuses/native lines, and LCOV DA records; no tool runs and neither attaching HTML nor import changes saved gate bytes. Existing import outputs remain create-new even when recognized as auxiliary documents.",
+   "difference_reason": "Approved native output namespace is .ici/rust-v1. SARIF uriBaseId must be explicitly mapped or refused instead of silently ignored; native regions/column units remain separate until conversion is justified. Strict duplicate keys, malformed XML, unsafe paths and invalid timestamp rejection strengthens the existing bounded intake without removing valid evidence."
+  },
+  "wire_schema:ici-auxiliary-v1.schema.json": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-reporting/src/auxiliary.rs",
+    "crates/ici-reporting/src/sarif_import.rs",
+    "crates/ici-reporting/src/junit_import.rs",
+    "crates/ici-reporting/src/lcov_import.rs",
+    "crates/ici-cli/src/report.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-reporting/tests/imports.rs::supporting_imports_never_claim_an_ici_gate_and_roundtrip_provenance",
+     "crates/ici-reporting/tests/imports.rs::junit_preserves_test_outcomes_failure_text_native_zero_lines_and_empty_suite_scope",
+     "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+    ],
+    "negative": [
+     "crates/ici-reporting/tests/imports.rs::sarif_uri_base_requires_explicit_mapping_and_unicode_columns_are_converted_once",
+     "crates/ici-reporting/tests/imports.rs::external_paths_and_invalid_sarif_shapes_do_not_escape_project_scope"
+    ],
+    "failure": [
+     "crates/ici-reporting/tests/imports.rs::junit_dtd_entities_malformed_xml_and_lcov_incomplete_records_are_refused",
+     "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+    ]
+   },
+   "evidence": [
+    "cargo test -p ici-reporting -p ici-domain -p ici-execution -p ici-application -p ici-config --locked -- --test-threads=2; all passed; strict corresponding all-targets Clippy passed; /tmp/ici-rust-replacement-20261028/root-common-audit-gates.log",
+    "cargo test -p ici-cli --test report_commands imported_evidence_is_separate --locked -- --test-threads=2; repeat import preserves earlier evidence and source/result bytes; /tmp/ici-rust-replacement-20261028/root-import-preservation.log",
+    "cargo clippy -p ici-application -p ici-cli --all-targets --locked -- -D warnings; passed after optional-coverage worker fixed an unrelated needless lifetime; /tmp/ici-rust-replacement-20261028/root-import-cache-lint-final.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
+   ],
+   "comparison": "Reviewed frozen application/import_report.py, cli/import_report.py and reporting/auxiliary.py including all parser branches, provenance, timezones, byte bounds, output ownership and independent NOT_EVALUATED status. Native imports retain SARIF diagnostics, JUnit statuses/native lines, and LCOV DA records; no tool runs and neither attaching HTML nor import changes saved gate bytes. Existing import outputs remain create-new even when recognized as auxiliary documents.",
+   "difference_reason": "Approved native output namespace is .ici/rust-v1. SARIF uriBaseId must be explicitly mapped or refused instead of silently ignored; native regions/column units remain separate until conversion is justified. Strict duplicate keys, malformed XML, unsafe paths and invalid timestamp rejection strengthens the existing bounded intake without removing valid evidence."
+  },
+  "command:ici cache": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/commands.rs",
+    "crates/ici-application/src/cache.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-application/tests/cache.rs::clear_is_confined_to_exact_regular_native_entry_names",
+     "crates/ici-cli/tests/config_commands.rs::cache_inventory_explains_corruption_and_clear_preserves_unknown_files"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/config_commands.rs::cache_clear_refuses_symlink_ancestors_and_preserves_legacy_or_user_files"
+    ],
+    "failure": [
+     "crates/ici-application/tests/cache.rs::cached_completion_is_validated_and_corruption_or_unknown_identity_is_not_a_hit",
+     "crates/ici-application/tests/cache.rs::cache_symlink_ancestor_and_fifo_are_refused_without_following_or_blocking"
+    ]
+   },
+   "evidence": [
+    "cargo test -p ici-application --test cache --locked -- --test-threads=2; five tests passed; /tmp/ici-rust-replacement-20261028/root-cache-audit-gates.log (the following strict check caught unrelated worker WIP; corrected and rechecked separately)",
+    "cargo test -p ici-cli --test config_commands cache_inventory_explains --locked -- --test-threads=2; passed; /tmp/ici-rust-replacement-20261028/root-cache-command.log",
+    "cargo clippy -p ici-application -p ici-cli --all-targets --locked -- -D warnings; passed; /tmp/ici-rust-replacement-20261028/root-import-cache-lint-final.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
+   ],
+   "comparison": "The command retains read-only count/bytes/corruption inventory, explicit --clear and invalidation explanation. Cache inventory validates bounded stored schema/key/core/completed evidence and rich observations independently of the current core digest. Clearing only exact regular native entry names preserves legacy cache files, unknown files, directories, symlinks and FIFOs. The complete execution-cache correctness capability remains a separate row.",
+   "difference_reason": "R0 explicitly isolates the new cache under .ici/rust-v1/observations. No attempt is made to reuse or erase legacy Python entries. New identity includes actual executable bytes, effective child environment and known closure rather than version strings alone; unknown closure and mutating tasks are not reused."
+  },
+  "capability:config-migration-preservation": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-config/src/write.rs",
+    "crates/ici-config/src/migration_report.rs",
+    "crates/ici-cli/src/commands.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-config/tests/resolution.rs::legacy_migration_is_preview_new_output_and_comment_preserving",
+     "crates/ici-config/tests/resolution.rs::legacy_migration_preserves_nested_package_scope_language_and_runtime",
+     "crates/ici-config/tests/resolution.rs::legacy_migration_freezes_optional_and_required_coverage_policy",
+     "crates/ici-config/tests/migration_report.rs::legacy_layers_explain_winners_losers_and_source_lines_without_merging",
+     "crates/ici-cli/tests/config_commands.rs::migration_explains_legacy_overrides_without_applying_them"
+    ],
+    "negative": [
+     "crates/ici-config/tests/migration_report.rs::equal_values_are_not_contested_and_malformed_layers_are_visible",
+     "crates/ici-cli/tests/config_commands.rs::migration_preview_and_new_file_preserve_original_and_explicit_write_keeps_backup"
+    ],
+    "failure": [
+     "crates/ici-config/tests/resolution.rs::unknown_future_and_malformed_config_never_modify_original",
+     "crates/ici-config/tests/resolution.rs::legacy_migration_is_preview_new_output_and_comment_preserving"
+    ]
+   },
+   "evidence": [
+    "cargo test -p ici-config --locked -- --test-threads=2 and cargo test -p ici-cli --test config_commands --locked -- --test-threads=2; all passed, strict transitive Clippy passed; /tmp/ici-rust-replacement-20261028/root-migration-layer-final.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
+   ],
+   "comparison": "Reviewed complete frozen config/convert.py, config/migration.py and cli/next_migrate.py. Preview/write-new/write-with-backup remain explicit; existing backup/output and changed source are refused. TOML comments, engine settings, source scope, selected language and runtime are preserved. Historical XDG/project/dev/ICI_CONFIG precedence is explained with winner, differing overridden values and source lines, without merging those layers. Optional coverage policy is materialized for next verify after schema migration.",
+   "difference_reason": "Approved sparse-v2 replaces the old lossy v1 converter: legacy engine tables remain directly readable instead of being dropped into unsupported/confirm notes. Unknown future schema is refused before mutation. Malformed diagnostic-only legacy layers are visible rather than silently ignored; legacy global/dev policy is not imported. Repeated backups are create-new, so an earlier original cannot be overwritten."
+  },
+  "command:ici next migrate": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-config/src/write.rs",
+    "crates/ici-config/src/migration_report.rs",
+    "crates/ici-cli/src/commands.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-config/tests/resolution.rs::legacy_migration_is_preview_new_output_and_comment_preserving",
+     "crates/ici-config/tests/resolution.rs::legacy_migration_preserves_nested_package_scope_language_and_runtime",
+     "crates/ici-config/tests/resolution.rs::legacy_migration_freezes_optional_and_required_coverage_policy",
+     "crates/ici-config/tests/migration_report.rs::legacy_layers_explain_winners_losers_and_source_lines_without_merging",
+     "crates/ici-cli/tests/config_commands.rs::migration_explains_legacy_overrides_without_applying_them"
+    ],
+    "negative": [
+     "crates/ici-config/tests/migration_report.rs::equal_values_are_not_contested_and_malformed_layers_are_visible",
+     "crates/ici-cli/tests/config_commands.rs::migration_preview_and_new_file_preserve_original_and_explicit_write_keeps_backup"
+    ],
+    "failure": [
+     "crates/ici-config/tests/resolution.rs::unknown_future_and_malformed_config_never_modify_original",
+     "crates/ici-config/tests/resolution.rs::legacy_migration_is_preview_new_output_and_comment_preserving"
+    ]
+   },
+   "evidence": [
+    "cargo test -p ici-config --locked -- --test-threads=2 and cargo test -p ici-cli --test config_commands --locked -- --test-threads=2; all passed, strict transitive Clippy passed; /tmp/ici-rust-replacement-20261028/root-migration-layer-final.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
+   ],
+   "comparison": "Reviewed complete frozen config/convert.py, config/migration.py and cli/next_migrate.py. Preview/write-new/write-with-backup remain explicit; existing backup/output and changed source are refused. TOML comments, engine settings, source scope, selected language and runtime are preserved. Historical XDG/project/dev/ICI_CONFIG precedence is explained with winner, differing overridden values and source lines, without merging those layers. Optional coverage policy is materialized for next verify after schema migration.",
+   "difference_reason": "Approved sparse-v2 replaces the old lossy v1 converter: legacy engine tables remain directly readable instead of being dropped into unsupported/confirm notes. Unknown future schema is refused before mutation. Malformed diagnostic-only legacy layers are visible rather than silently ignored; legacy global/dev policy is not imported. Repeated backups are create-new, so an earlier original cannot be overwritten."
+  },
+  "command:ici env": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/commands.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/native_env.rs::sh_loader_preserves_literal_installation_path_and_existing_path",
+     "crates/ici-cli/tests/native_env.rs::tcsh_loader_preserves_quotes_history_characters_and_existing_path"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/native_env.rs::unsafe_path_entries_and_ambiguous_shell_selection_are_refused"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/native_env.rs::unsafe_path_entries_and_ambiguous_shell_selection_are_refused"
+    ]
+   },
+   "evidence": [
+    "cargo test -p ici-cli --test native_env --locked -- --test-threads=2: two ordinary cases passed; ICI_TEST_TCSH=/tmp/ici-rust-replacement-20261028/shell-tools/extracted/usr/bin/tcsh cargo test -p ici-cli --test native_env --locked -- --ignored --test-threads=2: actual tcsh 6.24.13 passed; strict transitive Clippy passed; /tmp/ici-rust-replacement-20261028/root-optional-env-final.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
+   ],
+   "comparison": "Reviewed frozen __main__.cmd_env flags/default and shell-only output. Native output prepends its actual installation directory and retains existing PATH; actual sh and tcsh execution preserves apostrophes, backslashes, spaces, dollar/backtick text and history characters without evaluation or additional files.",
+   "difference_reason": "Native archives can be installed outside ~/.local/bin, so env uses the running executable directory. tcsh history exclamation marks are escaped. Both shell flags together and installation paths containing colon/line breaks are refused explicitly because a faithful portable PATH entry cannot be generated."
+  },
+  "command:ici line": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_lines.rs",
+    "crates/ici-cli/src/inputs.rs",
+    "crates/ici-cli/src/legacy.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_line_scope.rs::actual_cpp_line_command_retains_extras_labels_and_scoped_thresholds",
+     "crates/ici-cli/tests/legacy_line_scope.rs::legacy_scope_keeps_source_gate_and_extra_inputs_distinct_without_double_counting",
+     "crates/ici-cli/tests/legacy_line_scope.rs::documentation_only_and_monorepo_root_extras_match_frozen"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_line_scope.rs::legacy_warn_and_fail_modes_keep_measured_findings_and_their_exit_contract"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_line_scope.rs::explicit_fail_on_new_keeps_warning_actionable_without_failing_ordinary_gate"
+    ]
+   },
+   "evidence": [
+    "Four actual CLI line regressions passed in 37.18 s; strict CLI/reporting/application Clippy passed; /tmp/ici-rust-replacement-20261028/root-line-integration-final.log",
+    "Three reporting pipeline tests including mixed NA/measured sibling evidence and strict reporting Clippy passed; /tmp/ici-rust-replacement-20261028/root-na-projection-final.log",
+    "source opus-env.sh; cargo fmt --check; cargo clippy -p ici-cli --all-targets --locked -j2 -- -D warnings; cargo test -p ici-cli --locked -j2 --no-fail-fast --test legacy_line_scope --test legacy_line_hybrid -- --include-ignored (all passed); frozen capture PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/line/capture_line_scope.py; /tmp/ici-rust-replacement-20261028/w-dec-line.log, /tmp/ici-rust-replacement-20261028/w-dec-line-capture.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
+   ],
+   "comparison": "Reviewed complete frozen engines/line.py and analysis/line_count.py. Named fixtures prove legacy source/gate/extras collection, mixed language ownership, strict threshold cutoffs, mode-dependent exit contracts, warning fail-on-new and JSON extra locations. The two remaining acceptance cases are now captured against frozen v0.13.0 (tests/rust-parity/line/capture_line_scope.py -> line-scope-oracle.json) and equal natively, exit code, status, summary, evidence, targets, the all-files totals and every files_data row in order (legacy_line_scope.rs::documentation_only_and_monorepo_root_extras_match_frozen): a documentation-only project (README.md, docs/guide.md: no gated source, Markdown extras, PASS) and a configuration-less monorepo whose Python sources sit below services/<name>/src with root and subproject README files (all counted as extras with frozen's language and counts; Makefile not counted).",
+   "difference_reason": "All inspected extras retain located targets as required by project invariants, while source-only totals and gating stay separate. Explicit native state, current exports and baselines are not recounted as source. Unsafe links/oversize/intake failures remain explicit; no silent zero evidence."
+  },
+  "command:ici test": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-validation/src/test_metrics.rs",
+    "crates/ici-cli/src/legacy.rs",
+    "crates/ici-reporting/src/projection.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_test_metrics.rs::legacy_test_report_counts_shared_pytest_coverage_suite_once",
+     "crates/ici-cli/tests/legacy_test_metrics.rs::report_mode_quality_keeps_finding_but_does_not_fail_legacy_test_command"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_mode_scope.rs::explicit_migrated_mode_applies_per_check_without_changing_modern_default"
+    ],
+    "failure": [
+     "crates/ici-reporting/src/projection.rs::test_aggregation_tests::conflicting_suite_does_not_invent_an_aggregate"
+    ]
+   },
+   "evidence": [
+    "cargo test -p ici-cli --test legacy_mode_scope --test legacy_test_metrics --locked: 3 actual CLI/planner cases passed; cargo test -p ici-cli --lib test_policy_tests --locked: 2 passed; cargo test -p ici-reporting --locked: full suite passed including 100k-record HTML; /tmp/ici-rust-replacement-20261028/root-resume-current.txt latest window",
+    "cargo clippy -p ici-reporting --all-targets --locked -- -D warnings: passed; CLI strict transitive gate failed only transient Python worker source.rs type_complexity during in-progress codec refactor, not claimed passed",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02, after merging fffa9e9e): `cargo test -p ici-domain --test descriptors --test event_identity`, `cargo test -p ici-reporting --lib test_aggregation_tests`, `cargo test -p ici-cli --test legacy_test_metrics --test legacy_mode_scope --test legacy_commands -- --include-ignored`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-rows-rerun.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
+   ],
+   "comparison": "Frozen TestEngine/CLI test source reviewed for suite counts, report filename, quality report-mode warning exclusion and pass_fail/pass_warn gate. Native Python pytest+coverage actual replay shares one physical suite, retains raw coverage and quality finding; test report counts it once and locates unmeasured/conflicting evidence separately. Scope of this facet (runtime closure worker, 2026-11-02): the Python pytest+coverage shared-suite count, report filename, report-mode quality warning exclusion and pass_fail/pass_warn gate reviewed above, rerun at the merged head.",
+   "difference_reason": "The parts this facet does not claim are other fragments' facets of the same row: C++ direct executable suites and C++ test/coverage halves (cpp.json), quality modes and coverage policy (validation.json, legacy_quality_paths.rs), TEM formula boundaries and cross-component aggregation (validation.json capability:test-quality-tem and the application/tem.py audit), command/descriptor metadata (runtime.json, config.json)."
+  },
+  "descriptor:test": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-validation/src/test_metrics.rs",
+    "crates/ici-cli/src/legacy.rs",
+    "crates/ici-reporting/src/projection.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_test_metrics.rs::legacy_test_report_counts_shared_pytest_coverage_suite_once",
+     "crates/ici-cli/tests/legacy_test_metrics.rs::report_mode_quality_keeps_finding_but_does_not_fail_legacy_test_command"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_mode_scope.rs::explicit_migrated_mode_applies_per_check_without_changing_modern_default"
+    ],
+    "failure": [
+     "crates/ici-reporting/src/projection.rs::test_aggregation_tests::conflicting_suite_does_not_invent_an_aggregate"
+    ]
+   },
+   "evidence": [
+    "cargo test -p ici-cli --test legacy_mode_scope --test legacy_test_metrics --locked: 3 actual CLI/planner cases passed; cargo test -p ici-cli --lib test_policy_tests --locked: 2 passed; cargo test -p ici-reporting --locked: full suite passed including 100k-record HTML; /tmp/ici-rust-replacement-20261028/root-resume-current.txt latest window",
+    "cargo clippy -p ici-reporting --all-targets --locked -- -D warnings: passed; CLI strict transitive gate failed only transient Python worker source.rs type_complexity during in-progress codec refactor, not claimed passed",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02, after merging fffa9e9e): `cargo test -p ici-domain --test descriptors --test event_identity`, `cargo test -p ici-reporting --lib test_aggregation_tests`, `cargo test -p ici-cli --test legacy_test_metrics --test legacy_mode_scope --test legacy_commands -- --include-ignored`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-rows-rerun.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
+   ],
+   "comparison": "Frozen TestEngine/CLI test source reviewed for suite counts, report filename, quality report-mode warning exclusion and pass_fail/pass_warn gate. Native Python pytest+coverage actual replay shares one physical suite, retains raw coverage and quality finding; test report counts it once and locates unmeasured/conflicting evidence separately. Scope of this facet (runtime closure worker, 2026-11-02): the Python pytest+coverage shared-suite count, report filename, report-mode quality warning exclusion and pass_fail/pass_warn gate reviewed above, rerun at the merged head.",
+   "difference_reason": "The parts this facet does not claim are other fragments' facets of the same row: C++ direct executable suites and C++ test/coverage halves (cpp.json), quality modes and coverage policy (validation.json, legacy_quality_paths.rs), TEM formula boundaries and cross-component aggregation (validation.json capability:test-quality-tem and the application/tem.py audit), command/descriptor metadata (runtime.json, config.json)."
+  },
+  "capability:test-quality-tem": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-validation/src/test_metrics.rs",
+    "crates/ici-cli/src/legacy.rs",
+    "crates/ici-reporting/src/projection.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_test_metrics.rs::legacy_test_report_counts_shared_pytest_coverage_suite_once",
+     "crates/ici-cli/tests/legacy_test_metrics.rs::report_mode_quality_keeps_finding_but_does_not_fail_legacy_test_command"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_mode_scope.rs::explicit_migrated_mode_applies_per_check_without_changing_modern_default"
+    ],
+    "failure": [
+     "crates/ici-reporting/src/projection.rs::test_aggregation_tests::conflicting_suite_does_not_invent_an_aggregate"
+    ]
+   },
+   "evidence": [
+    "cargo test -p ici-cli --test legacy_mode_scope --test legacy_test_metrics --locked: 3 actual CLI/planner cases passed; cargo test -p ici-cli --lib test_policy_tests --locked: 2 passed; cargo test -p ici-reporting --locked: full suite passed including 100k-record HTML; /tmp/ici-rust-replacement-20261028/root-resume-current.txt latest window",
+    "cargo clippy -p ici-reporting --all-targets --locked -- -D warnings: passed; CLI strict transitive gate failed only transient Python worker source.rs type_complexity during in-progress codec refactor, not claimed passed",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02, after merging fffa9e9e): `cargo test -p ici-domain --test descriptors --test event_identity`, `cargo test -p ici-reporting --lib test_aggregation_tests`, `cargo test -p ici-cli --test legacy_test_metrics --test legacy_mode_scope --test legacy_commands -- --include-ignored`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-rows-rerun.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
+   ],
+   "comparison": "Frozen TestEngine/CLI test source reviewed for suite counts, report filename, quality report-mode warning exclusion and pass_fail/pass_warn gate. Native Python pytest+coverage actual replay shares one physical suite, retains raw coverage and quality finding; test report counts it once and locates unmeasured/conflicting evidence separately. Scope of this facet (runtime closure worker, 2026-11-02): the Python pytest+coverage shared-suite count, report filename, report-mode quality warning exclusion and pass_fail/pass_warn gate reviewed above, rerun at the merged head.",
+   "difference_reason": "The parts this facet does not claim are other fragments' facets of the same row: C++ direct executable suites and C++ test/coverage halves (cpp.json), quality modes and coverage policy (validation.json, legacy_quality_paths.rs), TEM formula boundaries and cross-component aggregation (validation.json capability:test-quality-tem and the application/tem.py audit), command/descriptor metadata (runtime.json, config.json)."
+  },
+  "command:ici next plan": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/commands.rs",
+    "crates/ici-cli/src/planning.rs",
+    "crates/ici-application/src/graph.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_test_metrics.rs::legacy_test_report_counts_shared_pytest_coverage_suite_once",
+     "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+     "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_with_a_declared_interpreter_matches_frozen_dependencies_and_fast_profile"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/native_cpp.rs::missing_declared_runtime_outputs_are_blocked_without_build_or_directory_creation"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/plan_text_oracle.rs::the_line_diff_names_each_side_of_a_drift",
+     "crates/ici-cli/tests/analyze_text.rs::a_tool_found_nowhere_is_named_like_frozen_in_the_verdict_gate_limitations_and_plan_json"
+    ]
+   },
+   "evidence": [
+    "Actual next plan --json over Python test+coverage shows dependency project.python.test consumed by both checks, then no .ici directory exists; cargo test -p ici-cli --test legacy_test_metrics legacy_test_report_counts --locked PASS; cargo clippy -p ici-cli --all-targets --locked -- -D warnings PASS after pinned source normalization commit; root session 2026-10-29",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/oracle/capture_plan_text.py (frozen v0.13.0 `next plan`, 9 cases) -> tests/rust-parity/oracle/plan-text-oracle.json; /tmp/ici-rust-replacement-20261028/w-rem-plan-text-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-cli --locked -j2 --test analyze_text --test plan_text_oracle --test plan_commands --test plan_engines --test config_oracle -- --include-ignored` all passed; /tmp/ici-rust-replacement-20261028/w-runtime-tool-wording-tests.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
+   ],
+   "comparison": "Reviewed frozen next_path.py cmd_plan and render_plan: read-only selection, graph edges, shared consumers, mutating directories, linked builds, blocked checks, cost/profile, limitations, and separate JSON/text. Native plan now exposes check-level shared dependencies while preserving explicit steps and conditional branches; actual JSON CLI case verified no state creation. Root decision E6 (human-readable text must match frozen; graph IDs accepted under D5) was at first captured but not yet met: tests/rust-parity/oracle/capture_plan_text.py -> plan-text-oracle.json records frozen `next plan` text for Python-only, Python + C++ without a build, C++ with a declared CMake build and the --python/--component/--profile selections. The native text differs in: blocked-reason wording (mostly the C++ planning.rs/cpp.rs reasons), tool lines ('ruff: not found; prepare the project tool…', `ty` vs mypy), argv naming rust-v1 run paths and the coverage probe, 16 vs 17 checks (frozen splits compat-runtime into .version/.compileall), missing `dependencies:`/`builds:`/`coverage gap:`/`note:` lines and native-only conditional steps. The gap is not only C++: the Python-only cases differ too (tool lines, check count, missing dependencies/note lines). The text renderer lives in crates/ici-cli/src/planning.rs (C++ worker's file; edits there were to be kept minimal), and the C++ blocked-reason wording is that worker's, so E6 was then captured but not implemented and the row was left open for the root to schedule (closed by the update below); native output before any change is in /tmp/ici-rust-replacement-20261028/w-rem-plan-text-before.log. Update (runtime closure worker, 2026-11-02): root decision E6 is implemented — crates/ici-cli/src/plan_text.rs renders frozen render_plan from the same values as --json and plan_text_oracle.rs replays the 9 frozen captures (plan-text-oracle.json) with each remaining line a reviewed difference (runtime.json command:ici next plan); the missing-tool wording now matches frozen in the plan text, --json blocked entries, gate reasons and limitations (analyze_text.rs). The common facet's graph/shared-consumer/mutating/linked-build/blocked/cost/profile/limitation review above is closed by those replays.",
+   "difference_reason": "Root decision D5: the shared-graph/check-dependency ids are the accepted native execution model (runtime.json capability:execution-dag-resource-lock); the per-line plan text differences (ty default type check, native step chains and conditional lines, 16 vs 17 checks, cpp-owned C++ blocked reasons) are listed with their reasons in runtime.json command:ici next plan and asserted by plan_text_oracle.rs REVIEWED."
+  }
+ },
+ "source_files": {
+  "src/ici/application/import_report.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:auxiliary-import",
+    "command:ici import-report",
+    "wire_schema:ici-auxiliary-v1.schema.json"
+   ],
+   "reason": "Reviewed complete frozen module and connected the same import/provenance/ownership/rendering behavior through the native importer and saved-report CLI. The named requirement fixtures cover successful imports, unsupported coordinates, malformed producers, immutable results and create-new output preservation."
+  },
+  "src/ici/cli/import_report.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:auxiliary-import",
+    "command:ici import-report",
+    "wire_schema:ici-auxiliary-v1.schema.json"
+   ],
+   "reason": "Reviewed complete frozen module and connected the same import/provenance/ownership/rendering behavior through the native importer and saved-report CLI. The named requirement fixtures cover successful imports, unsupported coordinates, malformed producers, immutable results and create-new output preservation."
+  },
+  "src/ici/reporting/auxiliary.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:auxiliary-import",
+    "command:ici import-report",
+    "wire_schema:ici-auxiliary-v1.schema.json"
+   ],
+   "reason": "Reviewed complete frozen module and connected the same import/provenance/ownership/rendering behavior through the native importer and saved-report CLI. The named requirement fixtures cover successful imports, unsupported coordinates, malformed producers, immutable results and create-new output preservation."
+  },
+  "src/ici/config/convert.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:config-migration-preservation",
+    "command:ici next migrate"
+   ],
+   "reason": "Complete module reviewed against native migration preview, immutable original/comment-preserving writer and read-only precedence explanation. Native sparse-v2 retains engine settings instead of the historical converter dropping unsupported tuning. Named positive/negative/failure fixtures verify scope, optional coverage, source changes and output ownership."
+  },
+  "src/ici/config/migration.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:config-migration-preservation",
+    "command:ici next migrate"
+   ],
+   "reason": "Complete module reviewed against native migration preview, immutable original/comment-preserving writer and read-only precedence explanation. Native sparse-v2 retains engine settings instead of the historical converter dropping unsupported tuning. Named positive/negative/failure fixtures verify scope, optional coverage, source changes and output ownership."
+  },
+  "src/ici/cli/next_migrate.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:config-migration-preservation",
+    "command:ici next migrate"
+   ],
+   "reason": "Complete module reviewed against native migration preview, immutable original/comment-preserving writer and read-only precedence explanation. Native sparse-v2 retains engine settings instead of the historical converter dropping unsupported tuning. Named positive/negative/failure fixtures verify scope, optional coverage, source changes and output ownership."
+  },
+  "src/ici/engines/line.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "command:ici line"
+   ],
+   "reason": "Module fully read; source/gate/extras collection, mixed language ownership, threshold cutoffs, mode exit contracts and fail-on-new are pinned by legacy_line_scope.rs/legacy_line_hybrid.rs, and the documentation-only and monorepo root-extra scopes now equal frozen captures (line-scope-oracle.json). Row command:ici line closed with /tmp/ici-rust-replacement-20261028/w-dec-line.log. Re-mapped (reporting closure worker, 2026-11-02 second pass): the --baseline input row is the approved defect correction of decisions.md \"`verify --baseline`의 line 집계\" (R13); crates/ici-cli/tests/legacy_engine_extras.rs::baseline_input_line_row_is_the_only_difference_from_frozen proves every other row equals frozen in full and crates/ici-cli/tests/legacy_engine_extras.rs::an_unnamed_project_json_file_is_still_counted_under_baseline that only the named input is excluded."
+  },
+  "src/ici/reporters/baseline_view.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Complete 76-frozen-line module re-read (decisions worker, 2026-11-02). The open end-to-end items are covered by named frozen-corpus tests: severity_transition with `—` for an absent side and the issues-first delta order (select_baseline_details, 20 changed / 3 unchanged bounds with omission counts) in suite_overview.rs::every_renderer_states_the_frozen_gate_reason_scores_and_tally (console and markdown), and the enriched delta location controls for resolved deltas without or with escaping baseline locations in suite_overview.rs::resolved_deltas_without_or_with_escaping_baseline_locations_follow_the_frozen_serializer; the saved JSON keeps every identity (limits.rs::baseline_presentation_is_bounded_while_saved_json_keeps_every_identity). Rerun: cargo test -p ici-reporting --locked -j2 -- --include-ignored, all passed; /tmp/ici-rust-replacement-20261028/w-dec-reporting-audit.log."
+  }
+ }
+}

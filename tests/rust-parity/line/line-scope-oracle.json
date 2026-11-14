@@ -1,0 +1,110 @@
+{
+ "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "scenarios": {
+  "docs_only": {
+   "README.md": "# Title\n\ntext\n",
+   "docs/guide.md": "more\n"
+  },
+  "monorepo_root_extras": {
+   "README.md": "# Mono\n",
+   "Makefile": "all:\n\techo ok\n",
+   "services/api/src/api.py": "def handler():\n    return 1\n",
+   "services/web/src/web.py": "# web\nVALUE = 2\n\n",
+   "services/web/README.md": "web docs\n"
+  }
+ },
+ "runs": {
+  "docs_only": {
+   "exit_code": 0,
+   "status": "PASS",
+   "summary": "Total 0 lines (0 code, 0 comment, 0 blank) across 0 files",
+   "evidence": "MEASURED",
+   "targets": [],
+   "all": {
+    "blank": 1,
+    "code": 3,
+    "comment": 0,
+    "files": 2,
+    "total": 4
+   },
+   "files": [
+    [
+     "README.md",
+     "extra",
+     "Markdown",
+     2,
+     0,
+     1,
+     3,
+     "PASS"
+    ],
+    [
+     "docs/guide.md",
+     "extra",
+     "Markdown",
+     1,
+     0,
+     0,
+     1,
+     "PASS"
+    ]
+   ]
+  },
+  "monorepo_root_extras": {
+   "exit_code": 0,
+   "status": "PASS",
+   "summary": "Total 0 lines (0 code, 0 comment, 0 blank) across 0 files",
+   "evidence": "MEASURED",
+   "targets": [],
+   "all": {
+    "blank": 1,
+    "code": 5,
+    "comment": 1,
+    "files": 4,
+    "total": 7
+   },
+   "files": [
+    [
+     "services/api/src/api.py",
+     "extra",
+     "Python",
+     2,
+     0,
+     0,
+     2,
+     "PASS"
+    ],
+    [
+     "README.md",
+     "extra",
+     "Markdown",
+     1,
+     0,
+     0,
+     1,
+     "PASS"
+    ],
+    [
+     "services/web/README.md",
+     "extra",
+     "Markdown",
+     1,
+     0,
+     0,
+     1,
+     "PASS"
+    ],
+    [
+     "services/web/src/web.py",
+     "extra",
+     "Python",
+     1,
+     1,
+     1,
+     3,
+     "PASS"
+    ]
+   ]
+  }
+ }
+}

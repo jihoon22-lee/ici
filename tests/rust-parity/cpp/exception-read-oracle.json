@@ -1,0 +1,125 @@
+{
+ "cases": {
+  "four-errors": {
+   "files": {
+    "src/b0.cpp": "800a",
+    "src/b1.cpp": "800a",
+    "src/b2.cpp": "800a",
+    "src/b3.cpp": "800a"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "status": "ERROR",
+    "summary": "Could not read C++ source: 'utf-8' codec can't decode byte 0x80 in position 0: invalid start byte; Could not read C++ source: 'utf-8' codec can't decode byte 0x80 in position 0: invalid start byte; Could not read C++ source: 'utf-8' codec can't decode byte 0x80 in position 0: invalid start byte",
+    "targets": [
+     {
+      "file_path": "src/b0.cpp",
+      "message": "Could not read C++ source: 'utf-8' codec can't decode byte 0x80 in position 0: invalid start byte",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     },
+     {
+      "file_path": "src/b1.cpp",
+      "message": "Could not read C++ source: 'utf-8' codec can't decode byte 0x80 in position 0: invalid start byte",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     },
+     {
+      "file_path": "src/b2.cpp",
+      "message": "Could not read C++ source: 'utf-8' codec can't decode byte 0x80 in position 0: invalid start byte",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     },
+     {
+      "file_path": "src/b3.cpp",
+      "message": "Could not read C++ source: 'utf-8' codec can't decode byte 0x80 in position 0: invalid start byte",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     }
+    ]
+   }
+  },
+  "invalid-continuation": {
+   "files": {
+    "src/bad.cpp": "696e7420793b0ae241780a"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "status": "ERROR",
+    "summary": "Could not read C++ source: 'utf-8' codec can't decode byte 0xe2 in position 7: invalid continuation byte",
+    "targets": [
+     {
+      "file_path": "src/bad.cpp",
+      "message": "Could not read C++ source: 'utf-8' codec can't decode byte 0xe2 in position 7: invalid continuation byte",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     }
+    ]
+   }
+  },
+  "invalid-start": {
+   "files": {
+    "src/bad.cpp": "696e742078203d20313b0afffe2062726f6b656e0a",
+    "src/good.cpp": "766f696420662829207b20747279207b207d20636174636820282e2e2e29207b207d207d0a"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "status": "ERROR",
+    "summary": "Could not read C++ source: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte",
+    "targets": [
+     {
+      "file_path": "src/bad.cpp",
+      "message": "Could not read C++ source: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     },
+     {
+      "file_path": "src/good.cpp",
+      "message": "Silent catch(...) block without logging or re-throw",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "CatchAllSwallowed"
+     },
+     {
+      "file_path": "src/good.cpp",
+      "message": "C++ exception constructs were inspected; see findings above",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     }
+    ]
+   }
+  },
+  "truncated": {
+   "files": {
+    "src/bad.cpp": "696e74207a3b0ae282"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "status": "ERROR",
+    "summary": "Could not read C++ source: 'utf-8' codec can't decode bytes in position 7-8: unexpected end of data",
+    "targets": [
+     {
+      "file_path": "src/bad.cpp",
+      "message": "Could not read C++ source: 'utf-8' codec can't decode bytes in position 7-8: unexpected end of data",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     }
+    ]
+   }
+  }
+ },
+ "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

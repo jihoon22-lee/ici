@@ -1,0 +1,209 @@
+{
+  "ici": {
+    "version": "0.13.0",
+    "policy_name": "Standard Enterprise CI/CD Quality Gate",
+    "profile": "standard"
+  },
+  "project": {
+    "source_dirs": [
+      "src",
+      "lib",
+      "app",
+      "packages",
+      "python"
+    ]
+  },
+  "build": {
+    "make": {
+      "enabled": false,
+      "workdir": ".",
+      "shadow_dir": "build/ici-make",
+      "out_of_tree": "allow",
+      "configure_argv": [],
+      "build_argv": [],
+      "test_argv": [],
+      "clean_argv": [],
+      "jobs": 1,
+      "coverage_build_argv": [],
+      "coverage_test_argv": [],
+      "sanitize_build_argv": [],
+      "sanitize_test_argv": [],
+      "thread_sanitize_build_argv": [],
+      "thread_sanitize_test_argv": []
+    }
+  },
+  "doctor": {
+    "required_tools": []
+  },
+  "engines": {
+    "build": {
+      "enabled": false,
+      "mode": "pass_warn_fail",
+      "required": false
+    },
+    "line": {
+      "enabled": true,
+      "mode": "pass_warn_fail",
+      "warn_limit": 500,
+      "fail_limit": 1000,
+      "gate_dirs": [
+        "src",
+        "include",
+        "lib",
+        "app"
+      ],
+      "include_dirs": [],
+      "exclude_dirs": []
+    },
+    "lint": {
+      "enabled": true,
+      "mode": "pass_warn_fail",
+      "ruff_required": false,
+      "clang_tidy": "auto",
+      "clazy": "auto",
+      "clazy_profile": "level0"
+    },
+    "compile_db": {
+      "enabled": true,
+      "mode": "pass_warn_fail",
+      "database_required": false,
+      "required_flags": [],
+      "forbidden_flags": []
+    },
+    "test": {
+      "enabled": true,
+      "mode": "pass_fail",
+      "min_tem_score": 4.0,
+      "min_line_cov": 80.0,
+      "min_file_cov": 80.0,
+      "min_file_statements": 5,
+      "min_branch_cov": 80.0,
+      "min_func_cov": 90.0,
+      "coverage_required": false,
+      "quality": {
+        "enabled": true,
+        "mode": "report",
+        "repeat_runs": 1,
+        "timeout": 300.0,
+        "slow_test_threshold": 1.0,
+        "max_slow_tests": 50,
+        "mutation": {
+          "enabled": false,
+          "tool": "auto"
+        }
+      }
+    },
+    "type": {
+      "enabled": true,
+      "mode": "pass_warn",
+      "fail_on_error": true,
+      "warn_on_missing_annotation": false,
+      "mypy_required": false,
+      "mypy_profile": "project"
+    },
+    "python_compat": {
+      "enabled": true,
+      "mode": "pass_warn_fail",
+      "required": false,
+      "interpreters": [],
+      "required_interpreters": [],
+      "imports": [],
+      "target_version": "",
+      "wheel_globs": [],
+      "wheel_required": false,
+      "wheel_policy": "allow-native",
+      "check_entrypoints": true,
+      "check_package_files": true,
+      "max_wheels": 32,
+      "max_wheel_members": 8192,
+      "max_wheel_uncompressed_bytes": 67108864
+    },
+    "complexity": {
+      "enabled": true,
+      "mode": "pass_warn_fail",
+      "warn_cc": 15,
+      "fail_cc": 25,
+      "warn_nesting": 4,
+      "cpp_boundaries": "auto"
+    },
+    "sanitize": {
+      "enabled": true,
+      "mode": "pass_fail"
+    },
+    "thread_sanitize": {
+      "enabled": true,
+      "mode": "pass_fail"
+    },
+    "dead": {
+      "enabled": true,
+      "mode": "pass_warn",
+      "cpp_unused": "auto",
+      "cpp_linker": "off",
+      "include_generated": false,
+      "include_vendor": false
+    },
+    "dup": {
+      "enabled": true,
+      "mode": "pass_warn",
+      "warn_pct": 5.0,
+      "fail_pct": 15.0,
+      "min_window": 6,
+      "python_semantic": "auto",
+      "include_generated": false,
+      "include_vendor": false
+    },
+    "exception": {
+      "enabled": true,
+      "mode": "pass_fail"
+    },
+    "cycle": {
+      "enabled": true,
+      "mode": "pass_warn_fail",
+      "max_reported": 20
+    },
+    "cognitive": {
+      "enabled": true,
+      "mode": "pass_warn",
+      "warn": 30,
+      "fail": 60,
+      "warn_nesting": 4,
+      "cpp_boundaries": "auto"
+    },
+    "security": {
+      "enabled": true,
+      "mode": "pass_warn",
+      "scan_tests": false,
+      "secret_name_allowlist": []
+    },
+    "resource": {
+      "enabled": true,
+      "mode": "pass_warn"
+    },
+    "binary_compat": {
+      "enabled": false,
+      "mode": "pass_warn_fail",
+      "required": false,
+      "artifacts": [],
+      "expected_class": "",
+      "expected_machine": "",
+      "max_glibc": "",
+      "max_glibcxx": "",
+      "max_cxxabi": "",
+      "forbid_absolute_rpath": true,
+      "forbidden_needed": [],
+      "allowed_needed": [],
+      "forbid_build_paths": true,
+      "allow_non_elf": false,
+      "max_artifacts": 64
+    },
+    "integration": {
+      "enabled": false,
+      "mode": "pass_warn_fail",
+      "required": false,
+      "max_cases": 32,
+      "max_output_bytes": 65536,
+      "python_targets": {},
+      "cases": []
+    }
+  }
+}

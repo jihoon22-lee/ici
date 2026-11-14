@@ -1,0 +1,5 @@
+[
+ {"directory": ".", "command": "g++ -std=c++17 -c src/a.cpp -o build/a.o", "file": "src/a.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -DUSE_HELPER -c src/a.cpp -o build/a-use.o", "file": "src/a.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/b.cpp -o build/b.o", "file": "src/b.cpp"}
+]

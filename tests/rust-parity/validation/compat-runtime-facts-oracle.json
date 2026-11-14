@@ -1,0 +1,73 @@
+{
+  "config": "schema_version=1\n[workspace]\nname='w'\nprofile='standard'\n[[components]]\nid='project'\nroot='.'\nlanguages=['python']\n[components.python]\nexecutable=<PYTHON_JSON>\n",
+  "runs": {
+    "no-floor": {
+      "exit_code": 3,
+      "files": {
+        "app.py": "def f():\n    return 1\n",
+        "util.py": "def f():\n    return 1\n"
+      },
+      "findings": [],
+      "limitations": [
+        "no requires-python floor could be inferred \u2014 the syntax and standard-library floors were not asserted",
+        "measured runtime: Python 3.10.21",
+        "no requires-python floor is declared \u2014 the measured runtime was not judged against a floor"
+      ],
+      "metrics": [
+        {
+          "evidence": "MEASURED",
+          "name": "compileall.checked",
+          "unit": "files",
+          "value": 2.0
+        }
+      ]
+    },
+    "outside": {
+      "exit_code": 3,
+      "files": {
+        "app.py": "def f():\n    return 1\n",
+        "pyproject.toml": "[project]\nname = \"demo\"\nversion = \"1.0\"\nrequires-python = \">=3.99\"\n"
+      },
+      "findings": [
+        {
+          "message": "declared interpreter reports Python 3.10.21, outside requires-python '>=3.99'",
+          "rule_id": "python.compat.runtime-version"
+        }
+      ],
+      "limitations": [
+        "floor asserted: Python 4.0 (from requires-python '>=3.99')",
+        "measured runtime: Python 3.10.21"
+      ],
+      "metrics": [
+        {
+          "evidence": "MEASURED",
+          "name": "compileall.checked",
+          "unit": "files",
+          "value": 1.0
+        }
+      ]
+    },
+    "satisfied": {
+      "exit_code": 3,
+      "files": {
+        "app.py": "def f():\n    return 1\n",
+        "pyproject.toml": "[project]\nname = \"demo\"\nversion = \"1.0\"\nrequires-python = \">=3.8\"\n"
+      },
+      "findings": [],
+      "limitations": [
+        "floor asserted: Python 3.8 (from requires-python '>=3.8')",
+        "measured runtime: Python 3.10.21",
+        "runtime satisfies requires-python '>=3.8'"
+      ],
+      "metrics": [
+        {
+          "evidence": "MEASURED",
+          "name": "compileall.checked",
+          "unit": "files",
+          "value": 1.0
+        }
+      ]
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

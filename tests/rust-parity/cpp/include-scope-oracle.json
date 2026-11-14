@@ -1,0 +1,99 @@
+{
+ "cases": {
+  "cycle": {
+   "exit_code": 0,
+   "status": "WARN",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "include/top.hpp",
+     "message": "C++ include cycle (2 files): top.hpp -> inner.hpp -> top.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:2"
+    }
+   ]
+  },
+  "dead": {
+   "exit_code": 2,
+   "status": "SKIP",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "include/sub/deep.h",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsUnavailable"
+    }
+   ]
+  },
+  "dead:off": {
+   "exit_code": 2,
+   "status": "SKIP",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    }
+   ]
+  },
+  "dead:required": {
+   "exit_code": 1,
+   "status": "ERROR",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "include/sub/deep.h",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++UnusedFunctionsUnavailable"
+    }
+   ]
+  },
+  "dup": {
+   "exit_code": 0,
+   "status": "WARN",
+   "targets": [
+    {
+     "end_line": 12,
+     "file_path": "include/top.hpp",
+     "message": "Duplicate code block (10 lines) shared across 2 locations",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CloneGroup#1"
+    },
+    {
+     "end_line": 12,
+     "file_path": "src/inner.hpp",
+     "message": "Duplicate code block (10 lines) shared across 2 locations",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CloneGroup#1"
+    },
+    {
+     "end_line": null,
+     "file_path": "include/sub/deep.h",
+     "message": "Source was analyzed and has no reported duplicate region",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "DuplicateScan"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Source was analyzed and has no reported duplicate region",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "DuplicateScan"
+    }
+   ]
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

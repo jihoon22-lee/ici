@@ -1,0 +1,2259 @@
+{
+ "cases": {
+  "complexity": {
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "engine_name": "complexity",
+    "evidence": "MEASURED",
+    "extra": {
+     "cpp_boundary_configurations_checked": 0,
+     "cpp_boundary_errors": [],
+     "cpp_boundary_mode": "not_applicable",
+     "cpp_boundary_sources_checked": 0,
+     "cpp_boundary_warnings": [],
+     "cpp_estimated_boundaries": 0,
+     "cpp_exact_boundaries": 0,
+     "cpp_scope_exclusions": {
+      "lambda": 0,
+      "macro_generated_function": 0
+     },
+     "issues_count": 0,
+     "max_complexity": 2,
+     "metrics_summary": "Max CC: 2 (0 issues / 11 funcs)",
+     "top_complex_funcs": [
+      {
+       "end_line": 30,
+       "file_path": "src/nested.py",
+       "message": "Complexity: 2, Nesting: 1",
+       "metrics": {
+        "complexity": 2,
+        "nesting": 1
+       },
+       "snippet": "def inner():\n        if x:\n            return 3\n        return 4",
+       "start_line": 27,
+       "status": "PASS",
+       "target_name": "inner()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/core.py",
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": 1,
+        "nesting": 0
+       },
+       "snippet": "def load(blob):\n    return pickle.loads(blob)",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "load()"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/core.py",
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": 1,
+        "nesting": 0
+       },
+       "snippet": "def run(cmd):\n    return subprocess.call(cmd, shell=True)",
+       "start_line": 9,
+       "status": "PASS",
+       "target_name": "run()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/nested.py",
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": 1,
+        "nesting": 0
+       },
+       "snippet": "def deco():\n    return 1",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "deco()"
+      },
+      {
+       "end_line": 31,
+       "file_path": "src/nested.py",
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": 1,
+        "nesting": 0
+       },
+       "snippet": "def last(x):\n    def inner():\n        if x:\n            return 3\n        return 4\n    return inner",
+       "start_line": 26,
+       "status": "PASS",
+       "target_name": "last()"
+      },
+      {
+       "end_line": 11,
+       "file_path": "src/nested.py",
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": 1,
+        "nesting": 0
+       },
+       "snippet": "def inif():\n        pass",
+       "start_line": 10,
+       "status": "PASS",
+       "target_name": "inif()"
+      },
+      {
+       "end_line": 23,
+       "file_path": "src/nested.py",
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": 1,
+        "nesting": 0
+       },
+       "snippet": "async def am():\n        return 2",
+       "start_line": 22,
+       "status": "PASS",
+       "target_name": "am()"
+      },
+      {
+       "end_line": 40,
+       "file_path": "src/nested.py",
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": 1,
+        "nesting": 0
+       },
+       "snippet": "def w():\n        pass",
+       "start_line": 39,
+       "status": "PASS",
+       "target_name": "w()"
+      },
+      {
+       "end_line": 45,
+       "file_path": "src/nested.py",
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": 1,
+        "nesting": 0
+       },
+       "snippet": "def fe():\n        pass",
+       "start_line": 44,
+       "status": "PASS",
+       "target_name": "fe()"
+      },
+      {
+       "end_line": 17,
+       "file_path": "src/nested.py",
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": 1,
+        "nesting": 0
+       },
+       "snippet": "def inexc():\n        pass",
+       "start_line": 16,
+       "status": "PASS",
+       "target_name": "inexc()"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/nested.py",
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": 1,
+        "nesting": 0
+       },
+       "snippet": "def m1():\n            pass",
+       "start_line": 36,
+       "status": "PASS",
+       "target_name": "m1()"
+      }
+     ],
+     "total_functions": 11
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:2fa3b78b926e89eb14a1a5adc423674b051dcbbca951ca9e07b3d6c786377a4c",
+      "fixes": [],
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 1
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 45,
+       "label": "fe()",
+       "path": "src/nested.py",
+       "start_column": null,
+       "start_line": 44
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def fe():\n        pass",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:48b5afb9863143ced909ff8d8a99ee2552742ab7078a4f9f6b41a932696e2bbf",
+      "fixes": [],
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 1
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 17,
+       "label": "inexc()",
+       "path": "src/nested.py",
+       "start_column": null,
+       "start_line": 16
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def inexc():\n        pass",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:4f57122cb5d778995077db76d0a3446f2b85bdac16a9ce518249268a1ad39692",
+      "fixes": [],
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 1
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 31,
+       "label": "last()",
+       "path": "src/nested.py",
+       "start_column": null,
+       "start_line": 26
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def last(x):\n    def inner():\n        if x:\n            return 3\n        return 4\n    return inner",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:5267cad1ed5a12e3c4b2370b9ecdb2b13adbc8d1106f86c5d7b5967f5b5d9e06",
+      "fixes": [],
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 1
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 23,
+       "label": "am()",
+       "path": "src/nested.py",
+       "start_column": null,
+       "start_line": 22
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "async def am():\n        return 2",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:651d8119b844b5ca17955cba67f99837fd349d325b4ddb40c09ba0730830d5de",
+      "fixes": [],
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 1
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 37,
+       "label": "m1()",
+       "path": "src/nested.py",
+       "start_column": null,
+       "start_line": 36
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def m1():\n            pass",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:92e7659eac6a02494d14a535aac8564ea32bf54bc663c5a28fe8f0553aeae698",
+      "fixes": [],
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 1
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 6,
+       "label": "deco()",
+       "path": "src/nested.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def deco():\n    return 1",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:9b717a370757a790d4bb8c8eb27efad41b3973ea8e461b0571e8a15a93a1f9f6",
+      "fixes": [],
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 1
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 10,
+       "label": "run()",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 9
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def run(cmd):\n    return subprocess.call(cmd, shell=True)",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:a4f24d8fa15b760b1bf74014bca8f381d9b46c77f70f25189bd6477876ba3401",
+      "fixes": [],
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 1
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 40,
+       "label": "w()",
+       "path": "src/nested.py",
+       "start_column": null,
+       "start_line": 39
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def w():\n        pass",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:a549f4cdad75a52f604d73cea3e6875400e69130c962fdfb0f6595366ba3d9b3",
+      "fixes": [],
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 1
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 11,
+       "label": "inif()",
+       "path": "src/nested.py",
+       "start_column": null,
+       "start_line": 10
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def inif():\n        pass",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:bb5c17fccf96b32c580675d1d795542e7f9f78af9df5a3476babe32f9097d67a",
+      "fixes": [],
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 1
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 6,
+       "label": "load()",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def load(blob):\n    return pickle.loads(blob)",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:bbd3f24bd63a49ac94cafef5533a7af9f2b4348a5da119bb0171cf81cbae0055",
+      "fixes": [],
+      "message": "Complexity: 2, Nesting: 1",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 2
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 1
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 30,
+       "label": "inner()",
+       "path": "src/nested.py",
+       "start_column": null,
+       "start_line": 27
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def inner():\n        if x:\n            return 3\n        return 4",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 2.0,
+    "status": "PASS",
+    "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 11 functions (0 issues)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "complexity",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Cyclomatic and nesting metrics approximate maintainability rather than correctness."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": []
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "complexity",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Clang AST-backed function boundaries require an exact compilation database; empty, unreported, or macro-generated definitions may use the lower-confidence source scanner.",
+        "Suppressed or malformed diagnostics and attempted-tool failures fail closed.",
+        "Cyclomatic and nesting counts within a confirmed boundary remain token-based."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "clang-tidy"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": []
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": 6,
+      "file_path": "src/core.py",
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": 1,
+       "nesting": 0
+      },
+      "snippet": "def load(blob):\n    return pickle.loads(blob)",
+      "start_column": null,
+      "start_line": 5,
+      "status": "PASS",
+      "target_name": "load()"
+     },
+     {
+      "end_column": null,
+      "end_line": 10,
+      "file_path": "src/core.py",
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": 1,
+       "nesting": 0
+      },
+      "snippet": "def run(cmd):\n    return subprocess.call(cmd, shell=True)",
+      "start_column": null,
+      "start_line": 9,
+      "status": "PASS",
+      "target_name": "run()"
+     },
+     {
+      "end_column": null,
+      "end_line": 6,
+      "file_path": "src/nested.py",
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": 1,
+       "nesting": 0
+      },
+      "snippet": "def deco():\n    return 1",
+      "start_column": null,
+      "start_line": 5,
+      "status": "PASS",
+      "target_name": "deco()"
+     },
+     {
+      "end_column": null,
+      "end_line": 31,
+      "file_path": "src/nested.py",
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": 1,
+       "nesting": 0
+      },
+      "snippet": "def last(x):\n    def inner():\n        if x:\n            return 3\n        return 4\n    return inner",
+      "start_column": null,
+      "start_line": 26,
+      "status": "PASS",
+      "target_name": "last()"
+     },
+     {
+      "end_column": null,
+      "end_line": 11,
+      "file_path": "src/nested.py",
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": 1,
+       "nesting": 0
+      },
+      "snippet": "def inif():\n        pass",
+      "start_column": null,
+      "start_line": 10,
+      "status": "PASS",
+      "target_name": "inif()"
+     },
+     {
+      "end_column": null,
+      "end_line": 23,
+      "file_path": "src/nested.py",
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": 1,
+       "nesting": 0
+      },
+      "snippet": "async def am():\n        return 2",
+      "start_column": null,
+      "start_line": 22,
+      "status": "PASS",
+      "target_name": "am()"
+     },
+     {
+      "end_column": null,
+      "end_line": 30,
+      "file_path": "src/nested.py",
+      "message": "Complexity: 2, Nesting: 1",
+      "metrics": {
+       "complexity": 2,
+       "nesting": 1
+      },
+      "snippet": "def inner():\n        if x:\n            return 3\n        return 4",
+      "start_column": null,
+      "start_line": 27,
+      "status": "PASS",
+      "target_name": "inner()"
+     },
+     {
+      "end_column": null,
+      "end_line": 40,
+      "file_path": "src/nested.py",
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": 1,
+       "nesting": 0
+      },
+      "snippet": "def w():\n        pass",
+      "start_column": null,
+      "start_line": 39,
+      "status": "PASS",
+      "target_name": "w()"
+     },
+     {
+      "end_column": null,
+      "end_line": 45,
+      "file_path": "src/nested.py",
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": 1,
+       "nesting": 0
+      },
+      "snippet": "def fe():\n        pass",
+      "start_column": null,
+      "start_line": 44,
+      "status": "PASS",
+      "target_name": "fe()"
+     },
+     {
+      "end_column": null,
+      "end_line": 17,
+      "file_path": "src/nested.py",
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": 1,
+       "nesting": 0
+      },
+      "snippet": "def inexc():\n        pass",
+      "start_column": null,
+      "start_line": 16,
+      "status": "PASS",
+      "target_name": "inexc()"
+     },
+     {
+      "end_column": null,
+      "end_line": 37,
+      "file_path": "src/nested.py",
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": 1,
+       "nesting": 0
+      },
+      "snippet": "def m1():\n            pass",
+      "start_column": null,
+      "start_line": 36,
+      "status": "PASS",
+      "target_name": "m1()"
+     }
+    ],
+    "tool_evidence": []
+   }
+  },
+  "cycle": {
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "engine_name": "cycle",
+    "evidence": "MEASURED",
+    "extra": {
+     "ambiguous_cpp_includes": 0,
+     "cpp_configurations_checked": 0,
+     "cpp_cycles": 0,
+     "cpp_include_diagnostics_truncated": 0,
+     "cpp_include_resolution": "unique_project_path_suffix",
+     "cpp_include_scope_counts": {},
+     "py_cycles": 1,
+     "resolved_cpp_includes": 0,
+     "total_cycles": 1,
+     "unresolved_cpp_includes": 0
+    },
+    "findings": [
+     {
+      "category": "architecture",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy cycle InspectionTarget contract.",
+      "fingerprint": "sha256:665e0965080cb6b3c2ba05bc0a5b75d807538b8ef2127798e19fc96c552b0233",
+      "fixes": [],
+      "message": "Python import cycle (2 modules): a -> b -> a",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Cycle:2",
+       "path": "src/a.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Cycle:2",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": false,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "WARN",
+    "summary": "Dependency cycles: 1 found",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "cycle",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Import-to-module resolution is best effort for dynamic and ambiguous imports."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": []
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "cycle",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Compiler traces measure active include edges for covered translation units; without compilation context, project-path suffix resolution is estimated."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "gcc",
+        "g++",
+        "clang",
+        "clang++",
+        "cmake",
+        "readelf",
+        "addr2line"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": []
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.py",
+      "message": "Python import cycle (2 modules): a -> b -> a",
+      "metrics": {
+       "modules": [
+        "a",
+        "b"
+       ]
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Cycle:2"
+     }
+    ],
+    "tool_evidence": []
+   }
+  }
+ },
+ "hybrid": {
+  "lint": {
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "engine_name": "lint",
+    "evidence": "ESTIMATED",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 1,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 1,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 1
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 1,
+     "metrics_summary": "5 issues",
+     "python_files_parsed": 5,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:3a282e605217cad563864cdd086bb5ebc54382006007ab8219ff18866d8cf402",
+      "fixes": [],
+      "message": "warning: unused variable 'unused'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wunused-variable",
+       "path": "src/calc.cpp",
+       "start_column": 9,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wunused-variable",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "ruff",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:8c318d842eb228f61fde8f340466390bc89bff7ce84c4755a5ad2d68db70ddb2",
+      "fixes": [],
+      "message": "Ruff was unavailable; parsed 5 Python file(s) for syntax errors only. Style and lint rules were not checked.",
+      "metrics": {
+       "files_parsed": {
+        "unit": "",
+        "value": 5
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ASTSyntaxFallback",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "ruff",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "ruff",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "WARN",
+    "summary": "Ruff is unavailable; AST syntax fallback is ESTIMATED; No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "lint",
+       "evidence": "ESTIMATED",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Without Ruff, fallback validates AST syntax only, not style or lint rules."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "ruff"
+       ],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": []
+      },
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "lint",
+       "evidence": "ESTIMATED",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Replays sanitized GCC/Clang translation-unit commands and optional clang-tidy/Clazy checks when compilation context exists; without it, a fixed c++17 syntax fallback is estimated."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "gcc",
+        "g++",
+        "clang",
+        "clang++",
+        "clang-tidy",
+        "clazy",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": []
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python",
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Ruff was unavailable; parsed 5 Python file(s) for syntax errors only. Style and lint rules were not checked.",
+      "metrics": {
+       "files_parsed": 5
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ASTSyntaxFallback"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.cpp",
+      "message": "warning: unused variable 'unused'",
+      "metrics": {},
+      "snippet": "",
+      "start_column": 9,
+      "start_line": 2,
+      "status": "WARN",
+      "target_name": "Compiler:-Wunused-variable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "tool not found; no command was executed",
+      "name": "ruff",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "<root>/src/calc.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "resource": {
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "engine_name": "resource",
+    "evidence": "MEASURED",
+    "extra": {
+     "acquisitions_checked": 0,
+     "analysis_mode": "python-intraprocedural-resource-flow-v1",
+     "ast_nodes": 114,
+     "excluded_source_counts": {},
+     "files_checked": 5,
+     "limitations": [
+      "Flow is intraprocedural and does not infer arbitrary user-defined factories",
+      "A direct close is lexical evidence, not proof that close itself cannot raise",
+      "Returned resources and assignments to attributes or subscripts transfer ownership"
+     ],
+     "mutable_defaults_checked": 0
+    },
+    "findings": [
+     {
+      "category": "resource",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+      "fingerprint": "sha256:05a280d535b17013e602c8ebe0fa25890a8212f7f51cb0ae490d5987ce0ea333",
+      "fixes": [],
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Resource:ASTFlow",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Resource:ASTFlow",
+      "tool_version": ""
+     },
+     {
+      "category": "resource",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+      "fingerprint": "sha256:3d19e8f8ea5816c8bdfe2fab65387f80ee13b76cb0965809c9dc58d25b290b39",
+      "fixes": [],
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Resource:ASTFlow",
+       "path": "src/__init__.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Resource:ASTFlow",
+      "tool_version": ""
+     },
+     {
+      "category": "resource",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+      "fingerprint": "sha256:9a2ef70cd202f03db3a2d0ec43651ca69d7d6509fe63fe0b29972e25a140757c",
+      "fixes": [],
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Resource:ASTFlow",
+       "path": "src/b.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Resource:ASTFlow",
+      "tool_version": ""
+     },
+     {
+      "category": "resource",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+      "fingerprint": "sha256:c6c58191a2cae548e2d9b2ec77086d6bf29301303a0d61eb5d4db691185cfccd",
+      "fixes": [],
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Resource:ASTFlow",
+       "path": "src/nested.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Resource:ASTFlow",
+      "tool_version": ""
+     },
+     {
+      "category": "resource",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+      "fingerprint": "sha256:fe66604e59e0c343c6097313d71ccd200cb4f092800d029b477c47a6f9016726",
+      "fixes": [],
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Resource:ASTFlow",
+       "path": "src/a.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Resource:ASTFlow",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": false,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "PASS",
+    "summary": "Resource/correctness analysis clean across 5 file(s)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "resource",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "AST patterns cover known resource and mutable-default risks, not runtime ownership."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": []
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "resource",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "cpp",
+       "limitations": [
+        "C++ ownership/resource analysis is not implemented; runtime leaks belong to sanitize."
+       ],
+       "mode": "unsupported",
+       "optional_tools": [],
+       "reason": "resource does not support cpp",
+       "required_tools": []
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python",
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/__init__.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/core.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/nested.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     }
+    ],
+    "tool_evidence": []
+   }
+  },
+  "security": {
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "engine_name": "security",
+    "evidence": "MEASURED",
+    "extra": {
+     "analysis_mode": "python-ast-rules-v1",
+     "calls_checked": 4,
+     "excluded_source_counts": {},
+     "files_checked": 5,
+     "limitations": [
+      "Rules identify risky syntax and import aliases, not runtime taint flow",
+      "Exact secret names can be allowlisted; secret values are never retained"
+     ],
+     "secret_literals_checked": 0,
+     "secret_name_allowlist_count": 0
+    },
+    "findings": [
+     {
+      "category": "security",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy security InspectionTarget contract.",
+      "fingerprint": "sha256:1bfc8b73225ad938265d89695d01f4dfaaeb935d6f7a3c47daa309268092be8e",
+      "fixes": [],
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 29,
+       "end_line": 6,
+       "label": "Security:PickleLoad",
+       "path": "src/core.py",
+       "start_column": 12,
+       "start_line": 6
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "medium",
+      "snippet": "pickle.loads(...)",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Security:PickleLoad",
+      "tool_version": ""
+     },
+     {
+      "category": "security",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy security InspectionTarget contract.",
+      "fingerprint": "sha256:27b079b28da12c47e90c5e0e876c298856706f4fd898a36c0e485e97dbabd4d1",
+      "fixes": [],
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Security:ASTScan",
+       "path": "src/nested.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Security:ASTScan",
+      "tool_version": ""
+     },
+     {
+      "category": "security",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy security InspectionTarget contract.",
+      "fingerprint": "sha256:3f89c1e2cb844ba106a51bcde8da2b7c23df65bd5b25a5cc5681132accc4f7c4",
+      "fixes": [],
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Security:ASTScan",
+       "path": "src/b.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Security:ASTScan",
+      "tool_version": ""
+     },
+     {
+      "category": "security",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy security InspectionTarget contract.",
+      "fingerprint": "sha256:4a9dddffa6801925d4a9da5a35838799489ba85e114747de87b670bf4a172c98",
+      "fixes": [],
+      "message": "subprocess shell=True expands input through a command processor",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 43,
+       "end_line": 10,
+       "label": "Security:ShellTrue",
+       "path": "src/core.py",
+       "start_column": 12,
+       "start_line": 10
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "medium",
+      "snippet": "subprocess.call(..., shell=True)",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Security:ShellTrue",
+      "tool_version": ""
+     },
+     {
+      "category": "security",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy security InspectionTarget contract.",
+      "fingerprint": "sha256:609d28f6a6bbceb08cbf9cfe471918c9be2b4fc25b28a50688b5442cd933f2ee",
+      "fixes": [],
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Security:ASTScan",
+       "path": "src/__init__.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Security:ASTScan",
+      "tool_version": ""
+     },
+     {
+      "category": "security",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy security InspectionTarget contract.",
+      "fingerprint": "sha256:a9b1061ee65bef5d5f0f5e8c46d34609014d04a4ca8cae295fa45b48ab308624",
+      "fixes": [],
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Security:ASTScan",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Security:ASTScan",
+      "tool_version": ""
+     },
+     {
+      "category": "security",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy security InspectionTarget contract.",
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "fixes": [],
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Security:ASTScan",
+       "path": "src/a.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Security:ASTScan",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": false,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "WARN",
+    "summary": "Security hygiene: 2 finding(s)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "security",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Offline source patterns cover selected secret and unsafe-API rules, not dependency CVEs."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": []
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "security",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "cpp",
+       "limitations": [
+        "C++ security rule coverage is not implemented."
+       ],
+       "mode": "unsupported",
+       "optional_tools": [],
+       "reason": "security does not support cpp",
+       "required_tools": []
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python",
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/__init__.py",
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.py",
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "end_column": 29,
+      "end_line": 6,
+      "file_path": "src/core.py",
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "metrics": {},
+      "snippet": "pickle.loads(...)",
+      "start_column": 12,
+      "start_line": 6,
+      "status": "WARN",
+      "target_name": "Security:PickleLoad"
+     },
+     {
+      "end_column": 43,
+      "end_line": 10,
+      "file_path": "src/core.py",
+      "message": "subprocess shell=True expands input through a command processor",
+      "metrics": {},
+      "snippet": "subprocess.call(..., shell=True)",
+      "start_column": 12,
+      "start_line": 10,
+      "status": "WARN",
+      "target_name": "Security:ShellTrue"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/core.py",
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/nested.py",
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ],
+    "tool_evidence": []
+   }
+  },
+  "test": {
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "engine_name": "test",
+    "evidence": "ESTIMATED",
+    "extra": {
+     "branch_coverage": 45.0,
+     "coverage_files": [],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 1,
+       "discovered_python_sources": 5,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "estimated",
+     "coverage_totals": null,
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 50.0,
+     "function_rows": [],
+     "line_coverage": null,
+     "metrics_summary": "TEM: 0.00/5.0 (Line: 45%, Func: 50%, PassRate: 0%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.0,
+     "passed_tests": 0,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 0.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 2,
+       "file": "tests",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "No tests collected",
+         "name": "[Python] Tests",
+         "status": "FAIL"
+        },
+        {
+         "message": "No tests collected",
+         "name": "[C++] Tests",
+         "status": "FAIL"
+        }
+       ],
+       "total": 2
+      }
+     ],
+     "total_tests": 0
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:d6a228f045ac92514a5c50aac1b294c535702d984c1f34ec9406ead59c66c7b2",
+      "fixes": [],
+      "message": "No tests collected",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] Tests",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:eeeb43ac6a7b461f14ead456d5878ad10dc38479ff761cc3ac1a142168e10911",
+      "fixes": [],
+      "message": "No tests collected",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[Python] Tests",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "FAIL",
+    "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "ESTIMATED",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "ESTIMATED",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python",
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "No tests collected",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[Python] Tests"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "No tests collected",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] Tests"
+     }
+    ],
+    "tool_evidence": []
+   }
+  }
+ },
+ "hybrid_tree": {
+  "src/__init__.py": "\"\"\"Package.\"\"\"\n",
+  "src/a.py": "import b\n",
+  "src/b.py": "import a\n",
+  "src/calc.cpp": "int divide(int a, int b) {\n    int unused = 0;\n    return a / b;\n}\n",
+  "src/core.py": "import pickle\nimport subprocess\n\n\ndef load(blob):\n    return pickle.loads(blob)\n\n\ndef run(cmd):\n    return subprocess.call(cmd, shell=True)\n",
+  "src/nested.py": "import functools\n\n\n@functools.cache\ndef deco():\n    return 1\n\n\nif True:\n    def inif():\n        pass\n\ntry:\n    pass\nexcept Exception:\n    def inexc():\n        pass\n\n\nclass K:\n    @staticmethod\n    async def am():\n        return 2\n\n\ndef last(x):\n    def inner():\n        if x:\n            return 3\n        return 4\n    return inner\n\n\nmatch 1:\n    case 1:\n        def m1():\n            pass\nwith open('x') as handle:\n    def w():\n        pass\nfor i in range(2):\n    pass\nelse:\n    def fe():\n        pass\n"
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "tree": {
+  "src/__init__.py": "\"\"\"Package.\"\"\"\n",
+  "src/a.py": "import b\n",
+  "src/b.py": "import a\n",
+  "src/core.py": "import pickle\nimport subprocess\n\n\ndef load(blob):\n    return pickle.loads(blob)\n\n\ndef run(cmd):\n    return subprocess.call(cmd, shell=True)\n",
+  "src/nested.py": "import functools\n\n\n@functools.cache\ndef deco():\n    return 1\n\n\nif True:\n    def inif():\n        pass\n\ntry:\n    pass\nexcept Exception:\n    def inexc():\n        pass\n\n\nclass K:\n    @staticmethod\n    async def am():\n        return 2\n\n\ndef last(x):\n    def inner():\n        if x:\n            return 3\n        return 4\n    return inner\n\n\nmatch 1:\n    case 1:\n        def m1():\n            pass\nwith open('x') as handle:\n    def w():\n        pass\nfor i in range(2):\n    pass\nelse:\n    def fe():\n        pass\n"
+ }
+}

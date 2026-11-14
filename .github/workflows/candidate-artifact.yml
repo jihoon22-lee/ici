@@ -225,11 +225,15 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "Validated candidate target $REQUESTED_TARGET_SHA via $merge_gate_url"
 
-  build:
-    name: Build Reproducible Candidate
+  # Native Rust candidate (ADR-0008), the only candidate since the R9 cutover.
+  # Two independent exact-source builds on this runner must be byte-identical;
+  # release-native.yml later republishes exactly these bytes and never rebuilds.
+  native:
+    name: Build Reproducible Native Candidate
     needs: validate
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # build-native.sh compiles with two jobs, twice; the artifact corpus follows.
+    timeout-minutes: 240
     permissions:
       contents: read
 
@@ -238,7 +242,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.validate.outputs.target_sha }}
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
 
       - name: Confirm Exact Candidate Commit
@@ -246,110 +250,103 @@ jobs:
           TARGET_SHA: ${{ needs.validate.outputs.target_sha }}
         run: test "$(git rev-parse HEAD)" = "$TARGET_SHA"
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.10"
+      - name: Pinned Rust toolchain (rust-toolchain.toml)
+        run: |
+          rustup toolchain install 1.99.1 --profile minimal
+          rustc --version
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with:
-          version: "0.12.5"
-          enable-cache: true
+      - name: Install the trace tool for the artifact corpus
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends strace
 
-      - name: Build Twice and Run Isolated Smoke
+      # Downloads only the HTTPS inputs pinned in packaging/native and checks
+      # every digest; the inputs live outside the checkout so the source tree
+      # stays clean for the exact-source build.
+      - name: Prepare Pinned Native Build Inputs
         run: |
           set -euo pipefail
-          # Candidate-controlled scripts must not inherit publication, OIDC,
-          # artifact, or cache credentials. This shell-local scrub does not
-          # affect the later trusted upload action.
           unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN
           unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL
-          chmod +x scripts/build-pyz.sh scripts/launcher.sh scripts/smoke.sh \
-            scripts/verify-reproducibility.sh
-          ./scripts/verify-reproducibility.sh
-          ./scripts/smoke.sh
+          scripts/prepare-native-inputs.sh --output "$RUNNER_TEMP/native-inputs"
 
-      - name: Stage Exact Candidate Bundle
+      - name: Build Twice from the Exact Source
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN
+          unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL
+          set -a
+          # shellcheck disable=SC1091
+          . "$RUNNER_TEMP/native-inputs/native-build.env"
+          set +a
+          version="$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"$/\1/p' Cargo.toml)"
+          test -n "$version"
+          for build in a b; do
+            mkdir -- "$RUNNER_TEMP/native-$build"
+            scripts/build-native.sh \
+              --tools-dir "$ICI_NATIVE_TOOLS_DIR" \
+              --sysroot "$ICI_NATIVE_SYSROOT" \
+              --sysroot-sha256 "$ICI_NATIVE_SYSROOT_SHA256" \
+              --build-id "candidate-$build" \
+              --output "$RUNNER_TEMP/native-$build/ici-$version-x86_64-unknown-linux-musl.tar.gz"
+          done
+          printf 'NATIVE_VERSION=%s\n' "$version" >> "$GITHUB_ENV"
+
+      - name: Run Native Release Checks and Artifact Corpus
         env:
           TARGET_SHA: ${{ needs.validate.outputs.target_sha }}
-          CANDIDATE_WORKFLOW_DEFINITION_SHA: ${{ needs.validate.outputs.candidate_workflow_definition_sha }}
-          MERGE_GATE_CHECK_RUN_ID: ${{ needs.validate.outputs.merge_gate_check_run_id }}
-          MERGE_GATE_JOB_ID: ${{ needs.validate.outputs.merge_gate_job_id }}
-          MERGE_GATE_RUN_ID: ${{ needs.validate.outputs.merge_gate_run_id }}
-          MERGE_GATE_RUN_ATTEMPT: ${{ needs.validate.outputs.merge_gate_run_attempt }}
-          MERGE_GATE_JOB_URL: ${{ needs.validate.outputs.merge_gate_job_url }}
-          MERGE_GATE_URL: ${{ needs.validate.outputs.merge_gate_url }}
         run: |
           set -euo pipefail
           unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN
           unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL
-          package_version="$(python3 - <<'PY'
-          import ast
-          from pathlib import Path
+          name="ici-$NATIVE_VERSION-x86_64-unknown-linux-musl.tar.gz"
+          archive="$RUNNER_TEMP/native-a/$name"
+          evidence="$RUNNER_TEMP/native-evidence"
+          scripts/check-native-release.sh --archive "$archive" \
+            --compare "$RUNNER_TEMP/native-b/$name" \
+            --expect-revision "$TARGET_SHA" --expect-version "$NATIVE_VERSION" \
+            --allow-prerelease-version --evidence "$evidence/release-check"
+          sha256="$(sha256sum -- "$archive" | cut -d ' ' -f1)"
+          python3 -I tests/rust-parity/distribution/verify_artifact.py \
+            --archive "$archive" --sha256 "$sha256" \
+            --builder target/distribution/compiled-candidate-a/release/ici-dist \
+            --installer scripts/install-native.sh --evidence "$evidence/artifact-corpus"
+          bundle="$RUNNER_TEMP/ici-native-candidate"
+          mkdir -- "$bundle"
+          cp -- "$archive" "$archive.sha256" "$bundle/"
+          cp -- "$evidence/release-check/check-native-release.json" "$bundle/release-check.json"
+          cp -- "$evidence"/artifact-corpus/native-artifact-*/report.json "$bundle/artifact-corpus-report.json"
+          printf 'NATIVE_ARCHIVE_SHA256=%s\n' "$sha256" >> "$GITHUB_ENV"
 
-          tree = ast.parse(Path("src/ici/__init__.py").read_text(encoding="utf-8"))
-          for node in tree.body:
-              if isinstance(node, ast.Assign):
-                  for target in node.targets:
-                      if isinstance(target, ast.Name) and target.id == "__version__":
-                          value = ast.literal_eval(node.value)
-                          if isinstance(value, str):
-                              print(value)
-                              raise SystemExit(0)
-          raise SystemExit("missing string __version__")
-          PY
-          )"
-          test "$(dist/ici.pyz --version)" = "ici $package_version"
-          bundle_dir="$RUNNER_TEMP/ici-candidate-bundle"
-          python3 scripts/candidate_bundle.py create \
-            --source dist/ici.pyz \
-            --output "$bundle_dir" \
-            --repository "$GITHUB_REPOSITORY" \
-            --target-sha "$TARGET_SHA" \
-            --package-version "$package_version" \
-            --candidate-workflow-definition-sha "$CANDIDATE_WORKFLOW_DEFINITION_SHA" \
-            --candidate-run-id "$GITHUB_RUN_ID" \
-            --candidate-run-attempt "$GITHUB_RUN_ATTEMPT" \
-            --merge-gate-check-run-id "$MERGE_GATE_CHECK_RUN_ID" \
-            --merge-gate-job-id "$MERGE_GATE_JOB_ID" \
-            --merge-gate-run-id "$MERGE_GATE_RUN_ID" \
-            --merge-gate-run-attempt "$MERGE_GATE_RUN_ATTEMPT" \
-            --merge-gate-job-url "$MERGE_GATE_JOB_URL" \
-            --merge-gate-url "$MERGE_GATE_URL"
-          python3 scripts/candidate_bundle.py verify "$bundle_dir"
-
-      - name: Upload Immutable Candidate Bundle
+      - name: Upload Native Candidate
         id: upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ici-candidate-${{ needs.validate.outputs.target_sha }}
-          path: ${{ runner.temp }}/ici-candidate-bundle
+          name: ici-native-candidate-${{ needs.validate.outputs.target_sha }}
+          path: ${{ runner.temp }}/ici-native-candidate
           if-no-files-found: error
           overwrite: false
           include-hidden-files: false
           retention-days: 14
           compression-level: 0
 
-      - name: Record Candidate Coordinates
+      - name: Record Native Candidate Coordinates
         env:
           TARGET_SHA: ${{ needs.validate.outputs.target_sha }}
           MERGE_GATE_URL: ${{ needs.validate.outputs.merge_gate_url }}
           ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
-          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
           ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
         run: |
           set -euo pipefail
           test -n "$ARTIFACT_ID"
-          test -n "$ARTIFACT_DIGEST"
-          test -n "$ARTIFACT_URL"
           {
-            echo "## ici candidate (not a release)"
+            echo "## ici native candidate (not a release)"
             echo
             echo "- target commit: \`$TARGET_SHA\`"
             echo "- Merge Gate: $MERGE_GATE_URL"
+            echo "- archive: \`ici-$NATIVE_VERSION-x86_64-unknown-linux-musl.tar.gz\`"
+            echo "- archive SHA-256 (out-of-band input for Quality Zoo and release): \`$NATIVE_ARCHIVE_SHA256\`"
+            echo "- two independent builds: byte-identical"
             echo "- artifact ID: \`$ARTIFACT_ID\`"
-            echo "- artifact digest: \`$ARTIFACT_DIGEST\`"
             echo "- authenticated download: $ARTIFACT_URL"
-            echo "- retention: 14 days"
           } >> "$GITHUB_STEP_SUMMARY"

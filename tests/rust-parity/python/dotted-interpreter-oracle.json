@@ -1,0 +1,304 @@
+{
+ "cases": {
+  "baseline": {
+   "counts": {
+    "moved_count": 0,
+    "new_count": 0,
+    "resolved_count": 0,
+    "unchanged_count": 16
+   },
+   "exit_code": 0,
+   "gate_failed": false
+  },
+  "cache": {
+   "keyed_engines_with_a_changed_key": [
+    "compile_db",
+    "complexity",
+    "cycle",
+    "dup",
+    "exception",
+    "line",
+    "lint",
+    "resource",
+    "security",
+    "type"
+   ],
+   "other_spelling_hits": [],
+   "warm_same_spelling_hits": [
+    "complexity",
+    "cycle",
+    "dup",
+    "exception",
+    "line",
+    "resource",
+    "security",
+    "type"
+   ]
+  },
+  "clean": {
+   "engines": {
+    "compile_db": {
+     "evidence": "NOT_APPLICABLE",
+     "fingerprints": [],
+     "interpreter": null,
+     "status": "SKIP",
+     "summary": "No production C/C++ translation units are in scope."
+    },
+    "complexity": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:0411acae226651ec6a82167dcbbbf2c7fff65a9fd83f50028001a312927aaf6e"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 1 functions (0 issues)"
+    },
+    "cycle": {
+     "evidence": "MEASURED",
+     "fingerprints": [],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "No cyclic dependencies detected"
+    },
+    "dead": {
+     "evidence": "ESTIMATED",
+     "fingerprints": [
+      "sha256:18040bb3d4d638442659ce359866e294a6103bd28efb0c4e00e8d351bdbad51d"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "No dead-code findings detected in the analyzed scopes"
+    },
+    "dup": {
+     "evidence": "ESTIMATED",
+     "fingerprints": [
+      "sha256:e8982d102c42c50d25fcc0a18e9e6b8c309c6e7c289800a688664dd11e90e520"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+    },
+    "exception": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:71b58ce0a95d199c3af2f6d95d7c127e3d9a3c044ae526b94aab2bf831a726ea"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Exception Handling Safety Clean"
+    },
+    "line": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:e808ea45a9d3b28a12be6cb638518e3e5182593f6d1e9276e2b94ced1750880f"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Total 5 lines (3 code, 0 comment, 2 blank) across 1 files"
+    },
+    "lint": {
+     "evidence": "ESTIMATED",
+     "fingerprints": [
+      "sha256:8c318d842eb228f61fde8f340466390bc89bff7ce84c4755a5ad2d68db70ddb2"
+     ],
+     "interpreter": null,
+     "status": "WARN",
+     "summary": "Ruff is unavailable; AST syntax fallback is ESTIMATED"
+    },
+    "python_compat": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:ea8b581363695d180e39c16fc36b389ea62eba08bd99cf3b4b5d9a2770c0d041",
+      "sha256:f04900080cc518ac5898660f86f324dcb2a42c4c95b6205e4c4ac5020e0f2ee7"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Python runtime and source compatibility verified"
+    },
+    "resource": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:fe66604e59e0c343c6097313d71ccd200cb4f092800d029b477c47a6f9016726"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Resource/correctness analysis clean across 1 file(s)"
+    },
+    "sanitize": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb"
+     ],
+     "interpreter": "<venv>/bin/python",
+     "status": "PASS",
+     "summary": "Memory Safety & Sanitize Clean (0 Defects)"
+    },
+    "security": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:9faa5d9591641db10fee6600f1d2d7d02561bbbc977ce70a73d3fb66376cf56d",
+      "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2"
+     ],
+     "interpreter": null,
+     "status": "WARN",
+     "summary": "Security hygiene: 1 finding(s)"
+    },
+    "test": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+      "sha256:7033f4eef949ab7b9e7f7f7d0c2a434c14bd1a4161fb1a7da5e67ad98d4baa3f",
+      "sha256:e6fb1595535f1e9611d60ded69398eea8573ea058e654941e1d18c31d444ea2e",
+      "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923"
+     ],
+     "interpreter": "<venv>/bin/python",
+     "status": "PASS",
+     "summary": "1/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0"
+    },
+    "type": {
+     "evidence": "MEASURED",
+     "fingerprints": [],
+     "interpreter": "<venv>/bin/python",
+     "status": "PASS",
+     "summary": "Static Type Check Passed"
+    }
+   },
+   "exit_code": 0
+  },
+  "dotted": {
+   "engines": {
+    "compile_db": {
+     "evidence": "NOT_APPLICABLE",
+     "fingerprints": [],
+     "interpreter": null,
+     "status": "SKIP",
+     "summary": "No production C/C++ translation units are in scope."
+    },
+    "complexity": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:0411acae226651ec6a82167dcbbbf2c7fff65a9fd83f50028001a312927aaf6e"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 1 functions (0 issues)"
+    },
+    "cycle": {
+     "evidence": "MEASURED",
+     "fingerprints": [],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "No cyclic dependencies detected"
+    },
+    "dead": {
+     "evidence": "ESTIMATED",
+     "fingerprints": [
+      "sha256:18040bb3d4d638442659ce359866e294a6103bd28efb0c4e00e8d351bdbad51d"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "No dead-code findings detected in the analyzed scopes"
+    },
+    "dup": {
+     "evidence": "ESTIMATED",
+     "fingerprints": [
+      "sha256:e8982d102c42c50d25fcc0a18e9e6b8c309c6e7c289800a688664dd11e90e520"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+    },
+    "exception": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:71b58ce0a95d199c3af2f6d95d7c127e3d9a3c044ae526b94aab2bf831a726ea"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Exception Handling Safety Clean"
+    },
+    "line": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:e808ea45a9d3b28a12be6cb638518e3e5182593f6d1e9276e2b94ced1750880f"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Total 5 lines (3 code, 0 comment, 2 blank) across 1 files"
+    },
+    "lint": {
+     "evidence": "ESTIMATED",
+     "fingerprints": [
+      "sha256:8c318d842eb228f61fde8f340466390bc89bff7ce84c4755a5ad2d68db70ddb2"
+     ],
+     "interpreter": null,
+     "status": "WARN",
+     "summary": "Ruff is unavailable; AST syntax fallback is ESTIMATED"
+    },
+    "python_compat": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:ea8b581363695d180e39c16fc36b389ea62eba08bd99cf3b4b5d9a2770c0d041",
+      "sha256:f04900080cc518ac5898660f86f324dcb2a42c4c95b6205e4c4ac5020e0f2ee7"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Python runtime and source compatibility verified"
+    },
+    "resource": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:fe66604e59e0c343c6097313d71ccd200cb4f092800d029b477c47a6f9016726"
+     ],
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Resource/correctness analysis clean across 1 file(s)"
+    },
+    "sanitize": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb"
+     ],
+     "interpreter": "<venv>/bin/../bin/python",
+     "status": "PASS",
+     "summary": "Memory Safety & Sanitize Clean (0 Defects)"
+    },
+    "security": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:9faa5d9591641db10fee6600f1d2d7d02561bbbc977ce70a73d3fb66376cf56d",
+      "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2"
+     ],
+     "interpreter": null,
+     "status": "WARN",
+     "summary": "Security hygiene: 1 finding(s)"
+    },
+    "test": {
+     "evidence": "MEASURED",
+     "fingerprints": [
+      "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+      "sha256:7033f4eef949ab7b9e7f7f7d0c2a434c14bd1a4161fb1a7da5e67ad98d4baa3f",
+      "sha256:e6fb1595535f1e9611d60ded69398eea8573ea058e654941e1d18c31d444ea2e",
+      "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923"
+     ],
+     "interpreter": "<venv>/bin/../bin/python",
+     "status": "PASS",
+     "summary": "1/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0"
+    },
+    "type": {
+     "evidence": "MEASURED",
+     "fingerprints": [],
+     "interpreter": "<venv>/bin/../bin/python",
+     "status": "PASS",
+     "summary": "Static Type Check Passed"
+    }
+   },
+   "exit_code": 0
+  }
+ },
+ "tree": {
+  "ici.toml": "type = \"python\"\n",
+  "src/a.py": "import subprocess\n\n\ndef f(command):\n    return subprocess.call(command, shell=True)\n",
+  "tests/test_a.py": "import sys\nsys.path.insert(0, \"src\")\nimport a\n\n\ndef test_f():\n    assert a.f(\"true\") == 0\n"
+ }
+}

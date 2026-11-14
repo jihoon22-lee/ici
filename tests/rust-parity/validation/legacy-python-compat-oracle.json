@@ -1,0 +1,1438 @@
+{
+  "pyz_sha256": "9e5f5751df033a2d51e9d09457bb35b7e81b05bf7cb750e93e31e62e61bef44f",
+  "runs": {
+    "analysis_unavailable_requires": {
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.python_compat]\nenabled = true\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "evidence": "NOT_RUN",
+      "exit_code": 1,
+      "extra": {
+        "ast_nodes": 0,
+        "configured_imports": [],
+        "discovered_imports": [],
+        "files_checked": 0,
+        "limitations": [
+          "Import smoke executes project module top-level code in a contained subprocess, not a sandbox",
+          "Static API rules cover a documented standard-library compatibility inventory",
+          "C-extension ABI compatibility belongs to package and binary artifact analysis"
+        ],
+        "requires_python": "",
+        "runtime_count": 0,
+        "target_version": "",
+        "wheel": {
+          "checked": 0,
+          "findings": [],
+          "policy": "allow-native",
+          "requested": [],
+          "state": "NOT_APPLICABLE"
+        }
+      },
+      "files": {
+        "app.py": "import json\n\n\ndef f():\n    return json.dumps({})\n",
+        "pyproject.toml": "[project]\nname = \"demo\"\nrequires-python = 3\n"
+      },
+      "findings": [
+        {
+          "category": "correctness",
+          "confidence": "low",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:0d2dee7ee8721cb7b408e55962d039736dc8d0c010467b9d0f61a4df05c4b969",
+          "fixes": [],
+          "message": "project.requires-python must be a string",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "Compatibility:AnalysisUnavailable",
+            "path": "pyproject.toml",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "critical",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "",
+          "tool_rule_id": "Compatibility:AnalysisUnavailable",
+          "tool_version": ""
+        }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Python compatibility analysis incomplete: project.requires-python must be a string",
+      "targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": "pyproject.toml",
+          "message": "project.requires-python must be a string",
+          "metrics": {},
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "Compatibility:AnalysisUnavailable"
+        }
+      ],
+      "tool_evidence": []
+    },
+    "analysis_unavailable_toml": {
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.python_compat]\nenabled = true\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "evidence": "NOT_RUN",
+      "exit_code": 1,
+      "extra": {
+        "ast_nodes": 0,
+        "configured_imports": [],
+        "discovered_imports": [],
+        "files_checked": 0,
+        "limitations": [
+          "Import smoke executes project module top-level code in a contained subprocess, not a sandbox",
+          "Static API rules cover a documented standard-library compatibility inventory",
+          "C-extension ABI compatibility belongs to package and binary artifact analysis"
+        ],
+        "requires_python": "",
+        "runtime_count": 0,
+        "target_version": "",
+        "wheel": {
+          "checked": 0,
+          "findings": [],
+          "policy": "allow-native",
+          "requested": [],
+          "state": "NOT_APPLICABLE"
+        }
+      },
+      "files": {
+        "app.py": "import json\n\n\ndef f():\n    return json.dumps({})\n",
+        "pyproject.toml": "[project\n"
+      },
+      "findings": [
+        {
+          "category": "correctness",
+          "confidence": "low",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:0d2dee7ee8721cb7b408e55962d039736dc8d0c010467b9d0f61a4df05c4b969",
+          "fixes": [],
+          "message": "pyproject.toml could not be read and parsed safely",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "Compatibility:AnalysisUnavailable",
+            "path": "pyproject.toml",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "critical",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "",
+          "tool_rule_id": "Compatibility:AnalysisUnavailable",
+          "tool_version": ""
+        }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Python compatibility analysis incomplete: pyproject.toml could not be read and parsed safely",
+      "targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": "pyproject.toml",
+          "message": "pyproject.toml could not be read and parsed safely",
+          "metrics": {},
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "Compatibility:AnalysisUnavailable"
+        }
+      ],
+      "tool_evidence": []
+    },
+    "import_smoke_failure": {
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.python_compat]\nenabled = true\ninterpreters = [\"<BARE>\"]\nrequired_interpreters = [\"<BARE>\"]\nimports = [\"app\", \"missing_module\"]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "evidence": "MEASURED",
+      "exit_code": 1,
+      "extra": {
+        "ast_nodes": 12,
+        "configured_imports": [
+          "app",
+          "missing_module"
+        ],
+        "discovered_imports": [
+          "app"
+        ],
+        "files_checked": 1,
+        "limitations": [
+          "Import smoke executes project module top-level code in a contained subprocess, not a sandbox",
+          "Static API rules cover a documented standard-library compatibility inventory",
+          "C-extension ABI compatibility belongs to package and binary artifact analysis"
+        ],
+        "requires_python": "",
+        "runtime_count": 0,
+        "target_version": "",
+        "wheel": {
+          "checked": 0,
+          "findings": [],
+          "policy": "allow-native",
+          "requested": [],
+          "state": "NOT_APPLICABLE"
+        }
+      },
+      "files": {
+        "app.py": "import json\n\n\ndef f():\n    return json.dumps({})\n"
+      },
+      "findings": [
+        {
+          "category": "correctness",
+          "confidence": "high",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:463babcf2cf121c3937e981b5a6c0300e73772595a6b01c11d7a6bf7f92b9326",
+          "fixes": [],
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "Compatibility:StaticScan",
+            "path": "app.py",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "info",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "python -VV",
+          "tool_rule_id": "Compatibility:StaticScan",
+          "tool_version": "3.12.13"
+        },
+        {
+          "category": "correctness",
+          "confidence": "high",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:85bcb139c1881e062e491e8f992ee483cb4eb8053779125fd855a74ba7aee6ad",
+          "fixes": [],
+          "message": "<BARE> (3.12.13): import smoke: exit code 1",
+          "metrics": {
+            "required": {
+              "unit": "",
+              "value": 1
+            }
+          },
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "PythonRuntime:Incompatible",
+            "path": ".",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "high",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "python -VV",
+          "tool_rule_id": "PythonRuntime:Incompatible",
+          "tool_version": "3.12.13"
+        }
+      ],
+      "required": false,
+      "status": "FAIL",
+      "summary": "Python compatibility: 1 failure(s), 0 warning(s)",
+      "targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": "app.py",
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Compatibility:StaticScan"
+        },
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": ".",
+          "message": "<BARE> (3.12.13): import smoke: exit code 1",
+          "metrics": {
+            "required": 1
+          },
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "FAIL",
+          "target_name": "PythonRuntime:Incompatible"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<BARE>",
+            "-VV"
+          ],
+          "error": "",
+          "name": "python -VV",
+          "path": "<BARE>",
+          "returncode": 0,
+          "timed_out": false,
+          "truncated": false,
+          "version": "3.12.13"
+        },
+        {
+          "argv": [
+            "<BARE>",
+            "-B",
+            "-m",
+            "compileall",
+            "-q",
+            "-f",
+            "<ROOT>"
+          ],
+          "error": "",
+          "name": "python -m compileall",
+          "path": "<BARE>",
+          "returncode": 0,
+          "timed_out": false,
+          "truncated": false,
+          "version": ""
+        },
+        {
+          "argv": [
+            "<BARE>",
+            "-I",
+            "-B",
+            "-c",
+            "import importlib,json,sys;sys.path[:0]=json.loads(sys.argv[1]);[importlib.import_module(name) for name in json.loads(sys.argv[2])];print('ici-import-smoke-ok')",
+            "[\"<ROOT>\",\"<ROOT>\"]",
+            "[\"app\",\"missing_module\"]"
+          ],
+          "error": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/home/jihoon/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py\", line 90, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1387, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1360, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1324, in _find_and_load_unlocked\nModuleNotFoundError: No module named 'missing_module'",
+          "name": "python import smoke",
+          "path": "<BARE>",
+          "returncode": 1,
+          "timed_out": false,
+          "truncated": false,
+          "version": ""
+        }
+      ]
+    },
+    "matrix_optional_unavailable": {
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.python_compat]\nenabled = true\ninterpreters = [\"<BARE>\", \"/nonexistent/python3.99\"]\nrequired_interpreters = [\"<BARE>\"]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "evidence": "MEASURED",
+      "exit_code": 0,
+      "extra": {
+        "ast_nodes": 12,
+        "configured_imports": [],
+        "discovered_imports": [
+          "app"
+        ],
+        "files_checked": 1,
+        "limitations": [
+          "Import smoke executes project module top-level code in a contained subprocess, not a sandbox",
+          "Static API rules cover a documented standard-library compatibility inventory",
+          "C-extension ABI compatibility belongs to package and binary artifact analysis"
+        ],
+        "requires_python": "",
+        "runtime_count": 1,
+        "target_version": "",
+        "wheel": {
+          "checked": 0,
+          "findings": [],
+          "policy": "allow-native",
+          "requested": [],
+          "state": "NOT_APPLICABLE"
+        }
+      },
+      "files": {
+        "app.py": "import json\n\n\ndef f():\n    return json.dumps({})\n"
+      },
+      "findings": [
+        {
+          "category": "correctness",
+          "confidence": "high",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:463babcf2cf121c3937e981b5a6c0300e73772595a6b01c11d7a6bf7f92b9326",
+          "fixes": [],
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "Compatibility:StaticScan",
+            "path": "app.py",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "info",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "python -VV",
+          "tool_rule_id": "Compatibility:StaticScan",
+          "tool_version": "3.12.13"
+        },
+        {
+          "category": "correctness",
+          "confidence": "high",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:8594f8d6805983c3838fba68dc63ec8419cf8f1efbdf09bee9c290b3b26a42ad",
+          "fixes": [],
+          "message": "Configured interpreter is unavailable: /nonexistent/python3.99",
+          "metrics": {
+            "required": {
+              "unit": "",
+              "value": 0
+            }
+          },
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "PythonRuntime:Unavailable",
+            "path": ".",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "medium",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "python -VV",
+          "tool_rule_id": "PythonRuntime:Unavailable",
+          "tool_version": "3.12.13"
+        },
+        {
+          "category": "correctness",
+          "confidence": "high",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:f04900080cc518ac5898660f86f324dcb2a42c4c95b6205e4c4ac5020e0f2ee7",
+          "fixes": [],
+          "message": "<BARE> (3.12.13) passed version and compileall checks",
+          "metrics": {
+            "imports": {
+              "unit": "",
+              "value": 0
+            },
+            "required": {
+              "unit": "",
+              "value": 1
+            }
+          },
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "PythonRuntime:Verified",
+            "path": ".",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "info",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "python -VV",
+          "tool_rule_id": "PythonRuntime:Verified",
+          "tool_version": "3.12.13"
+        }
+      ],
+      "required": false,
+      "status": "WARN",
+      "summary": "Python compatibility: 0 failure(s), 1 warning(s)",
+      "targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": "app.py",
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Compatibility:StaticScan"
+        },
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": ".",
+          "message": "<BARE> (3.12.13) passed version and compileall checks",
+          "metrics": {
+            "imports": 0,
+            "required": 1
+          },
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "PythonRuntime:Verified"
+        },
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": ".",
+          "message": "Configured interpreter is unavailable: /nonexistent/python3.99",
+          "metrics": {
+            "required": 0
+          },
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "PythonRuntime:Unavailable"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<BARE>",
+            "-VV"
+          ],
+          "error": "",
+          "name": "python -VV",
+          "path": "<BARE>",
+          "returncode": 0,
+          "timed_out": false,
+          "truncated": false,
+          "version": "3.12.13"
+        },
+        {
+          "argv": [
+            "<BARE>",
+            "-B",
+            "-m",
+            "compileall",
+            "-q",
+            "-f",
+            "<ROOT>"
+          ],
+          "error": "",
+          "name": "python -m compileall",
+          "path": "<BARE>",
+          "returncode": 0,
+          "timed_out": false,
+          "truncated": false,
+          "version": ""
+        }
+      ]
+    },
+    "not_applicable": {
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.python_compat]\nenabled = true\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "evidence": "NOT_APPLICABLE",
+      "exit_code": 2,
+      "extra": {},
+      "files": {
+        "README.md": "docs only\n"
+      },
+      "findings": [
+        {
+          "category": "correctness",
+          "confidence": "low",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:b3c8753872f64f09dc87ff96e55760ace2adf8529a9dafb70fd675557f043649",
+          "fixes": [],
+          "message": "No applicable Python source files were selected",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "PythonRuntime:NotApplicable",
+            "path": ".",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "info",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "",
+          "tool_rule_id": "PythonRuntime:NotApplicable",
+          "tool_version": ""
+        }
+      ],
+      "required": false,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files",
+      "targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": ".",
+          "message": "No applicable Python source files were selected",
+          "metrics": {},
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "PythonRuntime:NotApplicable"
+        }
+      ],
+      "tool_evidence": []
+    },
+    "required_unavailable": {
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.python_compat]\nenabled = true\ninterpreters = [\"/nonexistent/python3.99\"]\nrequired_interpreters = [\"/nonexistent/python3.99\"]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "evidence": "NOT_RUN",
+      "exit_code": 1,
+      "extra": {
+        "ast_nodes": 12,
+        "configured_imports": [],
+        "discovered_imports": [
+          "app"
+        ],
+        "files_checked": 1,
+        "limitations": [
+          "Import smoke executes project module top-level code in a contained subprocess, not a sandbox",
+          "Static API rules cover a documented standard-library compatibility inventory",
+          "C-extension ABI compatibility belongs to package and binary artifact analysis"
+        ],
+        "requires_python": "",
+        "runtime_count": 0,
+        "target_version": "",
+        "wheel": {
+          "checked": 0,
+          "findings": [],
+          "policy": "allow-native",
+          "requested": [],
+          "state": "NOT_APPLICABLE"
+        }
+      },
+      "files": {
+        "app.py": "import json\n\n\ndef f():\n    return json.dumps({})\n"
+      },
+      "findings": [
+        {
+          "category": "correctness",
+          "confidence": "low",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:463babcf2cf121c3937e981b5a6c0300e73772595a6b01c11d7a6bf7f92b9326",
+          "fixes": [],
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "Compatibility:StaticScan",
+            "path": "app.py",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "info",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "",
+          "tool_rule_id": "Compatibility:StaticScan",
+          "tool_version": ""
+        },
+        {
+          "category": "correctness",
+          "confidence": "low",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:8594f8d6805983c3838fba68dc63ec8419cf8f1efbdf09bee9c290b3b26a42ad",
+          "fixes": [],
+          "message": "Configured interpreter is unavailable: /nonexistent/python3.99",
+          "metrics": {
+            "required": {
+              "unit": "",
+              "value": 1
+            }
+          },
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "PythonRuntime:Unavailable",
+            "path": ".",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "critical",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "",
+          "tool_rule_id": "PythonRuntime:Unavailable",
+          "tool_version": ""
+        }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Configured interpreter is unavailable: /nonexistent/python3.99",
+      "targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": "app.py",
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Compatibility:StaticScan"
+        },
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": ".",
+          "message": "Configured interpreter is unavailable: /nonexistent/python3.99",
+          "metrics": {
+            "required": 1
+          },
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonRuntime:Unavailable"
+        }
+      ],
+      "tool_evidence": []
+    },
+    "requires_python_incompatible": {
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.python_compat]\nenabled = true\ninterpreters = [\"<BARE>\"]\nrequired_interpreters = [\"<BARE>\"]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "evidence": "MEASURED",
+      "exit_code": 1,
+      "extra": {
+        "ast_nodes": 12,
+        "configured_imports": [],
+        "discovered_imports": [
+          "app"
+        ],
+        "files_checked": 1,
+        "limitations": [
+          "Import smoke executes project module top-level code in a contained subprocess, not a sandbox",
+          "Static API rules cover a documented standard-library compatibility inventory",
+          "C-extension ABI compatibility belongs to package and binary artifact analysis"
+        ],
+        "requires_python": ">=3.13",
+        "runtime_count": 0,
+        "target_version": "3.13",
+        "wheel": {
+          "attempted": 0,
+          "checked": 0,
+          "entrypoints": 0,
+          "findings": [
+            "ici.package.import-distribution-mismatch"
+          ],
+          "invalid": 0,
+          "members": 0,
+          "policy": "allow-native",
+          "pure": false,
+          "requested": [],
+          "source_modules": 1,
+          "source_package_files": 1,
+          "state": "MEASURED",
+          "uncompressed_bytes": 0,
+          "wheels": []
+        }
+      },
+      "files": {
+        "app.py": "import json\n\n\ndef f():\n    return json.dumps({})\n",
+        "pyproject.toml": "[project]\nname = \"demo\"\nversion = \"1.0\"\nrequires-python = \">=3.13\"\n"
+      },
+      "findings": [
+        {
+          "category": "correctness",
+          "confidence": "high",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:2fc4e19921ebbad3574c62722425b64b00202e500c9fddbb718feb1707dc4d66",
+          "fixes": [],
+          "message": "Package inspection found 1 issue(s)",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "Package:SourceMetadata",
+            "path": "pyproject.toml",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "medium",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "python -VV",
+          "tool_rule_id": "Package:SourceMetadata",
+          "tool_version": "3.12.13"
+        },
+        {
+          "category": "compatibility",
+          "confidence": "exact",
+          "explanation": "The declared package contract does not match the inspected source or wheel.",
+          "fingerprint": "sha256:3d4b3c05df62b4a90a23eb7b1ca7fe0b1fc0337243de387c648e36ba01cbd9e8",
+          "fixes": [],
+          "message": "Distribution 'demo' exposes import package 'app'",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "",
+            "path": "pyproject.toml",
+            "start_column": null,
+            "start_line": 2
+          },
+          "related_locations": [],
+          "remediation": "Correct the package metadata or rebuild the wheel from the intended source tree.",
+          "rule_id": "ici.package.import-distribution-mismatch",
+          "severity": "medium",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "ici packaging inspector",
+          "tool_rule_id": "import-distribution-name",
+          "tool_version": ""
+        },
+        {
+          "category": "correctness",
+          "confidence": "high",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:463babcf2cf121c3937e981b5a6c0300e73772595a6b01c11d7a6bf7f92b9326",
+          "fixes": [],
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "Compatibility:StaticScan",
+            "path": "app.py",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "info",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "python -VV",
+          "tool_rule_id": "Compatibility:StaticScan",
+          "tool_version": "3.12.13"
+        },
+        {
+          "category": "correctness",
+          "confidence": "high",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:85bcb139c1881e062e491e8f992ee483cb4eb8053779125fd855a74ba7aee6ad",
+          "fixes": [],
+          "message": "<BARE> (3.12.13): does not satisfy requires-python >=3.13",
+          "metrics": {
+            "required": {
+              "unit": "",
+              "value": 1
+            }
+          },
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "PythonRuntime:Incompatible",
+            "path": ".",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "high",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "python -VV",
+          "tool_rule_id": "PythonRuntime:Incompatible",
+          "tool_version": "3.12.13"
+        }
+      ],
+      "required": false,
+      "status": "FAIL",
+      "summary": "Python compatibility: 1 failure(s), 1 warning(s)",
+      "targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": "app.py",
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Compatibility:StaticScan"
+        },
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": "pyproject.toml",
+          "message": "Package inspection found 1 issue(s)",
+          "metrics": {},
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Package:SourceMetadata"
+        },
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": ".",
+          "message": "<BARE> (3.12.13): does not satisfy requires-python >=3.13",
+          "metrics": {
+            "required": 1
+          },
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "FAIL",
+          "target_name": "PythonRuntime:Incompatible"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<BARE>",
+            "-VV"
+          ],
+          "error": "",
+          "name": "python -VV",
+          "path": "<BARE>",
+          "returncode": 0,
+          "timed_out": false,
+          "truncated": false,
+          "version": "3.12.13"
+        },
+        {
+          "argv": [
+            "<BARE>",
+            "-B",
+            "-m",
+            "compileall",
+            "-q",
+            "-f",
+            "<ROOT>"
+          ],
+          "error": "",
+          "name": "python -m compileall",
+          "path": "<BARE>",
+          "returncode": 0,
+          "timed_out": false,
+          "truncated": false,
+          "version": ""
+        }
+      ]
+    },
+    "syntax_unavailable": {
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.python_compat]\nenabled = true\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "evidence": "NOT_RUN",
+      "exit_code": 1,
+      "extra": {
+        "ast_nodes": 12,
+        "configured_imports": [],
+        "discovered_imports": [
+          "app",
+          "broken"
+        ],
+        "files_checked": 2,
+        "limitations": [
+          "Import smoke executes project module top-level code in a contained subprocess, not a sandbox",
+          "Static API rules cover a documented standard-library compatibility inventory",
+          "C-extension ABI compatibility belongs to package and binary artifact analysis"
+        ],
+        "requires_python": "",
+        "runtime_count": 0,
+        "target_version": "",
+        "wheel": {
+          "checked": 0,
+          "findings": [],
+          "policy": "allow-native",
+          "requested": [],
+          "state": "NOT_APPLICABLE"
+        }
+      },
+      "files": {
+        "app.py": "import json\n\n\ndef f():\n    return json.dumps({})\n",
+        "broken.py": "def broken(:\n    pass\n"
+      },
+      "findings": [
+        {
+          "category": "correctness",
+          "confidence": "low",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:463babcf2cf121c3937e981b5a6c0300e73772595a6b01c11d7a6bf7f92b9326",
+          "fixes": [],
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "Compatibility:StaticScan",
+            "path": "app.py",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "info",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "",
+          "tool_rule_id": "Compatibility:StaticScan",
+          "tool_version": ""
+        },
+        {
+          "category": "correctness",
+          "confidence": "low",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:fe00f29a0a552e8aae69ed161060f8f1b85f483cb113db8f2e7026cafcb24df6",
+          "fixes": [],
+          "message": "Current ici runtime cannot parse this Python source",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "Compatibility:SyntaxUnavailable",
+            "path": "broken.py",
+            "start_column": 12,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "critical",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "",
+          "tool_rule_id": "Compatibility:SyntaxUnavailable",
+          "tool_version": ""
+        }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "Python compatibility analysis incomplete: broken.py:1: Python syntax could not be parsed",
+      "targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": "app.py",
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Compatibility:StaticScan"
+        },
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": "broken.py",
+          "message": "Current ici runtime cannot parse this Python source",
+          "metrics": {},
+          "snippet": "",
+          "start_column": 12,
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "Compatibility:SyntaxUnavailable"
+        }
+      ],
+      "tool_evidence": []
+    },
+    "target_version_config_error": {
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.python_compat]\nenabled = true\ntarget_version = \"bogus\"\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "exit_code": 2,
+      "files": {
+        "app.py": "import json\n\n\ndef f():\n    return json.dumps({})\n"
+      },
+      "output": "Configuration error: engines.python_compat.target_version must be empty or a Python 3 minor such as 3.10"
+    },
+    "verified_launcher": {
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.python_compat]\nenabled = true\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "evidence": "MEASURED",
+      "exit_code": 0,
+      "extra": {
+        "ast_nodes": 12,
+        "configured_imports": [],
+        "discovered_imports": [
+          "app"
+        ],
+        "files_checked": 1,
+        "limitations": [
+          "Import smoke executes project module top-level code in a contained subprocess, not a sandbox",
+          "Static API rules cover a documented standard-library compatibility inventory",
+          "C-extension ABI compatibility belongs to package and binary artifact analysis"
+        ],
+        "requires_python": "",
+        "runtime_count": 1,
+        "target_version": "",
+        "wheel": {
+          "checked": 0,
+          "findings": [],
+          "policy": "allow-native",
+          "requested": [],
+          "state": "NOT_APPLICABLE"
+        }
+      },
+      "files": {
+        "app.py": "import json\n\n\ndef f():\n    return json.dumps({})\n"
+      },
+      "findings": [
+        {
+          "category": "correctness",
+          "confidence": "high",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:463babcf2cf121c3937e981b5a6c0300e73772595a6b01c11d7a6bf7f92b9326",
+          "fixes": [],
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "Compatibility:StaticScan",
+            "path": "app.py",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "info",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "python -VV",
+          "tool_rule_id": "Compatibility:StaticScan",
+          "tool_version": "3.12.13"
+        },
+        {
+          "category": "correctness",
+          "confidence": "high",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:f04900080cc518ac5898660f86f324dcb2a42c4c95b6205e4c4ac5020e0f2ee7",
+          "fixes": [],
+          "message": "<BARE> (3.12.13) passed version and compileall checks",
+          "metrics": {
+            "imports": {
+              "unit": "",
+              "value": 0
+            },
+            "required": {
+              "unit": "",
+              "value": 1
+            }
+          },
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "PythonRuntime:Verified",
+            "path": ".",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "info",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "python -VV",
+          "tool_rule_id": "PythonRuntime:Verified",
+          "tool_version": "3.12.13"
+        }
+      ],
+      "required": false,
+      "status": "PASS",
+      "summary": "Python runtime and source compatibility verified",
+      "targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": "app.py",
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Compatibility:StaticScan"
+        },
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": ".",
+          "message": "<BARE> (3.12.13) passed version and compileall checks",
+          "metrics": {
+            "imports": 0,
+            "required": 1
+          },
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "PythonRuntime:Verified"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<BARE>",
+            "-VV"
+          ],
+          "error": "",
+          "name": "python -VV",
+          "path": "<BARE>",
+          "returncode": 0,
+          "timed_out": false,
+          "truncated": false,
+          "version": "3.12.13"
+        },
+        {
+          "argv": [
+            "<BARE>",
+            "-B",
+            "-m",
+            "compileall",
+            "-q",
+            "-f",
+            "<ROOT>"
+          ],
+          "error": "",
+          "name": "python -m compileall",
+          "path": "<BARE>",
+          "returncode": 0,
+          "timed_out": false,
+          "truncated": false,
+          "version": ""
+        }
+      ]
+    },
+    "version_unavailable": {
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.python_compat]\nenabled = true\ninterpreters = [\"<SILENT>\"]\nrequired_interpreters = [\"<SILENT>\"]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "evidence": "NOT_RUN",
+      "exit_code": 1,
+      "extra": {
+        "ast_nodes": 12,
+        "configured_imports": [],
+        "discovered_imports": [
+          "app"
+        ],
+        "files_checked": 1,
+        "limitations": [
+          "Import smoke executes project module top-level code in a contained subprocess, not a sandbox",
+          "Static API rules cover a documented standard-library compatibility inventory",
+          "C-extension ABI compatibility belongs to package and binary artifact analysis"
+        ],
+        "requires_python": "",
+        "runtime_count": 0,
+        "target_version": "",
+        "wheel": {
+          "checked": 0,
+          "findings": [],
+          "policy": "allow-native",
+          "requested": [],
+          "state": "NOT_APPLICABLE"
+        }
+      },
+      "files": {
+        "app.py": "import json\n\n\ndef f():\n    return json.dumps({})\n"
+      },
+      "findings": [
+        {
+          "category": "correctness",
+          "confidence": "low",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:463babcf2cf121c3937e981b5a6c0300e73772595a6b01c11d7a6bf7f92b9326",
+          "fixes": [],
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "Compatibility:StaticScan",
+            "path": "app.py",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "info",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "python -VV",
+          "tool_rule_id": "Compatibility:StaticScan",
+          "tool_version": ""
+        },
+        {
+          "category": "correctness",
+          "confidence": "low",
+          "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+          "fingerprint": "sha256:ae19a9cf7415346e593b321a3bdc808c3a7dc7b5ea037ab243c9c919bd9df104",
+          "fixes": [],
+          "message": "<SILENT>: unparseable version",
+          "metrics": {},
+          "primary_location": {
+            "end_column": null,
+            "end_line": null,
+            "label": "PythonRuntime:VersionUnavailable",
+            "path": ".",
+            "start_column": null,
+            "start_line": 1
+          },
+          "related_locations": [],
+          "remediation": "",
+          "rule_id": "ici.legacy.python-compat.target",
+          "severity": "critical",
+          "snippet": "",
+          "suppression": {
+            "kind": "none",
+            "reason": "",
+            "suppressed": false
+          },
+          "tool_name": "python -VV",
+          "tool_rule_id": "PythonRuntime:VersionUnavailable",
+          "tool_version": ""
+        }
+      ],
+      "required": false,
+      "status": "ERROR",
+      "summary": "<SILENT>: unparseable version",
+      "targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": "app.py",
+          "message": "Python syntax-floor and standard-library API scan completed",
+          "metrics": {},
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Compatibility:StaticScan"
+        },
+        {
+          "end_column": null,
+          "end_line": null,
+          "file_path": ".",
+          "message": "<SILENT>: unparseable version",
+          "metrics": {},
+          "snippet": "",
+          "start_column": null,
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonRuntime:VersionUnavailable"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<SILENT>",
+            "-VV"
+          ],
+          "error": "",
+          "name": "python -VV",
+          "path": "<SILENT>",
+          "returncode": 0,
+          "timed_out": false,
+          "truncated": false,
+          "version": ""
+        }
+      ]
+    }
+  },
+  "silent": "#!/bin/sh\nexit 0\n",
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

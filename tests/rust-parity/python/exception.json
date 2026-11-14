@@ -1,0 +1,1060 @@
+{
+  "oracle_source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "oracle_python": "3.14.7",
+  "oracle_file_sha256": "a5acc4590b49881bd30ee197601d4fb11ec54679b37ade4e38c7a60919a9adc9",
+  "cases": [
+    {
+      "id": "reports_lost_traceback",
+      "source": "try:\n    work()\nexcept Exception as exc:\n    raise exc\n",
+      "targets": [
+        {
+          "name": "LostTraceback",
+          "line": 4,
+          "end_line": 4,
+          "message": "raise exc resets the traceback; use bare 'raise' to re-raise the caught exception",
+          "status": "WARN"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "distinguishes_bare_and_other_variable_raises",
+      "source": "try:\n    work()\nexcept Exception as exc:\n    raise RuntimeError(\"wrapped\")\n\ntry:\n    work()\nexcept Exception as exc:\n    raise\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "ignores_raise_in_nested_function_scope",
+      "source": "def make_handler():\n    try:\n        work()\n    except Exception as exc:\n        def later():\n            raise exc\n        return later\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "returns_pass_target_for_clean_python_source",
+      "source": "def work():\n    return 1\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "test_exception_default_mode_matches_pass_fail_policy",
+      "source": "try:\n    work()\nexcept Exception as exc:\n    raise exc\n",
+      "targets": [
+        {
+          "name": "LostTraceback",
+          "line": 4,
+          "end_line": 4,
+          "message": "raise exc resets the traceback; use bare 'raise' to re-raise the caught exception",
+          "status": "WARN"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "does_not_flag_explicit_raise_cause",
+      "source": "try:\n    work()\nexcept Exception as exc:\n    cause = RuntimeError(\"cause\")\n    raise exc from cause\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "flags_module_level_base_exception_aliases",
+      "source": "from builtins import BaseException as BE\nimport builtins as b\n\ntry:\n    work()\nexcept BE:\n    log()\n\ntry:\n    work()\nexcept b.BaseException:\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 6,
+          "end_line": 6,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 11,
+          "end_line": 11,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "does_not_flag_function_local_base_exception_alias_shadowing",
+      "source": "from builtins import BaseException as BE\nimport builtins as b\n\ndef handle(BE, b):\n    try:\n        work()\n    except BE:\n        log()\n    try:\n        work()\n    except b.BaseException:\n        log()\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "flags_function_scope_base_exception_aliases",
+      "source": "def handle():\n    from builtins import BaseException as BE\n    import builtins as b\n\n    try:\n        work()\n    except BE:\n        log()\n\n    try:\n        work()\n    except b.BaseException:\n        log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 7,
+          "end_line": 7,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 12,
+          "end_line": 12,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "flags_class_scope_base_exception_aliases",
+      "source": "class Handler:\n    from builtins import BaseException as CBE\n    import builtins as cb\n\n    try:\n        work()\n    except CBE:\n        log()\n\n    try:\n        work()\n    except cb.BaseException:\n        log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 7,
+          "end_line": 7,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 12,
+          "end_line": 12,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "does_not_leak_nested_alias_to_outer_or_sibling_scope",
+      "source": "def nested():\n    from builtins import BaseException as BE\n    try:\n        work()\n    except BE:\n        log()\n\ndef sibling():\n    try:\n        work()\n    except BE:\n        log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 5,
+          "end_line": 5,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "respects_assignment_and_import_shadowing_of_scoped_aliases",
+      "source": "def handle():\n    from builtins import BaseException as BE\n    import builtins as b\n    BE = ValueError\n    import math as b\n    try:\n        work()\n    except BE:\n        log()\n    try:\n        work()\n    except b.BaseException:\n        log()\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "keeps_aliases_possible_across_conditional_handler_paths",
+      "source": "from builtins import BaseException as BE\nimport builtins as b\n\ntry:\n    work()\nexcept ValueError:\n    BE = ValueError\n    b = object()\nexcept BE:\n    log()\n\ntry:\n    work()\nexcept ValueError:\n    BaseException = ValueError\nexcept BaseException:\n    log()\n\ntry:\n    work()\nexcept ValueError:\n    b = object()\nexcept b.BaseException:\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 9,
+          "end_line": 9,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 16,
+          "end_line": 16,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 23,
+          "end_line": 23,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "treats_control_flow_bindings_as_possible",
+      "source": "from builtins import BaseException as BE\nimport builtins as b\n\nif flag:\n    BE = ValueError\n    b = object()\ntry:\n    work()\nexcept BE:\n    log()\ntry:\n    work()\nexcept b.BaseException:\n    log()\n\nfor item in items:\n    BE = ValueError\n    b = object()\ntry:\n    work()\nexcept BE:\n    log()\ntry:\n    work()\nexcept b.BaseException:\n    log()\n\nwhile flag:\n    BE = ValueError\n    b = object()\ntry:\n    work()\nexcept BE:\n    log()\ntry:\n    work()\nexcept b.BaseException:\n    log()\n\ntry:\n    BE = ValueError\nexcept ValueError:\n    log()\ntry:\n    work()\nexcept BE:\n    log()\n\ntry:\n    work()\nexcept ValueError:\n    BE = ValueError\ntry:\n    work()\nexcept BE:\n    log()\n\nCBE = ValueError\ncb = object()\nwith manager() as BE:\n    log()\ntry:\n    work()\nexcept BE:\n    log()\nwith manager() as b:\n    log()\ntry:\n    work()\nexcept b.BaseException:\n    log()\nif first:\n    from builtins import BaseException as CBE\n    import builtins as cb\nif second:\n    CBE = ValueError\n    cb = object()\ntry:\n    work()\nexcept CBE:\n    log()\ntry:\n    work()\nexcept cb.BaseException:\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 9,
+          "end_line": 9,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 13,
+          "end_line": 13,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 21,
+          "end_line": 21,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 25,
+          "end_line": 25,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 33,
+          "end_line": 33,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 37,
+          "end_line": 37,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 46,
+          "end_line": 46,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 55,
+          "end_line": 55,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 64,
+          "end_line": 64,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 70,
+          "end_line": 70,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 80,
+          "end_line": 80,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 84,
+          "end_line": 84,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "does_not_leak_comprehension_targets",
+      "source": "from builtins import BaseException as BE\n[BE for BE in values]\n{BE for BE in values}\n{BE: BE for BE in values}\n(BE for BE in values)\ntry:\n    work()\nexcept BE:\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 8,
+          "end_line": 8,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "treats_loop_targets_as_conditional_bindings",
+      "source": "from builtins import BaseException as BE\nfor BE in values:\n    pass\ntry:\n    work()\nexcept BE:\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 6,
+          "end_line": 6,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "uses_last_alias_binding_before_handler",
+      "source": "def handle():\n    BE = ValueError\n    from builtins import BaseException as BE\n    b = object()\n    import builtins as b\n    try:\n        work()\n    except BE:\n        log()\n    try:\n        work()\n    except b.BaseException:\n        log()\n\ndef later():\n    try:\n        work()\n    except BE:\n        log()\n    from builtins import BaseException as BE\n    try:\n        work()\n    except b.BaseException:\n        log()\n    import builtins as b\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 8,
+          "end_line": 8,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 12,
+          "end_line": 12,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "resolves_module_aliases_at_function_execution_time",
+      "source": "def handle():\n    try:\n        work()\n    except BE:\n        log()\n    try:\n        work()\n    except b.BaseException:\n        log()\n\nfrom builtins import BaseException as BE\nimport builtins as b\nhandle()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 4,
+          "end_line": 4,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 8,
+          "end_line": 8,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "resolves_outer_aliases_after_nested_definition",
+      "source": "def outer():\n    def inner():\n        try:\n            work()\n        except BE:\n            log()\n        try:\n            work()\n        except b.BaseException:\n            log()\n    from builtins import BaseException as BE\n    import builtins as b\n    inner()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 5,
+          "end_line": 5,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 9,
+          "end_line": 9,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "keeps_enclosing_aliases_possible_after_child_call",
+      "source": "from builtins import BaseException as BE\nimport builtins as b\n\ndef handle():\n    try:\n        work()\n    except BE:\n        log()\n    try:\n        work()\n    except b.BaseException:\n        log()\n\nhandle()\nBE = ValueError\nb = object()\n\ndef direct():\n    try:\n        work()\n    except BaseException:\n        log()\n\ndirect()\nBaseException = ValueError\n\nBaseException = ValueError\ndef stable_shadow():\n    try:\n        work()\n    except BaseException:\n        log()\nstable_shadow()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 7,
+          "end_line": 7,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 11,
+          "end_line": 11,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 21,
+          "end_line": 21,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "keeps_outer_aliases_possible_after_nested_call",
+      "source": "def outer():\n    from builtins import BaseException as BE\n    import builtins as b\n    def inner():\n        nonlocal BE\n        try:\n            work()\n        except BE:\n            log()\n        try:\n            work()\n        except b.BaseException:\n            log()\n    inner()\n    BE = ValueError\n    b = object()\n\ndef outer_direct():\n    def inner():\n        try:\n            work()\n        except BaseException:\n            log()\n    inner()\n    BaseException = ValueError\n\nouter()\nouter_direct()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 8,
+          "end_line": 8,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 12,
+          "end_line": 12,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 22,
+          "end_line": 22,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "local_bindings_after_handler_shadow_outer_aliases",
+      "source": "from builtins import BaseException as BE\nimport builtins as b\n\ndef local_import():\n    try:\n        work()\n    except BE:\n        log()\n    from builtins import BaseException as BE\n\ndef local_assignment():\n    try:\n        work()\n    except b.BaseException:\n        log()\n    b = object()\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "evaluates_handler_type_before_handler_name_binding",
+      "source": "import builtins\n\ndef handle():\n    try:\n        work()\n    except BaseException as BaseException:\n        log()\n    try:\n        work()\n    except builtins.BaseException as builtins:\n        log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 6,
+          "end_line": 6,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 10,
+          "end_line": 10,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "does_not_apply_future_module_or_class_bindings",
+      "source": "import builtins\n\ntry:\n    work()\nexcept BaseException:\n    log()\ntry:\n    work()\nexcept builtins.BaseException:\n    log()\n\nclass Handler:\n    import builtins\n    try:\n        work()\n    except BaseException:\n        log()\n    BaseException = ValueError\n    builtins = object()\n    try:\n        work()\n    except BaseException:\n        log()\n    try:\n        work()\n    except builtins.BaseException:\n        log()\nBaseException = ValueError\nbuiltins = object()\ntry:\n    work()\nexcept BaseException:\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 5,
+          "end_line": 5,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 9,
+          "end_line": 9,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 16,
+          "end_line": 16,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "global_assignment_does_not_shadow_module_alias",
+      "source": "from builtins import BaseException as BE\n\ndef handle():\n    global BE\n    try:\n        work()\n    except BE:\n        log()\n    BE = ValueError\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 7,
+          "end_line": 7,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "treats_handler_targets_as_transient_bindings",
+      "source": "from builtins import BaseException as BE\nimport builtins as b\n\ntry:\n    work()\nexcept ValueError as BE:\n    try:\n        work()\n    except BE:\n        log()\nexcept BE:\n    log()\n\ntry:\n    work()\nexcept ValueError as b:\n    try:\n        work()\n    except b.BaseException:\n        log()\nexcept b.BaseException:\n    log()\n\ntry:\n    work()\nexcept ValueError as BE:\n    log()\ntry:\n    work()\nexcept BE:\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 11,
+          "end_line": 11,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 21,
+          "end_line": 21,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 30,
+          "end_line": 30,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "allows_alias_rebind_after_transient_handler",
+      "source": "from builtins import BaseException as BE\nimport builtins as b\n\ndef direct():\n    try:\n        work()\n    except ValueError as BE:\n        try:\n            work()\n        except BE:\n            log()\n        from builtins import BaseException as BE\n        try:\n            work()\n        except BE:\n            log()\n    try:\n        work()\n    except ValueError as b:\n        try:\n            work()\n        except b.BaseException:\n            log()\n        import builtins as b\n        try:\n            work()\n        except b.BaseException:\n            log()\n\ndef closure():\n    try:\n        work()\n    except ValueError as BE:\n        def inner():\n            try:\n                work()\n            except BE:\n                log()\n        from builtins import BaseException as BE\n        inner()\n    try:\n        work()\n    except ValueError as b:\n        def inner_b():\n            try:\n                work()\n            except b.BaseException:\n                log()\n        import builtins as b\n        inner_b()\n\ndirect()\nclosure()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 15,
+          "end_line": 15,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 27,
+          "end_line": 27,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 37,
+          "end_line": 37,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "BaseException",
+          "line": 47,
+          "end_line": 47,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "does_not_assume_unimported_builtins_module_alias",
+      "source": "try:\n    work()\nexcept builtins.BaseException:\n    log()\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "resolves_direct_builtin_after_delete",
+      "source": "BaseException = ValueError\ndel BaseException\n\ntry:\n    work()\nexcept BaseException:\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 6,
+          "end_line": 6,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "keeps_deleted_exception_alias_shadowed",
+      "source": "from builtins import BaseException as BE\ndel BE\n\ntry:\n    work()\nexcept BE:\n    log()\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "keeps_alias_possible_after_boolop_walrus",
+      "source": "from builtins import BaseException as BE\nFalse and (BE := ValueError)\n\ntry:\n    work()\nexcept BE:\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 6,
+          "end_line": 6,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "keeps_alias_possible_after_ifexp_walrus",
+      "source": "from builtins import BaseException as BE\nvalue = (BE := ValueError) if condition else None\n\ntry:\n    work()\nexcept BE:\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 6,
+          "end_line": 6,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "second_with_context_is_conditional",
+      "source": "from builtins import BaseException as BE\nwith first(), (BE := second()):\n    pass\n\ntry:\n    work()\nexcept BE:\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 7,
+          "end_line": 7,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "bare_swallow",
+      "source": "try:\n    work()\nexcept:\n    pass\n",
+      "targets": [
+        {
+          "name": "BareExcept",
+          "line": 3,
+          "end_line": 4,
+          "message": "Dangerous bare 'except:' clause catches all exceptions",
+          "status": "FAIL"
+        },
+        {
+          "name": "ErrorSwallowing",
+          "line": 3,
+          "end_line": 4,
+          "message": "Silent exception swallowing: handler only contains pass",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "ellipsis_swallow",
+      "source": "try:\n    work()\nexcept ValueError:\n    ...\n",
+      "targets": [
+        {
+          "name": "ErrorSwallowing",
+          "line": 3,
+          "end_line": 4,
+          "message": "Silent exception swallowing: handler only contains pass",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "base_tuple",
+      "source": "import builtins\ntry:\n    work()\nexcept (ValueError,builtins.BaseException):\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 4,
+          "end_line": 4,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "except_star",
+      "source": "try:\n    work()\nexcept* BaseException as error:\n    raise error\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 3,
+          "end_line": 3,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "LostTraceback",
+          "line": 4,
+          "end_line": 4,
+          "message": "raise error resets the traceback; use bare 'raise' to re-raise the caught exception",
+          "status": "WARN"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "definite_match_module",
+      "source": "match value:\n    case BaseException:\n        pass\ntry:\n    work()\nexcept BaseException:\n    log()\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "possible_match_module",
+      "source": "match value:\n    case BaseException if condition:\n        pass\n    case _:\n        pass\ntry:\n    work()\nexcept BaseException:\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 8,
+          "end_line": 8,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "conditional_delete_module",
+      "source": "BaseException = ValueError\nif condition:\n    del BaseException\ntry:\n    work()\nexcept BaseException:\n    log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 6,
+          "end_line": 6,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "definite_match_function",
+      "source": "def handle(value):\n    match value:\n        case BaseException:\n            pass\n    try:\n        work()\n    except BaseException:\n        log()\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "possible_match_function",
+      "source": "def handle(value):\n    match value:\n        case BaseException if condition:\n            pass\n        case _:\n            pass\n    try:\n        work()\n    except BaseException:\n        log()\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "conditional_delete_function",
+      "source": "def handle(value):\n    BaseException = ValueError\n    if condition:\n        del BaseException\n    try:\n        work()\n    except BaseException:\n        log()\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "definite_match_class",
+      "source": "class Handler:\n    match value:\n        case BaseException:\n            pass\n    try:\n        work()\n    except BaseException:\n        log()\n",
+      "targets": [
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "possible_match_class",
+      "source": "class Handler:\n    match value:\n        case BaseException if condition:\n            pass\n        case _:\n            pass\n    try:\n        work()\n    except BaseException:\n        log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 9,
+          "end_line": 9,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "conditional_delete_class",
+      "source": "class Handler:\n    BaseException = ValueError\n    if condition:\n        del BaseException\n    try:\n        work()\n    except BaseException:\n        log()\n",
+      "targets": [
+        {
+          "name": "BaseException",
+          "line": 7,
+          "end_line": 7,
+          "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+          "status": "FAIL"
+        },
+        {
+          "name": "PythonExceptionSafety",
+          "line": 1,
+          "end_line": null,
+          "message": "Python exception handlers were inspected; see findings above",
+          "status": "PASS"
+        }
+      ]
+    }
+  ]
+}

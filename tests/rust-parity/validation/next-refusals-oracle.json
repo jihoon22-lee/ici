@@ -1,0 +1,5045 @@
+{
+  "runs": {
+    "coverage-without-test": {
+      "check": "python.coverage",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/tests/test_a.py": "def test_a():\n    pass\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.coverage"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.coverage: python.coverage reads the test run's data \u2014 enable python.test"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.coverage: blocked \u2014 python.coverage reads the test run's data \u2014 enable python.test",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.coverage": [
+            "BLOCKED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.coverage",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "BLOCKED",
+              "task_id": "app.python.coverage",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.compat",
+              "variant": null
+            }
+          ],
+          "findings": [],
+          "limitations": [
+            "python.coverage reads the test run's data \u2014 enable python.test",
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "no requires-python floor could be inferred \u2014 the syntax and standard-library floors were not asserted",
+            "static API rules cover a documented standard-library compatibility inventory \u2014 absence of a finding is not proof of compatibility",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 3.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 3,
+              "unit": "lines",
+              "value": 3.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 2,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 2,
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": false,
+            "kind": "partial",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py",
+              "app/tests/test_a.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD"
+          ]
+        }
+      }
+    },
+    "coverage-without-test-named-enabled": {
+      "check": "python.coverage",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/tests/test_a.py": "def test_a():\n    pass\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "compileall_ran": false,
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.coverage: blocked \u2014 python.coverage reads the test run's data \u2014 enable python.test",
+        "required_complete": true,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.coverage": [
+            "BLOCKED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.coverage",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "BLOCKED",
+              "task_id": "app.python.coverage",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.compat",
+              "variant": null
+            }
+          ],
+          "findings": [],
+          "limitations": [
+            "python.coverage reads the test run's data \u2014 enable python.test",
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "no requires-python floor could be inferred \u2014 the syntax and standard-library floors were not asserted",
+            "static API rules cover a documented standard-library compatibility inventory \u2014 absence of a finding is not proof of compatibility",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 3.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 3,
+              "unit": "lines",
+              "value": 3.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 2,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 2,
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": true,
+            "kind": "full",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py",
+              "app/tests/test_a.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD"
+          ]
+        }
+      }
+    },
+    "finding-named-enabled": {
+      "check": "python.security",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[checks.\"python.security\"]\nenabled = true\n",
+      "files": {
+        "app/m.py": "import subprocess\nsubprocess.call(\"ls\", shell=True)\neval(\"1\")\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "compileall_ran": false,
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": null,
+        "required_complete": true,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.compat",
+              "variant": null
+            }
+          ],
+          "findings": [
+            {
+              "component_id": "app",
+              "confidence": "high",
+              "evidence": "MEASURED",
+              "fingerprint": "sha256:89af80e4e78f09ff24716c117a72115dfb72710122feac4d6202ca13fa7520b7",
+              "message": "subprocess shell=True expands input through a command processor",
+              "native_rule_id": "Security:ShellTrue",
+              "primary_location": {
+                "end_column": 33,
+                "end_line": 2,
+                "path": "m.py",
+                "start_column": 1,
+                "start_line": 2
+              },
+              "provider": "ici.hygiene",
+              "rule_id": "security.shelltrue",
+              "severity": "high",
+              "task_id": "app.python.security"
+            },
+            {
+              "component_id": "app",
+              "confidence": "high",
+              "evidence": "MEASURED",
+              "fingerprint": "sha256:66b3f87efff7ff1443780ebf7af4a82482286bc64dc6eb533e62bf79d9819155",
+              "message": "Dynamic code execution accepts untrusted input",
+              "native_rule_id": "Security:EvalExec",
+              "primary_location": {
+                "end_column": 9,
+                "end_line": 3,
+                "path": "m.py",
+                "start_column": 1,
+                "start_line": 3
+              },
+              "provider": "ici.hygiene",
+              "rule_id": "security.evalexec",
+              "severity": "high",
+              "task_id": "app.python.security"
+            }
+          ],
+          "limitations": [
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "no requires-python floor could be inferred \u2014 the syntax and standard-library floors were not asserted",
+            "static API rules cover a documented standard-library compatibility inventory \u2014 absence of a finding is not proof of compatibility",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 3.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 3,
+              "unit": "lines",
+              "value": 3.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 1,
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 2,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": true,
+            "kind": "full",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD"
+          ]
+        }
+      }
+    },
+    "finding-unnamed": {
+      "check": "python.security",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/m.py": "import subprocess\nsubprocess.call(\"ls\", shell=True)\neval(\"1\")\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "compileall_ran": false,
+        "exit_code": 1,
+        "failed": [],
+        "gate": {
+          "has_violations": true,
+          "reasons": [
+            "2 violation(s) found"
+          ],
+          "selected": "FAIL",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": null,
+        "required_complete": true,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.compat",
+              "variant": null
+            }
+          ],
+          "findings": [
+            {
+              "component_id": "app",
+              "confidence": "high",
+              "evidence": "MEASURED",
+              "fingerprint": "sha256:89af80e4e78f09ff24716c117a72115dfb72710122feac4d6202ca13fa7520b7",
+              "message": "subprocess shell=True expands input through a command processor",
+              "native_rule_id": "Security:ShellTrue",
+              "primary_location": {
+                "end_column": 33,
+                "end_line": 2,
+                "path": "m.py",
+                "start_column": 1,
+                "start_line": 2
+              },
+              "provider": "ici.hygiene",
+              "rule_id": "security.shelltrue",
+              "severity": "high",
+              "task_id": "app.python.security"
+            },
+            {
+              "component_id": "app",
+              "confidence": "high",
+              "evidence": "MEASURED",
+              "fingerprint": "sha256:66b3f87efff7ff1443780ebf7af4a82482286bc64dc6eb533e62bf79d9819155",
+              "message": "Dynamic code execution accepts untrusted input",
+              "native_rule_id": "Security:EvalExec",
+              "primary_location": {
+                "end_column": 9,
+                "end_line": 3,
+                "path": "m.py",
+                "start_column": 1,
+                "start_line": 3
+              },
+              "provider": "ici.hygiene",
+              "rule_id": "security.evalexec",
+              "severity": "high",
+              "task_id": "app.python.security"
+            }
+          ],
+          "limitations": [
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "no requires-python floor could be inferred \u2014 the syntax and standard-library floors were not asserted",
+            "static API rules cover a documented standard-library compatibility inventory \u2014 absence of a finding is not proof of compatibility",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 3.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 3,
+              "unit": "lines",
+              "value": 3.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 1,
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 2,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": true,
+            "kind": "full",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD"
+          ]
+        }
+      }
+    },
+    "metadata-advisory": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": "[project\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: pyproject.toml could not be read and parsed safely"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: pyproject.toml could not be read and parsed safely",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "FAILED",
+              "task_id": "app.python.compat",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat-runtime",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "BLOCKED",
+              "task_id": "app.python.compat-runtime",
+              "variant": null
+            }
+          ],
+          "findings": [],
+          "limitations": [
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 1,
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 1,
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": false,
+            "kind": "partial",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD"
+          ]
+        }
+      }
+    },
+    "metadata-floor-invalid": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": "[project]\nrequires-python = \"bogus\"\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: project.requires-python is invalid: 'bogus'",
+            "app.python.compat-runtime: python metadata unreadable: project.requires-python is invalid: 'bogus'"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: project.requires-python is invalid: 'bogus'",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "FAILED",
+              "task_id": "app.python.compat",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat-runtime",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "BLOCKED",
+              "task_id": "app.python.compat-runtime",
+              "variant": null
+            }
+          ],
+          "findings": [],
+          "limitations": [
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "python metadata unreadable: project.requires-python is invalid: 'bogus'",
+            "python metadata unreadable: project.requires-python is invalid: 'bogus'",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 1,
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 1,
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": false,
+            "kind": "partial",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD"
+          ]
+        }
+      }
+    },
+    "metadata-floor-not-string": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": "[project]\nrequires-python = 3\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: project.requires-python must be a string",
+            "app.python.compat-runtime: python metadata unreadable: project.requires-python must be a string"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: project.requires-python must be a string",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "FAILED",
+              "task_id": "app.python.compat",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat-runtime",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "BLOCKED",
+              "task_id": "app.python.compat-runtime",
+              "variant": null
+            }
+          ],
+          "findings": [],
+          "limitations": [
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "python metadata unreadable: project.requires-python must be a string",
+            "python metadata unreadable: project.requires-python must be a string",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 1,
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 1,
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": false,
+            "kind": "partial",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD"
+          ]
+        }
+      }
+    },
+    "metadata-project-not-table": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": "project = 1\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: pyproject.toml [project] must be a table",
+            "app.python.compat-runtime: python metadata unreadable: pyproject.toml [project] must be a table"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: pyproject.toml [project] must be a table",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "FAILED",
+              "task_id": "app.python.compat",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat-runtime",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "BLOCKED",
+              "task_id": "app.python.compat-runtime",
+              "variant": null
+            }
+          ],
+          "findings": [],
+          "limitations": [
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "python metadata unreadable: pyproject.toml [project] must be a table",
+            "python metadata unreadable: pyproject.toml [project] must be a table",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 1,
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 1,
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": false,
+            "kind": "partial",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD"
+          ]
+        }
+      }
+    },
+    "metadata-readable-control": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": "[project]\nrequires-python = \">=3.8\"\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "compileall_ran": true,
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": null,
+        "required_complete": true,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.compat-runtime": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.compat",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat-runtime",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.compat-runtime.version",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat-runtime",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.compat-runtime.compileall",
+              "variant": null
+            }
+          ],
+          "findings": [],
+          "limitations": [
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "floor asserted: Python 3.8 (from requires-python '>=3.8')",
+            "static API rules cover a documented standard-library compatibility inventory \u2014 absence of a finding is not proof of compatibility",
+            "measured runtime: Python 3.10.21",
+            "runtime satisfies requires-python '>=3.8'",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 1,
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 1,
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "compileall.checked",
+              "unit": "files",
+              "value": 1.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": true,
+            "kind": "full",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              ".ici/cache/pycache/compat/tmp/ici-next-refusal-svo22igc/project/app/m.cpython-310.pyc",
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD",
+            "project-python -VV",
+            "project-python -B -m compileall -q -f m.py"
+          ]
+        }
+      }
+    },
+    "metadata-required": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": "[project\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "app.python.compat-runtime: python metadata unreadable: pyproject.toml could not be read and parsed safely"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: pyproject.toml could not be read and parsed safely",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "FAILED",
+              "task_id": "app.python.compat",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat-runtime",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "BLOCKED",
+              "task_id": "app.python.compat-runtime",
+              "variant": null
+            }
+          ],
+          "findings": [],
+          "limitations": [
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 1,
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 1,
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": false,
+            "kind": "partial",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD"
+          ]
+        }
+      }
+    },
+    "metadata-symlinked": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": {
+          "link": "../real.toml"
+        },
+        "real.toml": "[project]\nrequires-python = \">=3.8\"\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "app.python.compat-runtime: python metadata unreadable: pyproject.toml could not be read and parsed safely"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: pyproject.toml could not be read and parsed safely",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "FAILED",
+              "task_id": "app.python.compat",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat-runtime",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "BLOCKED",
+              "task_id": "app.python.compat-runtime",
+              "variant": null
+            }
+          ],
+          "findings": [],
+          "limitations": [
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 1,
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 1,
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": false,
+            "kind": "partial",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD"
+          ]
+        }
+      }
+    },
+    "metadata-workspace-floor": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "pyproject.toml": "[project\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "app.python.compat-runtime: python metadata unreadable: pyproject.toml could not be read and parsed safely"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: pyproject.toml could not be read and parsed safely",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "FAILED",
+              "task_id": "app.python.compat",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat-runtime",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "BLOCKED",
+              "task_id": "app.python.compat-runtime",
+              "variant": null
+            }
+          ],
+          "findings": [],
+          "limitations": [
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 1,
+              "unit": "lines",
+              "value": 1.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 1,
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 1,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": false,
+            "kind": "partial",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD"
+          ]
+        }
+      }
+    },
+    "test-paths-none": {
+      "check": "python.test",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\ntest_paths = [\"tests/none\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/tests/test_a.py": "def test_a():\n    pass\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.test"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.test: declared test_paths matched no files"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.test: blocked \u2014 declared test_paths matched no files",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ],
+          "python.test": [
+            "BLOCKED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.test",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "BLOCKED",
+              "task_id": "app.python.test",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.compat",
+              "variant": null
+            }
+          ],
+          "findings": [],
+          "limitations": [
+            "declared test_paths matched no files",
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "no requires-python floor could be inferred \u2014 the syntax and standard-library floors were not asserted",
+            "static API rules cover a documented standard-library compatibility inventory \u2014 absence of a finding is not proof of compatibility",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 3.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 3,
+              "unit": "lines",
+              "value": 3.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 2,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 2,
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": false,
+            "kind": "partial",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py",
+              "app/tests/test_a.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD"
+          ]
+        }
+      }
+    },
+    "test-paths-none-named-enabled": {
+      "check": "python.test",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\ntest_paths = [\"tests/none\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/tests/test_a.py": "def test_a():\n    pass\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "compileall_ran": false,
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.test: blocked \u2014 declared test_paths matched no files",
+        "required_complete": true,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ],
+          "python.test": [
+            "BLOCKED"
+          ]
+        },
+        "strict": {
+          "checks": [
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.line",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.line",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.test",
+              "component_id": "app",
+              "evidence_complete": false,
+              "language": "python",
+              "state": "BLOCKED",
+              "task_id": "app.python.test",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.complexity",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.complexity",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cognitive",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cognitive",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.cycle",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.cycle",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dup",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dup",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.security",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.security",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.resource",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.resource",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.exception",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.exception",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.dead",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.dead",
+              "variant": null
+            },
+            {
+              "analysis_unit_id": "app.python",
+              "check_id": "python.compat",
+              "component_id": "app",
+              "evidence_complete": true,
+              "language": "python",
+              "state": "SUCCEEDED",
+              "task_id": "app.python.compat",
+              "variant": null
+            }
+          ],
+          "findings": [],
+          "limitations": [
+            "declared test_paths matched no files",
+            "AST-shape semantic clustering is not carried yet \u2014 matches are lexical Type-2 clones only",
+            "no requires-python floor could be inferred \u2014 the syntax and standard-library floors were not asserted",
+            "static API rules cover a documented standard-library compatibility inventory \u2014 absence of a finding is not proof of compatibility",
+            "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+          ],
+          "metrics": [
+            {
+              "evidence": "MEASURED",
+              "name": "lines_total",
+              "unit": "lines",
+              "value": 3.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_code",
+              "numerator": 3,
+              "unit": "lines",
+              "value": 3.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_comment",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "lines_blank",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "denominator": 2,
+              "evidence": "MEASURED",
+              "name": "files_counted",
+              "numerator": 2,
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_complexity",
+              "unit": "complexity",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "functions_measured",
+              "unit": "functions",
+              "value": 1.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "max_cognitive",
+              "unit": "cognitive",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "cycles_found",
+              "unit": "cycles",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "clone_groups",
+              "unit": "groups",
+              "value": 0.0
+            },
+            {
+              "denominator": 3,
+              "evidence": "MEASURED",
+              "name": "duplicated_lines",
+              "numerator": 0,
+              "unit": "lines",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "issues_found",
+              "unit": "issues",
+              "value": 0.0
+            },
+            {
+              "evidence": "MEASURED",
+              "name": "files_checked",
+              "unit": "files",
+              "value": 2.0
+            }
+          ],
+          "plan_changes": {
+            "created": [],
+            "deleted": [],
+            "modified": []
+          },
+          "plan_probes": [],
+          "scope": {
+            "full_required_satisfied": true,
+            "kind": "full",
+            "omitted_components": [],
+            "required_components": [
+              "app"
+            ],
+            "selected_components": [
+              "app"
+            ],
+            "selected_languages": [
+              "python"
+            ]
+          },
+          "source": {
+            "dirty": true,
+            "files": [
+              "app/m.py",
+              "app/tests/test_a.py"
+            ]
+          },
+          "verify_changes": {
+            "created": [
+              "out/result.json"
+            ],
+            "deleted": [],
+            "modified": []
+          },
+          "verify_probes": [
+            "git rev-parse HEAD"
+          ]
+        }
+      }
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

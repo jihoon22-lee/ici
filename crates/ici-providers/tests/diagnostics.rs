@@ -1,0 +1,994 @@
+use ici_domain::{EvidenceLevel, TaskState, sha256};
+use ici_execution::TaskOutcome;
+use ici_providers::{
+    ProviderKind, ProviderPlan, ProviderRequest, observe, observe_full, plan,
+    resolver::{ResolvedTool, ToolSource},
+};
+use serde_json::{Value, json};
+use std::path::PathBuf;
+fn fixture(kind: ProviderKind) -> ProviderPlan {
+    let tool = ResolvedTool {
+        id: kind.name().into(),
+        path: PathBuf::from("/usr/bin/true"),
+        source: ToolSource::Explicit,
+        digest: sha256("replay executable"),
+        version: None,
+        configuration: vec![],
+    };
+    let mut request = ProviderRequest::new(
+        kind,
+        tool,
+        "/workspace",
+        "/workspace",
+        vec!["main.py".into(), "pkg/λ.py".into()],
+        "component.check",
+    );
+    request.component_id = Some("component".into());
+    request.analysis_unit_ids = vec!["unit".into()];
+    request.variant = Some("debug".into());
+    if matches!(kind, ProviderKind::Compiler) {
+        request.options.compiler_argv = vec!["g++".into(), "-c".into(), "main.py".into()];
+        request.options.source_token = Some("main.py".into());
+    }
+    if matches!(kind, ProviderKind::ClangTidy | ProviderKind::Clazy) {
+        request.options.database_dir = Some("build".into());
+    }
+    plan(&request).unwrap()
+}
+fn outcome(plan: &ProviderPlan, stdout: &str, stderr: &str, exit: i32) -> TaskOutcome {
+    let mut result = TaskOutcome::empty(&plan.task.id);
+    result.state = TaskState::Succeeded;
+    result.exit_code = Some(exit);
+    result.stdout = stdout.as_bytes().to_vec();
+    result.stderr = stderr.as_bytes().to_vec();
+    result
+}
+fn ruff_item() -> Value {
+    json!({"filename":"/workspace/pkg/λ.py", "code":"F821", "message":"Undefined name `missing`", "location":{"row":2,"column":3}, "end_location":{"row":2,"column":10}})
+}
+#[test]
+fn ruff_preserves_unicode_location_inclusive_end_and_frozen_fingerprint() {
+    let plan = fixture(ProviderKind::RuffLint);
+    let raw = json!([ruff_item()]).to_string();
+    let result = observe_full(&plan, &outcome(&plan, &raw, "", 1));
+    assert_eq!(result.observation.state, TaskState::Succeeded);
+    let finding = &result.observation.findings[0];
+    assert_eq!(finding.primary_location.path, "pkg/λ.py");
+    assert_eq!(finding.primary_location.start_line, 2);
+    assert_eq!(finding.primary_location.start_column, Some(3));
+    assert_eq!(finding.primary_location.end_column, Some(9));
+    assert_eq!(
+        finding.fingerprint,
+        "sha256:e88263387a510086abe812c49961dcce4781c0f36522af8e7bf77a8f78e21ecf"
+    );
+    assert_eq!(finding.analysis_unit_id.as_deref(), Some("unit"));
+    assert_eq!(finding.component_id.as_deref(), Some("component"));
+    assert_eq!(
+        result
+            .targets
+            .iter()
+            .find(|target| target.file_path == "main.py")
+            .unwrap()
+            .status,
+        "SKIP"
+    );
+}
+#[test]
+fn malformed_missing_and_truncated_native_output_never_becomes_empty_success() {
+    let plan = fixture(ProviderKind::RuffLint);
+    for text in ["{}", "[", "[{\"filename\":\"main.py\"}]", "[null]"] {
+        let observation = observe(&plan, &outcome(&plan, text, "", 0));
+        assert_eq!(observation.state, TaskState::Failed, "{text}");
+    }
+    let mut bad = ruff_item();
+    bad["location"]["row"] = json!(true);
+    assert_eq!(
+        observe(&plan, &outcome(&plan, &json!([bad]).to_string(), "", 1)).state,
+        TaskState::Failed
+    );
+    assert_eq!(
+        observe(&plan, &outcome(&plan, "[]", "", 1)).state,
+        TaskState::Failed
+    );
+    let mut raw = outcome(&plan, &json!([ruff_item()]).to_string(), "", 1);
+    raw.truncated = true;
+    let observation = observe(&plan, &raw);
+    assert!(observation.findings.is_empty());
+    assert!(!observation.evidence_is_complete());
+    raw.truncated = false;
+    raw.task_id = "wrong".into();
+    assert_eq!(observe(&plan, &raw).state, TaskState::Failed);
+}
+#[test]
+fn ruff_formats_both_dialects_and_refuses_unattributed_summary() {
+    let plan = fixture(ProviderKind::RuffFormat);
+    for text in [
+        "Would reformat: main.py\n1 file would be reformatted\n",
+        "unformatted: File would be reformatted\n  --> main.py:2:3\n   |\n 1 - old\n 2 + new\n1 file would be reformatted\n",
+    ] {
+        let observation = observe(&plan, &outcome(&plan, text, "", 1));
+        assert_eq!(observation.state, TaskState::Succeeded, "{observation:?}");
+        assert_eq!(observation.findings.len(), 1);
+    }
+    assert_eq!(
+        observe(
+            &plan,
+            &outcome(&plan, "1 file would be reformatted\n", "", 1)
+        )
+        .state,
+        TaskState::Failed
+    );
+    assert_eq!(
+        observe(&plan, &outcome(&plan, "1 file already formatted\n", "", 0)).state,
+        TaskState::Succeeded
+    );
+}
+#[test]
+fn ty_sarif_preserves_native_severity_and_rejects_unmapped_uris() {
+    let plan = fixture(ProviderKind::Ty);
+    let mut item = json!({"ruleId":"invalid-assignment", "level":"error", "message":{"text":"not assignable"}, "locations":[{"physicalLocation":{"artifactLocation":{"uri":"file:///workspace/pkg/%CE%BB.py"},"region":{"startLine":2,"startColumn":3,"endColumn":8}}}]});
+    let document = |item: Value| {
+        json!({"version":"2.1.0", "runs":[{"tool":{"driver":{"name":"ty"}},"results":[item]}]})
+            .to_string()
+    };
+    let observation = observe(&plan, &outcome(&plan, &document(item.clone()), "", 1));
+    assert_eq!(observation.state, TaskState::Succeeded);
+    assert_eq!(observation.findings[0].primary_location.path, "pkg/λ.py");
+    assert!(
+        observation.findings[0]
+            .tags
+            .contains(&"native-severity:error".into())
+    );
+    assert_eq!(observation.findings[0].evidence, EvidenceLevel::Measured);
+    item["locations"][0]["physicalLocation"]["artifactLocation"]["uriBaseId"] = json!("UNKNOWN");
+    assert_eq!(
+        observe(&plan, &outcome(&plan, &document(item), "", 1)).state,
+        TaskState::Failed
+    );
+}
+#[test]
+fn mypy_notes_are_preserved_and_unknown_context_is_failed() {
+    let plan = fixture(ProviderKind::Mypy);
+    let observation = observe(
+        &plan,
+        &outcome(
+            &plan,
+            "main.py:1:4: error: bad type [assignment]\nmain.py:2: note: expected int\nFound 1 error in 1 file (checked 1 source file)\n",
+            "",
+            1,
+        ),
+    );
+    assert_eq!(observation.state, TaskState::Succeeded, "{observation:?}");
+    assert_eq!(observation.findings.len(), 2);
+    assert_eq!(observation.findings[0].native_rule_id, "assignment");
+    assert_eq!(observation.findings[1].severity, "low");
+    assert_eq!(
+        observe(&plan, &outcome(&plan, "unexpected plugin output", "", 0)).state,
+        TaskState::Failed
+    );
+}
+#[test]
+fn eslint_enumerates_clean_files_and_native_ignore_is_not_an_inspection_pass() {
+    let plan = fixture(ProviderKind::Eslint);
+    let raw = json!([{"filePath":"/workspace/main.py", "messages":[]}, {"filePath":"/workspace/pkg/λ.py","messages":[{"severity":1,"ruleId":null,"message":"File ignored because of a matching ignore pattern. Use --no-ignore to override."}]}]).to_string();
+    let result = observe_full(&plan, &outcome(&plan, &raw, "", 0));
+    assert_eq!(result.observation.state, TaskState::Succeeded);
+    assert_eq!(
+        result
+            .targets
+            .iter()
+            .find(|item| item.file_path == "main.py")
+            .unwrap()
+            .status,
+        "PASS"
+    );
+    assert_eq!(
+        result
+            .targets
+            .iter()
+            .find(|item| item.file_path == "pkg/λ.py")
+            .unwrap()
+            .status,
+        "SKIP"
+    );
+    let raw = json!([{"filePath":"/workspace/main.py","messages":[{"severity":1,"message":"File ignored because no matching configuration was supplied."}]}]).to_string();
+    assert_eq!(
+        observe(&plan, &outcome(&plan, &raw, "", 0)).state,
+        TaskState::Failed
+    );
+}
+#[test]
+fn cargo_requires_terminal_record_and_retains_related_spans() {
+    let plan = fixture(ProviderKind::Clippy);
+    let record = json!({"reason":"compiler-message", "message":{"level":"warning","message":"unused variable", "code":{"code":"unused_variables"},"spans":[{"is_primary":true,"file_name":"main.py","line_start":1,"column_start":4},{"is_primary":false,"file_name":"pkg/λ.py","line_start":2,"column_start":1,"label":"related source"}]}}).to_string();
+    let raw = format!("{record}\n{{\"reason\":\"build-finished\",\"success\":true}}\n");
+    let observation = observe(&plan, &outcome(&plan, &raw, "", 0));
+    assert_eq!(observation.state, TaskState::Succeeded);
+    assert_eq!(observation.findings[0].related_locations.len(), 1);
+    assert_eq!(
+        observe(&plan, &outcome(&plan, &record, "", 0)).state,
+        TaskState::Failed
+    );
+}
+#[test]
+fn typescript_global_errors_and_external_diagnostics_are_not_dropped_into_success() {
+    let plan = fixture(ProviderKind::Tsc);
+    let observation = observe(
+        &plan,
+        &outcome(
+            &plan,
+            "main.py(1,7): error TS2322: Type 'string' is not assignable to type 'number'.\n",
+            "",
+            2,
+        ),
+    );
+    assert_eq!(observation.state, TaskState::Succeeded);
+    assert_eq!(observation.findings[0].native_rule_id, "2322");
+    assert_eq!(
+        observe(
+            &plan,
+            &outcome(&plan, "error TS5058: config missing\n", "", 1)
+        )
+        .state,
+        TaskState::Failed
+    );
+    assert_eq!(
+        observe(
+            &plan,
+            &outcome(&plan, "../outside.py(1,1): error TS2322: bad\n", "", 1)
+        )
+        .state,
+        TaskState::Failed
+    );
+}
+#[test]
+fn compiler_and_tidy_keep_source_notes_and_obey_exit_contracts() {
+    let raw = "main.py: In function 'int answer()':\nmain.py:1:12: warning: unused variable [-Wunused-variable]\n 1 | int unused;\n   |     ^~~~~~\npkg/λ.py:2:3: note: previous declaration\n";
+    for kind in [
+        ProviderKind::Compiler,
+        ProviderKind::ClangTidy,
+        ProviderKind::Clazy,
+    ] {
+        let plan = fixture(kind);
+        let observation = observe(&plan, &outcome(&plan, "", raw, 0));
+        assert_eq!(observation.state, TaskState::Succeeded, "{observation:?}");
+        assert_eq!(observation.findings[0].related_locations.len(), 1);
+        if kind != ProviderKind::Compiler {
+            assert_eq!(
+                observe(&plan, &outcome(&plan, "", raw, 1)).state,
+                TaskState::Failed
+            );
+        }
+    }
+}
+
+#[test]
+fn utf16_surrogates_and_missing_snapshot_columns_are_not_guessed() {
+    let mut plan = fixture(ProviderKind::Eslint);
+    let raw = |column, end| {
+        serde_json::json!([{"filePath":"/workspace/main.py","messages":[{"ruleId":"no-undef","severity":2,"message":"undefined","line":1,"column":column,"endLine":1,"endColumn":end}]}]).to_string()
+    };
+    let unknown = observe(&plan, &outcome(&plan, &raw(17, 24), "", 1));
+    assert_eq!(unknown.findings[0].primary_location.start_column, None);
+    assert!(!unknown.findings[0].limitations.is_empty());
+    let inputs = [ici_domain::SourceInput {
+        path: "main.py".into(),
+        bytes: "const s = '😀'; missing();\n".as_bytes().to_vec(),
+    }];
+    ici_providers::attach_sources(&mut plan, ici_providers::source_coordinates(&inputs));
+    let mapped = observe(&plan, &outcome(&plan, &raw(17, 24), "", 1));
+    assert_eq!(mapped.findings[0].primary_location.start_column, Some(16));
+    assert_eq!(mapped.findings[0].primary_location.end_column, None);
+    let split_surrogate = observe(&plan, &outcome(&plan, &raw(13, 14), "", 1));
+    assert_eq!(split_surrogate.state, TaskState::Failed);
+    let document = serde_json::to_string(&plan).unwrap();
+    assert!(!document.contains("const s"));
+}
+
+fn cpp_snapshot(plan: &mut ProviderPlan, text: &str) {
+    ici_providers::attach_sources(
+        plan,
+        ici_providers::source_coordinates(&[ici_domain::SourceInput {
+            path: "main.py".into(),
+            bytes: text.as_bytes().to_vec(),
+        }]),
+    );
+}
+#[test]
+fn cpp_text_fixits_preserve_grouped_exclusive_unicode_edits_and_original_metadata() {
+    let mut plan = fixture(ProviderKind::Compiler);
+    plan.context.compiler_columns = Some("gnu-byte".into());
+    cpp_snapshot(&mut plan, "λ😀abc\n");
+    let raw = "main.py:1:7: warning: replace token [-Wexample]\nfix-it:\"main.py\":{1:7-1:10}:\"xyz\"\nmain.py:1:8: note: companion\nfix-it:\"main.py\":{1:8-1:8}:\";\"\n";
+    let output = observe_full(&plan, &outcome(&plan, "", raw, 0));
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    let finding = &output.observation.findings[0];
+    assert_eq!(finding.primary_location.start_column, Some(3));
+    assert_eq!(finding.related_locations[0].start_column, Some(4));
+    let detail = &output.extra["finding_details"][&finding.fingerprint];
+    assert_eq!(detail["legacy_rule_id"], "ici.legacy.lint.target");
+    assert_eq!(detail["legacy_category"], "correctness");
+    assert_eq!(detail["legacy_label"], "Compiler:-Wexample");
+    assert_eq!(detail["legacy_message"], "warning: replace token");
+    assert_eq!(detail["related_locations"][0]["label"], "note: companion");
+    let fixes = detail["fixes"].as_array().unwrap();
+    assert_eq!(fixes.len(), 1);
+    let edits = fixes[0]["replacements"].as_array().unwrap();
+    assert_eq!(edits.len(), 2);
+    assert_eq!(
+        edits[0],
+        json!({"path":"main.py","start_line":1,"start_column":3,"end_line":1,"end_column":6,"replacement":"xyz","column_kind":"unicodeCodePoints","end_exclusive":true})
+    );
+    assert_eq!(edits[1]["start_column"], 4);
+    assert_eq!(edits[1]["end_column"], 4);
+    assert_eq!(finding.rule_id, "compiler.-Wexample");
+}
+/// Frozen `ici next` CompilerDiagnosticsProvider identity (decisions.md "next 경로 compiler
+/// finding"): rule `compiler.compiler`, the `<kind>: ` prefix and GCC's UTF-8 quotes kept, an
+/// error without a -W option carries no native rule, severity high for an error and medium
+/// for a warning; every other compiler plan keeps its own `compiler.<rule>` identity.
+#[test]
+fn next_compiler_findings_keep_the_frozen_rule_message_and_native_rule() {
+    let mut plan = fixture(ProviderKind::Compiler);
+    plan.context.compiler_columns = Some("gnu-byte".into());
+    plan.context.next_compiler = true;
+    cpp_snapshot(
+        &mut plan,
+        "int a() { int unused = 0; return undefined_name; }\n",
+    );
+    let raw = "main.py:1:15: warning: unused variable \u{2018}unused\u{2019} [-Wunused-variable]\nmain.py:1:41: error: \u{2018}undefined_name\u{2019} was not declared in this scope\n";
+    let output = observe_full(&plan, &outcome(&plan, "", raw, 1));
+    let findings = &output.observation.findings;
+    assert_eq!(findings.len(), 2, "{output:?}");
+    assert_eq!(findings[0].rule_id, "compiler.compiler");
+    assert_eq!(findings[0].native_rule_id, "-Wunused-variable");
+    assert_eq!(
+        findings[0].message,
+        "warning: unused variable \u{2018}unused\u{2019}"
+    );
+    assert_eq!(findings[0].severity, "medium");
+    assert_eq!(findings[1].rule_id, "compiler.compiler");
+    assert_eq!(findings[1].native_rule_id, "");
+    assert_eq!(
+        findings[1].message,
+        "error: \u{2018}undefined_name\u{2019} was not declared in this scope"
+    );
+    assert_eq!(findings[1].severity, "high");
+    // Any other compiler plan (legacy projection, `ici build` direct replay) keeps
+    // `compiler.<rule>` and the bare message.
+    plan.context.next_compiler = false;
+    let legacy = observe_full(&plan, &outcome(&plan, "", raw, 1));
+    assert_eq!(
+        legacy.observation.findings[0].rule_id,
+        "compiler.-Wunused-variable"
+    );
+    assert_eq!(
+        legacy.observation.findings[0].message,
+        "unused variable \u{2018}unused\u{2019}"
+    );
+}
+#[test]
+fn cpp_unknown_columns_and_json_unknown_end_remain_explicitly_unconfirmed() {
+    let mut plan = fixture(ProviderKind::Compiler);
+    plan.context.compiler_columns = None;
+    let output = observe_full(
+        &plan,
+        &outcome(
+            &plan,
+            "",
+            "main.py:1:7: warning: edit [-Wexample]\nfix-it:\"main.py\":{1:7-1:10}:\"x\"",
+            0,
+        ),
+    );
+    let finding = &output.observation.findings[0];
+    let edit =
+        &output.extra["finding_details"][&finding.fingerprint]["fixes"][0]["replacements"][0];
+    assert_eq!(edit["column_kind"], "unknown");
+    assert_eq!(edit["start_column"], 7);
+    assert_eq!(finding.primary_location.start_column, None);
+    plan.context.compiler_columns = Some("gnu-byte".into());
+    cpp_snapshot(&mut plan, "λ😀abc\n");
+    let position = |column| json!({"file":"main.py","line":1,"column":column});
+    for (end_key, expected) in [("next", json!(true)), ("end", Value::Null)] {
+        let mut fix = json!({"start":position(7),"string":"x"});
+        fix[end_key] = position(10);
+        let raw=json!([{"kind":"warning","message":"edit","option":"-Wexample","locations":[{"caret":position(7)}],"fixits":[fix],"children":[]}]).to_string();
+        let output = observe_full(&plan, &outcome(&plan, &raw, "", 0));
+        assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+        let finding = &output.observation.findings[0];
+        let edit =
+            &output.extra["finding_details"][&finding.fingerprint]["fixes"][0]["replacements"][0];
+        assert_eq!(edit["end_exclusive"], expected);
+        assert_eq!(edit["column_kind"], "unicodeCodePoints");
+        assert_eq!(edit["start_column"], 3);
+        assert_eq!(edit["end_column"], 6);
+    }
+}
+#[test]
+fn cpp_invalid_fixits_fail_atomically_and_external_fixits_cannot_bind_to_previous_issue() {
+    let mut plan = fixture(ProviderKind::Compiler);
+    plan.context.compiler_columns = Some("gnu-byte".into());
+    cpp_snapshot(&mut plan, "λ😀abc\n");
+    for fix in [
+        "fix-it:\"main.py\":{1:8-1:7}:\"x\"",
+        "fix-it:\"main.py\":{1:4-1:7}:\"x\"",
+        "fix-it:\"main.py\":{1:7-1:99}:\"x\"",
+        "fix-it:\"main.py\":{0:7-1:8}:\"x\"",
+        "fix-it:\"main.py\":{1:7-1:8}:\"\\q\"",
+    ] {
+        let raw = format!("main.py:1:7: warning: edit [-Wexample]\n{fix}\n");
+        let output = observe_full(&plan, &outcome(&plan, "", &raw, 0));
+        assert_eq!(
+            output.observation.state,
+            TaskState::Failed,
+            "{fix}: {output:?}"
+        );
+        assert!(output.observation.findings.is_empty());
+        assert!(output.extra.get("finding_details").is_none());
+    }
+    let raw = "main.py:1:7: warning: primary [-Wexample]\n/private/source.cpp:1:2: warning: external [-Wother]\nfix-it:\"/private/source.cpp\":{1:2-1:3}:\"x\"\n";
+    let output = observe_full(&plan, &outcome(&plan, "", raw, 0));
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    let finding = &output.observation.findings[0];
+    assert_eq!(
+        output.extra["finding_details"][&finding.fingerprint]["fixes"],
+        json!([])
+    );
+    assert!(
+        !serde_json::to_string(&output)
+            .unwrap()
+            .contains("/private/")
+    );
+}
+#[test]
+fn cpp_rich_details_obey_existing_report_redaction_boundary() {
+    let mut plan = fixture(ProviderKind::Compiler);
+    plan.context.compiler_columns = Some("gnu-byte".into());
+    cpp_snapshot(&mut plan, "abcdef\n");
+    let raw = "main.py:1:1: warning: edit [-Wexample]\nfix-it:\"main.py\":{1:1-1:2}:\"token=example-secret\"\n";
+    let output = observe_full(&plan, &outcome(&plan, "", raw, 0));
+    let safe = ici_execution::redaction::redact_value(&serde_json::to_value(output).unwrap());
+    let safe = serde_json::to_string(&safe).unwrap();
+    assert!(!safe.contains("example-secret"));
+    assert!(safe.contains("REDACTED"));
+}
+#[test]
+fn cpp_original_category_policy_retains_security_resource_and_compatibility() {
+    for (kind, rule, category) in [
+        (
+            ProviderKind::ClangTidy,
+            "clang-analyzer-security.insecureAPI.strcpy",
+            "security",
+        ),
+        (
+            ProviderKind::ClangTidy,
+            "clang-analyzer-cplusplus.NewDelete",
+            "resource",
+        ),
+        (
+            ProviderKind::ClangTidy,
+            "bugprone-use-after-move",
+            "resource",
+        ),
+        (
+            ProviderKind::ClangTidy,
+            "modernize-deprecated-headers",
+            "compatibility",
+        ),
+        (ProviderKind::Clazy, "clazy-qt6-foo", "compatibility"),
+        (ProviderKind::Clazy, "clazy-qdeleteall", "resource"),
+    ] {
+        let plan = fixture(kind);
+        let raw = format!("main.py:1:1: warning: sample [{rule}]\n");
+        let output = observe_full(&plan, &outcome(&plan, "", &raw, 0));
+        assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+        let finding = &output.observation.findings[0];
+        assert_eq!(
+            output.extra["finding_details"][&finding.fingerprint]["legacy_category"],
+            category
+        );
+    }
+}
+
+#[test]
+fn rich_cpp_metadata_matches_the_original_python_producer_oracle() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/providers/cpp-rich-oracle.json"
+    ))
+    .unwrap();
+    for case in fixture["cases"].as_array().unwrap() {
+        let kind = match case["kind"].as_str().unwrap() {
+            "compiler" => ProviderKind::Compiler,
+            "clang-tidy" => ProviderKind::ClangTidy,
+            "clazy" => ProviderKind::Clazy,
+            _ => unreachable!(),
+        };
+        let mut plan = crate::fixture(kind);
+        plan.context.compiler_columns = Some(
+            if kind == ProviderKind::Compiler {
+                "gnu-byte"
+            } else {
+                "clang-byte"
+            }
+            .into(),
+        );
+        plan.context.tool_name = case["tool_name"].as_str().unwrap().into();
+        plan.context.tool_version = case["tool_version"].as_str().unwrap().into();
+        cpp_snapshot(&mut plan, case["source"].as_str().unwrap());
+        let output = observe_full(
+            &plan,
+            &outcome(&plan, "", case["stderr"].as_str().unwrap(), 0),
+        );
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{}: {output:?}",
+            case["id"]
+        );
+        let expected = case["findings"].as_array().unwrap();
+        assert_eq!(
+            output.observation.findings.len(),
+            expected.len(),
+            "{}",
+            case["id"]
+        );
+        for (finding, expected) in output.observation.findings.iter().zip(expected) {
+            let detail = &output.extra["finding_details"][&finding.fingerprint];
+            for (key, native_key) in [
+                ("rule_id", "legacy_rule_id"),
+                ("category", "legacy_category"),
+                ("severity", "legacy_severity"),
+                ("confidence", "legacy_confidence"),
+                ("message", "legacy_message"),
+                ("explanation", "explanation"),
+                ("remediation", "remediation"),
+                ("tool_name", "tool_name"),
+                ("tool_version", "tool_version"),
+                ("tool_rule_id", "tool_rule_id"),
+                ("snippet", "snippet"),
+                ("metrics", "metrics"),
+                ("related_locations", "related_locations"),
+            ] {
+                assert_eq!(
+                    detail[native_key], expected[key],
+                    "{} field {key}",
+                    case["id"]
+                );
+            }
+            assert_eq!(
+                detail["legacy_label"], expected["primary_location"]["label"],
+                "{} label",
+                case["id"]
+            );
+            let mut fixes = detail["fixes"].clone();
+            for fix in fixes.as_array_mut().unwrap() {
+                for edit in fix["replacements"].as_array_mut().unwrap() {
+                    let object = edit.as_object_mut().unwrap();
+                    object.remove("column_kind");
+                    object.remove("end_exclusive");
+                }
+            }
+            assert_eq!(fixes, expected["fixes"], "{} fixes", case["id"]);
+        }
+    }
+}
+
+#[test]
+fn cpp_multifile_fixits_require_each_source_boundary_and_external_json_errors_remain_errors() {
+    let mut plan = fixture(ProviderKind::Compiler);
+    plan.context.compiler_columns = Some("gnu-byte".into());
+    let raw = "main.py:1:7: warning: edit [-Wexample]\nfix-it:\"main.py\":{1:7-1:7}:\"x\"\npkg/λ.py:1:3: note: declaration\nfix-it:\"pkg/λ.py\":{1:3-1:3}:\"y\"\n";
+    cpp_snapshot(&mut plan, "λ😀abc\n");
+    let partial = observe_full(&plan, &outcome(&plan, "", raw, 0));
+    let finding = &partial.observation.findings[0];
+    let edits = &partial.extra["finding_details"][&finding.fingerprint]["fixes"][0]["replacements"];
+    assert_eq!(edits[0]["column_kind"], "unicodeCodePoints");
+    assert_eq!(edits[1]["column_kind"], "unknown");
+    ici_providers::attach_sources(
+        &mut plan,
+        ici_providers::source_coordinates(&[
+            ici_domain::SourceInput {
+                path: "main.py".into(),
+                bytes: "λ😀abc\n".as_bytes().to_vec(),
+            },
+            ici_domain::SourceInput {
+                path: "pkg/λ.py".into(),
+                bytes: "λabc\n".as_bytes().to_vec(),
+            },
+        ]),
+    );
+    let complete = observe_full(&plan, &outcome(&plan, "", raw, 0));
+    let finding = &complete.observation.findings[0];
+    let edits =
+        &complete.extra["finding_details"][&finding.fingerprint]["fixes"][0]["replacements"];
+    assert_eq!(edits[0]["column_kind"], "unicodeCodePoints");
+    assert_eq!(edits[1]["column_kind"], "unicodeCodePoints");
+    assert_eq!(edits[1]["start_column"], 2);
+    assert_eq!(finding.related_locations[0].path, "pkg/λ.py");
+    let position = |path| json!({"file":path,"line":1,"column":1});
+    let child = json!({"kind":"error","message":"bad system context","locations":[{"caret":position("/outside/system.hpp")}]});
+    let raw=json!([{"kind":"warning","message":"local","locations":[{"caret":position("main.py")}]},{"kind":"warning","message":"external","locations":[{"caret":position("/outside/system.hpp")}],"children":[child]}]).to_string();
+    let failed = observe_full(&plan, &outcome(&plan, &raw, "", 1));
+    assert_eq!(failed.observation.state, TaskState::Failed);
+    assert!(failed.observation.findings.is_empty());
+    assert!(failed.extra.get("finding_details").is_none());
+}
+
+#[test]
+fn cpp_related_note_count_obeys_the_diagnostic_bound() {
+    let plan = fixture(ProviderKind::Compiler);
+    let raw = format!(
+        "main.py:1:1: warning: primary [-Wexample]\n{}",
+        "main.py:1:1: note: context\n".repeat(10_000)
+    );
+    let output = observe_full(&plan, &outcome(&plan, "", &raw, 0));
+    assert_eq!(output.observation.state, TaskState::Failed);
+    assert!(output.observation.findings.is_empty());
+    assert!(output.extra.get("finding_details").is_none());
+}
+
+#[test]
+fn gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar() {
+    // Frozen _TEXT_CONTEXT_HEADER_RE / _TEXT_REQUIRED_FROM_RE accept these ancillary lines;
+    // a column-less diagnostic keeps its line with an unknown column.
+    let raw = "main.py: In destructor 'Guard::~Guard()':\nmain.py:3:20: warning: 'throw' will always call 'terminate' [-Wterminate]\nmain.py:3:20: note: in C++11 destructors default to 'noexcept'\nmain.py: At global scope:\nmain.py: In constructor 'A::A()':\nmain.py: In lambda function:\nmain.py: In instantiation of 'void f() [with T = int]':\nmain.py:9:5:   required from here\nmain.py:7: error: column-less diagnostic\n";
+    let plan = fixture(ProviderKind::Compiler);
+    let observation = observe(&plan, &outcome(&plan, "", raw, 1));
+    assert_eq!(observation.state, TaskState::Succeeded, "{observation:?}");
+    assert_eq!(observation.findings.len(), 2, "{:?}", observation.findings);
+    let columnless = observation
+        .findings
+        .iter()
+        .find(|finding| finding.message.contains("column-less"))
+        .unwrap();
+    assert_eq!(columnless.primary_location.start_line, 7);
+    assert_eq!(columnless.primary_location.start_column, None);
+    // Lines outside the frozen grammar still fail closed.
+    for unknown in [
+        "main.py: In static member function 'int f()':\n",
+        "cc1plus: some warnings being treated as errors\n",
+        "main.py:3:20: frobnicated: odd\n",
+    ] {
+        assert_eq!(
+            observe(&plan, &outcome(&plan, "", unknown, 1)).state,
+            TaskState::Failed,
+            "{unknown}"
+        );
+    }
+}
+#[test]
+fn ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/providers/ecosystem-oracle.json"
+    ))
+    .unwrap();
+    for (name, kind) in [
+        ("eslint", ProviderKind::Eslint),
+        ("clippy", ProviderKind::Clippy),
+        ("tsc", ProviderKind::Tsc),
+    ] {
+        let mut plan = fixture(kind);
+        // ASCII sources: UTF-16, byte and code point columns coincide, so the frozen raw column
+        // is the native display column once the source coordinates are known.
+        let line = "abcdefghijklmnopqrstuvwxyz\n".repeat(12);
+        let inputs: Vec<_> = ["src/a.js", "src/b.ts", "src/a.ts", "src/lib.rs"]
+            .into_iter()
+            .map(|path| ici_domain::SourceInput {
+                path: path.into(),
+                bytes: line.as_bytes().to_vec(),
+            })
+            .collect();
+        ici_providers::attach_sources(&mut plan, ici_providers::source_coordinates(&inputs));
+        for case in oracle[name].as_array().unwrap() {
+            let label = format!("{name}/{}", case["case"]);
+            let observation = observe(
+                &plan,
+                &outcome(
+                    &plan,
+                    case["stdout"].as_str().unwrap(),
+                    "",
+                    case["exit"].as_i64().unwrap() as i32,
+                ),
+            );
+            if let Some(difference) = case["case"].as_str().unwrap().strip_prefix("difference:") {
+                // Accepted intended differences: both refuse an unattributed clean result, but in
+                // opposite directions from the frozen parser.
+                match difference {
+                    // Frozen: a line-less warning is a parse failure. Native: the ignored file is
+                    // a limitation and is never listed as inspected (SKIP, not PASS).
+                    "ignored-file" => {
+                        assert!(case["failed"].as_bool().unwrap());
+                        let full = observe_full(
+                            &plan,
+                            &outcome(&plan, case["stdout"].as_str().unwrap(), "", 0),
+                        );
+                        assert_eq!(full.observation.state, TaskState::Succeeded);
+                        assert!(full.observation.findings.is_empty());
+                        assert!(
+                            full.observation
+                                .limitations
+                                .iter()
+                                .any(|item| item.contains("File ignored"))
+                        );
+                        assert!(full.targets.iter().all(|target| target.status != "PASS"));
+                    }
+                    // Frozen ignores an unknown Cargo record; native refuses the stream.
+                    "unknown-reason" => {
+                        assert!(!case["failed"].as_bool().unwrap());
+                        assert_eq!(observation.state, TaskState::Failed);
+                    }
+                    other => panic!("unknown difference {other}"),
+                }
+                continue;
+            }
+            assert_eq!(
+                observation.state == TaskState::Failed,
+                case["failed"].as_bool().unwrap(),
+                "{label}: {:?}",
+                observation.limitations
+            );
+            if observation.state == TaskState::Failed {
+                continue;
+            }
+            let actual: Vec<Value> = observation
+                .findings
+                .iter()
+                .map(|item| {
+                    json!({
+                        "rule_id": item.rule_id,
+                        "native_rule_id": item.native_rule_id,
+                        "message": item.message,
+                        "severity": item.severity,
+                        "path": item.primary_location.path,
+                        "line": item.primary_location.start_line,
+                        "column": item.primary_location.start_column,
+                        "fingerprint": item.fingerprint,
+                    })
+                })
+                .collect();
+            assert_eq!(Value::from(actual), case["findings"], "{label}");
+        }
+    }
+}
+
+fn legacy_format() -> ProviderPlan {
+    let tool = ResolvedTool {
+        id: "ruff".into(),
+        path: PathBuf::from("/usr/bin/true"),
+        source: ToolSource::Explicit,
+        digest: sha256("replay executable"),
+        version: None,
+        configuration: vec![],
+    };
+    let mut request = ProviderRequest::new(
+        ProviderKind::RuffFormat,
+        tool,
+        "/workspace",
+        "/workspace",
+        vec!["main.py".into(), "pkg/b.py".into()],
+        "component.format",
+    );
+    request.options.legacy = true;
+    plan(&request).unwrap()
+}
+
+fn probe(plan: &ProviderPlan, stdout: &str, stderr: &str, exit: i32) -> TaskOutcome {
+    let task = ici_providers::plan::ruff_format_capability_task(plan).unwrap();
+    assert_eq!(task.argv[1..], ["format", "--help"]);
+    let mut result = TaskOutcome::empty(&task.id);
+    result.state = TaskState::Succeeded;
+    result.exit_code = Some(exit);
+    result.stdout = stdout.as_bytes().to_vec();
+    result.stderr = stderr.as_bytes().to_vec();
+    result
+}
+
+/// Frozen `_probe_ruff_format_json_support` + `_evaluate_ruff_format(json_output=False)`.
+#[test]
+fn legacy_format_probe_selects_the_text_dialect_only_without_usable_json_output() {
+    // A formatter that answers in JSON keeps the JSON argv (frozen `format_supports_json`).
+    let mut json_plan = legacy_format();
+    json_plan.context.legacy = true;
+    let help = "  --output-format <OUTPUT_FORMAT>\n";
+    let outcome = probe(&json_plan, help, "", 0);
+    ici_providers::plan::apply_ruff_format_capability(&mut json_plan, &outcome);
+    assert!(!json_plan.context.legacy_text_format);
+    assert!(
+        json_plan
+            .task
+            .argv
+            .contains(&"--output-format=json".to_string())
+    );
+    assert_eq!(
+        json_plan.context.legacy_probe_evidence.as_ref().unwrap()["name"],
+        "ruff format capability"
+    );
+    // Absent, or only respected in preview mode: the text dialect.
+    for help in [
+        "  --check\n",
+        "  --output-format <F>  Only respected in preview mode\n",
+    ] {
+        let mut text = legacy_format();
+        let outcome = probe(&text, help, "", 0);
+        ici_providers::plan::apply_ruff_format_capability(&mut text, &outcome);
+        assert!(text.context.legacy_text_format, "{help}");
+        assert!(!text.task.argv.contains(&"--output-format=json".to_string()));
+        let stdout =
+            "Would reformat: main.py\nWould reformat: pkg/b.py\n2 files would be reformatted\n";
+        let result = observe_full(&text, &outcome_for(&text, stdout, 1));
+        let targets: Vec<_> = result
+            .targets
+            .iter()
+            .map(|t| {
+                (
+                    t.target_name.as_str(),
+                    t.file_path.as_str(),
+                    t.start_line,
+                    t.status.as_str(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            targets,
+            [
+                ("Format:Style", "main.py", 1, "WARN"),
+                ("Format:Style", "pkg/b.py", 1, "WARN")
+            ]
+        );
+        let evidence = result.extra["tool_evidence"].as_array().unwrap();
+        assert_eq!(evidence.len(), 2);
+        assert_eq!(evidence[0]["name"], "ruff format capability");
+        assert_eq!(evidence[1]["name"], "ruff format");
+        assert_eq!(evidence[1]["returncode"], 1);
+        // The all-formatted tally is a clean result.
+        let clean = observe_full(&text, &outcome_for(&text, "2 files already formatted\n", 0));
+        assert_eq!(clean.status, "PASS");
+        assert!(clean.targets.is_empty());
+    }
+}
+
+fn outcome_for(plan: &ProviderPlan, stdout: &str, exit: i32) -> TaskOutcome {
+    outcome(plan, stdout, "", exit)
+}
+
+#[test]
+fn legacy_text_format_and_failed_probes_fail_closed() {
+    let mut text = legacy_format();
+    let help = probe(&text, "  --check\n", "", 0);
+    ici_providers::plan::apply_ruff_format_capability(&mut text, &help);
+    // A tally that disagrees with the listed files, a unit mismatch, an unknown line, or an
+    // exit 1 without output is never read as formatted (frozen `parse_legacy_format_text`).
+    for (stdout, exit, summary) in [
+        (
+            "Would reformat: main.py\n2 files would be reformatted\n",
+            1,
+            "Ruff format output was not parseable",
+        ),
+        (
+            "Would reformat: main.py\n1 files would be reformatted\n",
+            1,
+            "Ruff format output was not parseable",
+        ),
+        (
+            "reformatted main.py\n1 file would be reformatted\n",
+            1,
+            "Ruff format output was not parseable",
+        ),
+        ("", 1, "Ruff format check failed without diagnostic output"),
+        (
+            "something else\n",
+            0,
+            "Ruff format output was not parseable",
+        ),
+        ("", 2, "Ruff format check failed with exit code 2"),
+    ] {
+        let result = observe_full(&text, &outcome_for(&text, stdout, exit));
+        assert_eq!(result.status, "ERROR", "{stdout:?}");
+        assert_eq!(result.summary, summary, "{stdout:?}");
+        assert_eq!(result.observation.state, TaskState::Failed);
+        assert_eq!(result.extra["tool_evidence"][1]["error"], summary);
+    }
+    // A failed probe refuses the formatter with frozen's message; nothing claims formatting.
+    for (stdout, stderr, exit, reason) in [
+        (
+            "",
+            "",
+            2,
+            "Ruff format capability probe failed with exit code 2",
+        ),
+        (
+            "  --check\n",
+            "noise\n",
+            0,
+            "Ruff format capability probe emitted unexpected stderr: unrecognized stderr line: \"noise\"",
+        ),
+    ] {
+        let mut refused = legacy_format();
+        let outcome = probe(&refused, stdout, stderr, exit);
+        ici_providers::plan::apply_ruff_format_capability(&mut refused, &outcome);
+        let output = ici_providers::legacy_probe_refusal(&refused).expect("refused");
+        assert_eq!(output.status, "ERROR");
+        assert_eq!(output.summary, reason);
+        assert_eq!(output.extra["tool_evidence"][0]["error"], reason);
+        assert_eq!(output.extra["tool_evidence"].as_array().unwrap().len(), 1);
+    }
+    let mut timed = legacy_format();
+    let mut outcome = probe(&timed, "", "", 0);
+    outcome.timed_out = true;
+    ici_providers::plan::apply_ruff_format_capability(&mut timed, &outcome);
+    assert_eq!(
+        timed.context.legacy_probe_error.as_deref(),
+        Some("Ruff format capability probe timed out")
+    );
+    // A successful probe never refuses.
+    assert!(ici_providers::legacy_probe_refusal(&text).is_none());
+}
+
+/// R8: Cargo run in a workspace member names spans relative to the Cargo workspace root; a
+/// member component's findings are located at the real file, not `<member>/<member>/...`.
+#[test]
+fn cargo_member_spans_are_located_from_the_cargo_workspace_root() {
+    let root = tempfile::tempdir().unwrap();
+    let member = root.path().join("crates/foo");
+    std::fs::create_dir_all(member.join("src")).unwrap();
+    std::fs::write(
+        member.join("Cargo.toml"),
+        "[package]\nname='foo'\nversion='0.1.0'\n",
+    )
+    .unwrap();
+    let plan_at = |cwd: &std::path::Path| {
+        let tool = ResolvedTool {
+            id: "cargo".into(),
+            path: PathBuf::from("/usr/bin/true"),
+            source: ToolSource::Explicit,
+            digest: sha256("replay executable"),
+            version: None,
+            configuration: vec![],
+        };
+        let request = ProviderRequest::new(
+            ProviderKind::Clippy,
+            tool,
+            root.path(),
+            cwd,
+            vec!["crates/foo/src/lib.rs".into()],
+            "crates-foo.rust.clippy",
+        );
+        plan(&request).unwrap()
+    };
+    let record = |file: &str| {
+        let record = json!({"reason":"compiler-message","message":{"level":"warning","message":"returning the result of a `let` binding","code":{"code":"clippy::let_and_return"},"spans":[{"is_primary":true,"file_name":file,"line_start":1,"column_start":30},{"is_primary":false,"file_name":file,"line_start":1,"column_start":21,"label":"unnecessary `let` binding"}]}});
+        format!("{record}\n{{\"reason\":\"build-finished\",\"success\":true}}\n")
+    };
+    // Positive: under a `[workspace]` root, `crates/foo/src/lib.rs` is the member's file.
+    std::fs::write(
+        root.path().join("Cargo.toml"),
+        "[workspace]\nmembers=['crates/foo']\n",
+    )
+    .unwrap();
+    let plan = plan_at(&member);
+    let observation = observe(
+        &plan,
+        &outcome(&plan, &record("crates/foo/src/lib.rs"), "", 0),
+    );
+    assert_eq!(observation.state, TaskState::Succeeded);
+    let finding = &observation.findings[0];
+    assert_eq!(finding.primary_location.path, "crates/foo/src/lib.rs");
+    assert_eq!(finding.related_locations[0].path, "crates/foo/src/lib.rs");
+    // Negative: a standalone package (no `[workspace]` above it) keeps package-relative spans.
+    std::fs::write(
+        root.path().join("Cargo.toml"),
+        "[package]\nname='top'\nversion='0.1.0'\n",
+    )
+    .unwrap();
+    let observation = observe(&plan, &outcome(&plan, &record("src/lib.rs"), "", 0));
+    assert_eq!(
+        observation.findings[0].primary_location.path,
+        "crates/foo/src/lib.rs"
+    );
+    // Failure: a span that escapes the ici workspace is not attributed to a project file.
+    let observation = observe(
+        &plan,
+        &outcome(&plan, &record("../../../outside.rs"), "", 0),
+    );
+    assert_eq!(observation.state, TaskState::Failed);
+}

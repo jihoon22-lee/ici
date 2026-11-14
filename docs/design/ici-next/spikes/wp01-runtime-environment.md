@@ -5,7 +5,7 @@
 |상태|**측정 완료 (measured)**. 목표 설계가 아니라 실제 실행 기록이다.|
 |근거 이슈|[WP01 #199](https://github.com/jihoon22-lee/ici/issues/199)|
 |기준 커밋|`153ab28f77099cd7bce04774c22cbc24dca3a8ac`|
-|재실행|[`scripts/spikes/wp01/`](../../../../scripts/spikes/wp01) — 4개 스크립트|
+|재실행|[`scripts/spikes/wp01/`](https://github.com/jihoon22-lee/ici/tree/v0.13.0/scripts/spikes/wp01) — 4개 스크립트|
 |측정 환경|원격 개발 컨테이너 (Ubuntu 24.04 계열, x86_64, glibc 2.39). **사내 RHEL 8.10이 아니다.**|
 
 > 이 문서는 **개발 환경 증거**다. [SPEC-05 §1](../spec-05-verification-transition.md)이 요구한

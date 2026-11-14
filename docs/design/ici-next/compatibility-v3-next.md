@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-|상태|**측정 완료**. 아래 표는 [`src/ici/execution/legacy_reader.py`](../../../src/ici/execution/legacy_reader.py)가 실제로 하는 일이며, [`tests/test_legacy_reader.py`](../../../tests/next/test_legacy_reader.py)가 둘을 맞물려 둔다.|
+|상태|**측정 완료**. 아래 표는 [`src/ici/execution/legacy_reader.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/execution/legacy_reader.py)가 실제로 하는 일이며, [`tests/test_legacy_reader.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_legacy_reader.py)가 둘을 맞물려 둔다.|
 |근거 이슈|[WP02 #200](https://github.com/jihoon22-lee/ici/issues/200) PR C|
 |관련 규범|[spec-04 §5](spec-04-results-integration.md), [spec-05 §5](spec-05-verification-transition.md)|
 
@@ -81,10 +81,10 @@ v3의 구조적 공백이라 특정 리포트의 성질이 아니다. 넷 다 �
 
 |리더|결과|
 |---|---|
-|[`core/baseline.py:356`](../../../src/ici/core/baseline.py)|`BaselineError: unsupported baseline schema_version 1; expected 'ici.result/v3'` — 이유를 말하고 거부|
-|[`reporters/json_rep.py:804`](../../../src/ici/reporters/json_rep.py) `migrate_report_payload`|`ValueError: unsupported schema_version: 1` — 거부|
-|[`core/cache_codec.py:399`](../../../src/ici/core/cache_codec.py)|`CacheEntryError` — 거부|
-|[`engines/publish.py`](../../../src/ici/engines/publish.py) `load_suite_from_json`|**결함이 있었다. PR C에서 고쳤다** ↓|
+|[`core/baseline.py:356`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/core/baseline.py)|`BaselineError: unsupported baseline schema_version 1; expected 'ici.result/v3'` — 이유를 말하고 거부|
+|[`reporters/json_rep.py:804`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/reporters/json_rep.py) `migrate_report_payload`|`ValueError: unsupported schema_version: 1` — 거부|
+|[`core/cache_codec.py:399`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/core/cache_codec.py)|`CacheEntryError` — 거부|
+|[`engines/publish.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/engines/publish.py) `load_suite_from_json`|**결함이 있었다. PR C에서 고쳤다** ↓|
 
 ### `load_suite_from_json`에 있던 조용한 강등
 

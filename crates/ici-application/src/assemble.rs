@@ -1,0 +1,218 @@
+use crate::{
+    ApplicationError, Result, plan::Plan, request::RunRequest, verification::Verification,
+};
+use ici_config::ResolvedProject;
+use ici_domain::{
+    BaselineComparison, CheckRecord, ExecutionSummary, FINGERPRINT_VERSION, GateVerdict, Producer,
+    PublicationOutcome, RUN_SCHEMA_ID, RUN_SCHEMA_VERSION, RunIdentity, RunResult, ScopeKind,
+    ScopeSelection, SourceSnapshot, TaskState, Validate,
+};
+use std::collections::BTreeSet;
+
+pub struct RunContext {
+    pub run_id: String,
+    pub ici_version: String,
+    pub source: SourceSnapshot,
+    pub policy_digest: String,
+    pub toolchain_digest: String,
+    pub bundle_digest: Option<String>,
+    pub cancelled: bool,
+    pub inputs_stable: bool,
+    /// Why selected sources went unanalyzed under the input limits; the gate cannot be complete.
+    pub uncaptured_inputs: Vec<String>,
+    pub checks: Vec<CheckRecord>,
+    pub reused_task_ids: Vec<String>,
+    pub limitations: Vec<String>,
+    pub baseline: Option<BaselineComparison>,
+}
+/// The gate reason of a run whose inputs changed while it ran.
+pub const INPUTS_CHANGED_REASON: &str =
+    "inputs changed while running; the saved findings are partial evidence";
+
+pub fn assemble(
+    project: &ResolvedProject,
+    request: &RunRequest,
+    plan: &Plan,
+    mut verification: Verification,
+    context: RunContext,
+) -> Result<RunResult> {
+    if context.checks.len() != plan.checks.len() {
+        return Err(ApplicationError(
+            "new v2 result must record every selected check".into(),
+        ));
+    }
+    for planned in &plan.checks {
+        let record = context
+            .checks
+            .iter()
+            .find(|record| record.task_id == planned.task_id)
+            .ok_or_else(|| {
+                ApplicationError(format!("missing check record for {}", planned.task_id))
+            })?;
+        let observation = verification
+            .observations
+            .iter()
+            .find(|observation| observation.task_id == planned.task_id)
+            .ok_or_else(|| {
+                ApplicationError(format!("missing observation for {}", planned.task_id))
+            })?;
+        if record.check_id != planned.check.id
+            || record.component_id != planned.component_id
+            || record.language != planned.check.language
+            || record.state != observation.state
+            || (record.evidence_complete && !observation.evidence_is_complete())
+        {
+            return Err(ApplicationError(format!(
+                "check record disagrees with measured selection/completion for {}",
+                planned.task_id
+            )));
+        }
+    }
+    if !context.inputs_stable {
+        verification.gate.selected = GateVerdict::Incomplete;
+        verification.gate.reasons.push(INPUTS_CHANGED_REASON.into());
+    }
+    if !context.uncaptured_inputs.is_empty() {
+        verification.gate.selected = GateVerdict::Incomplete;
+        verification
+            .gate
+            .reasons
+            .extend(context.uncaptured_inputs.iter().cloned());
+    }
+    if context.cancelled && verification.gate.selected != GateVerdict::Incomplete {
+        verification.gate.selected = GateVerdict::Incomplete;
+        verification.gate.reasons.push("run cancelled".into());
+    }
+    let complete = verification.gate.selected != GateVerdict::Incomplete && !context.cancelled;
+    let declared: BTreeSet<_> = project
+        .components
+        .iter()
+        .flat_map(|c| c.languages.iter().cloned())
+        .collect();
+    let selected_languages: BTreeSet<_> = plan.languages.iter().cloned().collect();
+    let kind = if project.scope_kind == ScopeKind::Standalone {
+        ScopeKind::Standalone
+    } else if request.static_only
+        || !request.checks.is_empty()
+        || !request.components.is_empty()
+        || declared != selected_languages
+        || !complete
+    {
+        ScopeKind::Partial
+    } else {
+        ScopeKind::Full
+    };
+    let omitted: Vec<_> = project
+        .components
+        .iter()
+        .filter(|c| !plan.components.contains(&c.id))
+        .map(|c| c.id.clone())
+        .collect();
+    let required: Vec<_> = project
+        .components
+        .iter()
+        .filter(|c| c.required)
+        .map(|c| c.id.clone())
+        .collect();
+    let full_satisfied = kind == ScopeKind::Full
+        && complete
+        && required.iter().all(|id| plan.components.contains(id))
+        && omitted.is_empty();
+    // Frozen `apply_require_full` is the only writer of the workspace verdict: a named
+    // coverage gap under --require-full makes it INCOMPLETE; otherwise it stays frozen
+    // `GateOutcome`'s NOT_EVALUATED default, even for a complete full run (decisions.md
+    // "next gate의 `workspace` 판정").
+    verification.gate.workspace = if request.require_full && !plan.coverage_gaps.is_empty() {
+        GateVerdict::Incomplete
+    } else {
+        GateVerdict::NotEvaluated
+    };
+    // Each distinct limitation once (decisions.md "next 실행의 run limitation 중복"): native
+    // observations carry run-level facts that frozen reported once.
+    let mut limitations = vec![];
+    let mut seen = BTreeSet::new();
+    for limitation in verification
+        .observations
+        .iter()
+        .flat_map(|o| o.limitations.iter())
+        .chain(plan.limitations.iter())
+        .chain(context.limitations.iter())
+    {
+        if !limitation.is_empty() && seen.insert(limitation) {
+            limitations.push(limitation.clone());
+        }
+    }
+    // Frozen `build_result`: the run's TEM metrics and limitations follow everything else.
+    let (tem_metrics, tem_limitations) = ici_domain::tem::run_metrics(&verification.observations);
+    for limitation in tem_limitations {
+        if !seen.contains(&limitation) {
+            limitations.push(limitation);
+        }
+    }
+    let mut checks = context.checks;
+    if !context.inputs_stable {
+        for check in &mut checks {
+            check.evidence_complete = false;
+        }
+    }
+    let result = RunResult {
+        schema_id: RUN_SCHEMA_ID.into(),
+        schema_version: RUN_SCHEMA_VERSION,
+        run_id: context.run_id,
+        producer: Producer {
+            ici_version: context.ici_version,
+            bundle_digest: context.bundle_digest,
+        },
+        identity: RunIdentity {
+            source: context.source,
+            policy_digest: context.policy_digest,
+            toolchain_digest: context.toolchain_digest,
+            fingerprint_version: FINGERPRINT_VERSION.into(),
+        },
+        scope: ScopeSelection {
+            kind,
+            selected_components: plan.components.clone(),
+            selected_languages: plan.languages.clone(),
+            required_components: required,
+            omitted_components: omitted,
+            full_required_satisfied: full_satisfied,
+        },
+        execution: ExecutionSummary {
+            required_complete: complete,
+            cancelled: context.cancelled,
+            blocked_task_ids: if complete {
+                vec![]
+            } else {
+                verification
+                    .observations
+                    .iter()
+                    .filter(|o| matches!(o.state, TaskState::Blocked | TaskState::Cancelled))
+                    .map(|o| o.task_id.clone())
+                    .collect()
+            },
+            failed_task_ids: verification
+                .observations
+                .iter()
+                .filter(|o| o.state == TaskState::Failed)
+                .map(|o| o.task_id.clone())
+                .collect(),
+            reused_task_ids: context.reused_task_ids,
+        },
+        metrics: verification
+            .observations
+            .iter()
+            .flat_map(|o| o.measurements.iter().cloned())
+            .chain(tem_metrics)
+            .collect(),
+        gate: verification.gate,
+        findings: verification.findings,
+        publication: PublicationOutcome::default(),
+        limitations,
+        baseline: context.baseline,
+        checks: Some(checks),
+    };
+    result
+        .validate()
+        .map_err(|e| ApplicationError(e.to_string()))?;
+    Ok(result)
+}

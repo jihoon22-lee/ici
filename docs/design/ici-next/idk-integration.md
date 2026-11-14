@@ -30,7 +30,7 @@ ici next verify [--result PATH] [--events PATH] [--json] \
 
 `--result`가 가리키는 파일(기본 `.ici/next/result.json`)은
 `schema_id="ici.next.run"`, `schema_version=2` 문서다. 스키마:
-`src/ici/schemas/ici-next-run-v2.schema.json`. reader와 fixture consumer는 v1도 읽지만,
+`schemas/ici-next-run-v2.schema.json`. reader와 fixture consumer는 v1도 읽지만,
 실제 idk 소비자는 v2 지원을 별도로 확인해야 한다.
 
 consumer가 해석해야 하는 축:

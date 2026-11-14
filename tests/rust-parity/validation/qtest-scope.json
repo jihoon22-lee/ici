@@ -1,0 +1,55 @@
+{
+  "schema_id": "ici.rust-parity.qtest-scope",
+  "source_sha256": "sha256:5d30f45c56ffe680e0286edd93e94950c8ff1cbac5599a69076ba1355e4deacd",
+  "source": "#include <QtTest>\nclass Suite: public QObject {\n Q_OBJECT\nprivate slots:\n void green(){QVERIFY(true);}\n void red(){QVERIFY(false);}\n void expected(){QEXPECT_FAIL(\"\", \"known defect\", Continue); QVERIFY(false);}\n void surprise(){QEXPECT_FAIL(\"\", \"unexpected fix\", Continue); QVERIFY(true);}\n void skip(){QSKIP(\"not executed\");}\n};\nQTEST_GUILESS_MAIN(Suite)\n#include \"main.moc\"\n",
+  "observations": [
+    {
+      "qt": "5.15.18",
+      "stdout": "********* Start testing of Suite *********\nConfig: Using QtTest library 5.15.18, Qt 5.15.18 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.2.0), ubuntu 26.04\nPASS   : Suite::initTestCase()\nPASS   : Suite::green()\nFAIL!  : Suite::red() 'false' returned FALSE. ()\n   Loc: [../main.cpp(6)]\nXFAIL  : Suite::expected() known defect\n   Loc: [../main.cpp(7)]\nPASS   : Suite::expected()\nXPASS  : Suite::surprise() 'true' returned TRUE unexpectedly. ()\n   Loc: [../main.cpp(8)]\nSKIP   : Suite::skip() not executed\n   Loc: [../main.cpp(9)]\nPASS   : Suite::cleanupTestCase()\nTotals: 4 passed, 2 failed, 1 skipped, 0 blacklisted, 0ms\n********* Finished testing of Suite *********\n",
+      "producer_command": [
+        "qmake",
+        "../suite.pro"
+      ],
+      "execution": [
+        "./suite"
+      ],
+      "expected": {
+        "passed": 4,
+        "failed": 2,
+        "skipped": 1,
+        "total": 7,
+        "outcomes": {
+          "qtest:Suite::green()": "PASSED",
+          "qtest:Suite::red()": "FAILED",
+          "qtest:Suite::expected()": "XFAIL",
+          "qtest:Suite::surprise()": "XPASS",
+          "qtest:Suite::skip()": "SKIPPED"
+        }
+      }
+    },
+    {
+      "qt": "6.10.2",
+      "stdout": "********* Start testing of Suite *********\nConfig: Using QtTest library 6.10.2, Qt 6.10.2 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.2.0), ubuntu 26.04\nPASS   : Suite::initTestCase()\nPASS   : Suite::green()\nFAIL!  : Suite::red() 'false' returned FALSE. ()\n   Loc: [../main.cpp(6)]\nXFAIL  : Suite::expected() known defect\n   Loc: [../main.cpp(7)]\nPASS   : Suite::expected()\nXPASS  : Suite::surprise() 'true' returned TRUE unexpectedly. ()\n   Loc: [../main.cpp(8)]\nSKIP   : Suite::skip() not executed\n   Loc: [../main.cpp(9)]\nPASS   : Suite::cleanupTestCase()\nTotals: 4 passed, 2 failed, 1 skipped, 0 blacklisted, 1ms\n********* Finished testing of Suite *********\n",
+      "producer_command": [
+        "qmake6",
+        "../suite.pro"
+      ],
+      "execution": [
+        "./suite"
+      ],
+      "expected": {
+        "passed": 4,
+        "failed": 2,
+        "skipped": 1,
+        "total": 7,
+        "outcomes": {
+          "qtest:Suite::green()": "PASSED",
+          "qtest:Suite::red()": "FAILED",
+          "qtest:Suite::expected()": "XFAIL",
+          "qtest:Suite::surprise()": "XPASS",
+          "qtest:Suite::skip()": "SKIPPED"
+        }
+      }
+    }
+  ]
+}

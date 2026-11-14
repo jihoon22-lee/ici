@@ -1,0 +1,1270 @@
+{
+ "cases": {
+  "build-gxx-exit1": {
+   "body": "echo \"boom error\" >&2; exit 1",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ Build did not produce a complete artifact set\n"
+    },
+    "verify": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "category": "build",
+       "message": "C++ compilation failed: boom error\n",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppBinary",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "high",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "FAIL",
+     "summary": "Build did not produce a complete artifact set",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "C++ compilation failed: boom error\n",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "CppBinary"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "C++ compilation failed: boom error\n",
+       "name": "g++ build",
+       "returncode": 1,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   }
+  },
+  "build-gxx-exit2": {
+   "body": "echo bad >&2; exit 2",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ g++ failed with exit code 2\n"
+    },
+    "verify": {
+     "evidence": "NOT_RUN",
+     "findings": [
+      {
+       "category": "build",
+       "message": "g++ failed with exit code 2",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "BuildError",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "critical",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "ERROR",
+     "summary": "g++ failed with exit code 2",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "g++ failed with exit code 2",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "g++ failed with exit code 2",
+       "name": "g++ build",
+       "returncode": 2,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   }
+  },
+  "build-gxx-nobinary": {
+   "body": "exit 0",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ g++ reported success but no regular binary was produced\n"
+    },
+    "verify": {
+     "evidence": "NOT_RUN",
+     "findings": [
+      {
+       "category": "build",
+       "message": "g++ reported success but no regular binary was produced",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "BuildError",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "critical",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "ERROR",
+     "summary": "g++ reported success but no regular binary was produced",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "g++ reported success but no regular binary was produced",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "g++ reported success but no regular binary was produced",
+       "name": "g++ build",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   }
+  },
+  "build-gxx-signal": {
+   "body": "kill -9 $$",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ C++ compiler terminated before producing a result\n"
+    },
+    "verify": {
+     "evidence": "NOT_RUN",
+     "findings": [
+      {
+       "category": "build",
+       "message": "C++ compiler terminated before producing a result",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "BuildError",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "critical",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "ERROR",
+     "summary": "C++ compiler terminated before producing a result",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "C++ compiler terminated before producing a result",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "C++ compiler terminated before producing a result",
+       "name": "g++ build",
+       "returncode": -9,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   }
+  },
+  "build-gxx-trunc": {
+   "body": "head -c 1100000 /dev/zero | tr \"\\0\" x; echo",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ C++ compilation output was incomplete\n"
+    },
+    "verify": {
+     "evidence": "NOT_RUN",
+     "findings": [
+      {
+       "category": "build",
+       "message": "C++ compilation output was incomplete",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "BuildError",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "critical",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "ERROR",
+     "summary": "C++ compilation output was incomplete",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "C++ compilation output was incomplete",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "C++ compilation output was incomplete",
+       "name": "g++ build",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": true
+      }
+     ]
+    }
+   }
+  },
+  "build-no-gxx": {
+   "body": null,
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ g++ is not installed; C++ build could not run\n"
+    },
+    "verify": {
+     "evidence": "NOT_RUN",
+     "findings": [
+      {
+       "category": "build",
+       "message": "g++ is not installed; C++ build could not run",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "BuildError",
+        "path": ".",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "critical",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "ERROR",
+     "summary": "g++ is not installed; C++ build could not run",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "g++ is not installed; C++ build could not run",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "g++ is not installed; C++ build could not run",
+       "name": "g++ build",
+       "returncode": null,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   }
+  }
+ },
+ "config": "[project]\nsource_dirs = [\"src\"]\n",
+ "corrected_cases": {
+  "corrupt-elf-output": {
+   "body": "o=; while [ $# -gt 0 ]; do [ \"$1\" = -o ] && o=\"$2\"; shift; done; printf '\\177ELFgarbage' > \"$o\"",
+   "frozen": {
+    "build": {
+     "exit_code": 0,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/bin/project",
+      "v1.0.0/x86_64/env.csh",
+      "v1.0.0/x86_64/env.sh",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✔ Build Completed: project v1.0.0 into v1.0.0/x86_64\n"
+    },
+    "verify": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "category": "build",
+       "message": "Generated env.csh",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v1.0.0/x86_64/env.csh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      },
+      {
+       "category": "build",
+       "message": "Generated env.sh",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v1.0.0/x86_64/env.sh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      },
+      {
+       "category": "build",
+       "message": "Compiled C++17 binary (<s>)",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppBinary",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: project v1.0.0 into v1.0.0/x86_64",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "Compiled C++17 binary (<s>)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppBinary"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "",
+       "name": "g++ build",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   }
+  },
+  "non-elf-output": {
+   "body": "o=; while [ $# -gt 0 ]; do [ \"$1\" = -o ] && o=\"$2\"; shift; done; printf 'not an elf\\n' > \"$o\"",
+   "frozen": {
+    "build": {
+     "exit_code": 0,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/bin/project",
+      "v1.0.0/x86_64/env.csh",
+      "v1.0.0/x86_64/env.sh",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✔ Build Completed: project v1.0.0 into v1.0.0/x86_64\n"
+    },
+    "verify": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "category": "build",
+       "message": "Generated env.csh",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v1.0.0/x86_64/env.csh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      },
+      {
+       "category": "build",
+       "message": "Generated env.sh",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v1.0.0/x86_64/env.sh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      },
+      {
+       "category": "build",
+       "message": "Compiled C++17 binary (<s>)",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppBinary",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: project v1.0.0 into v1.0.0/x86_64",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "Compiled C++17 binary (<s>)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppBinary"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "",
+       "name": "g++ build",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   }
+  },
+  "shared-object-output": {
+   "body": "exec /usr/bin/g++ -shared -fPIC \"$@\"",
+   "frozen": {
+    "build": {
+     "exit_code": 0,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/bin/project",
+      "v1.0.0/x86_64/env.csh",
+      "v1.0.0/x86_64/env.sh",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✔ Build Completed: project v1.0.0 into v1.0.0/x86_64\n"
+    },
+    "verify": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "category": "build",
+       "message": "Generated env.csh",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v1.0.0/x86_64/env.csh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      },
+      {
+       "category": "build",
+       "message": "Generated env.sh",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v1.0.0/x86_64/env.sh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      },
+      {
+       "category": "build",
+       "message": "Compiled C++17 binary (<s>)",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppBinary",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: project v1.0.0 into v1.0.0/x86_64",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "Compiled C++17 binary (<s>)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppBinary"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "",
+       "name": "g++ build",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   }
+  }
+ },
+ "edge_cases": {
+  "gxx-cannot-run": {
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ C++ compiler terminated before producing a result"
+    },
+    "verify": {
+     "evidence": "NOT_RUN",
+     "findings": [
+      {
+       "category": "build",
+       "message": "C++ compiler terminated before producing a result",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "BuildError",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "critical",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "ERROR",
+     "summary": "C++ compiler terminated before producing a result",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "C++ compiler terminated before producing a result",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "C++ compiler terminated before producing a result",
+       "name": "g++ build",
+       "returncode": -1,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "raw": "#!/no/such/interpreter\n"
+  },
+  "gxx-exit1-pass-warn": {
+   "body": "echo \"boom error\" >&2; exit 1",
+   "frozen": {
+    "build": {
+     "exit_code": 0,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "⚠ Build did not produce a complete artifact set\n"
+    },
+    "verify": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "category": "build",
+       "message": "C++ compilation failed: boom error\n",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppBinary",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "high",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "WARN",
+     "summary": "Build did not produce a complete artifact set",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "C++ compilation failed: boom error\n",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "CppBinary"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "C++ compilation failed: boom error\n",
+       "name": "g++ build",
+       "returncode": 1,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "mode": "pass_warn"
+  },
+  "gxx-links-nothing": {
+   "body": "case \" $* \" in *\" -c \"*) ;; *) exit 0;; esac; o=; while [ $# -gt 0 ]; do [ \"$1\" = -o ] && o=\"$2\"; shift; done; printf x > \"$o\"",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ g++ reported success but no regular binary was produced\n"
+    },
+    "verify": {
+     "evidence": "NOT_RUN",
+     "findings": [
+      {
+       "category": "build",
+       "message": "g++ reported success but no regular binary was produced",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "BuildError",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "critical",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "ERROR",
+     "summary": "g++ reported success but no regular binary was produced",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "g++ reported success but no regular binary was produced",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "g++ reported success but no regular binary was produced",
+       "name": "g++ build",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   }
+  },
+  "output-directory": {
+   "body": "exit 0",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/bin/project/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ Could not prepare C++ output: output path is not a regular file: <root>/v1.0.0/x86_64/bin/project"
+    },
+    "verify": {
+     "evidence": "NOT_RUN",
+     "findings": [
+      {
+       "category": "build",
+       "message": "Could not prepare C++ output: output path is not a regular file: <root>/v1.0.0/x86_64/bin/project",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "BuildError",
+        "path": ".",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "critical",
+       "tool_name": ""
+      }
+     ],
+     "status": "ERROR",
+     "summary": "Could not prepare C++ output: output path is not a regular file: <root>/v1.0.0/x86_64/bin/project",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "Could not prepare C++ output: output path is not a regular file: <root>/v1.0.0/x86_64/bin/project",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tool_evidence": []
+    }
+   },
+   "setup": "directory"
+  },
+  "output-symlink": {
+   "body": "exit 0",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/bin/project",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ Could not prepare C++ output: output path contains symlink: <root>/v1.0.0/x86_64/bin/project"
+    },
+    "verify": {
+     "evidence": "NOT_RUN",
+     "findings": [
+      {
+       "category": "build",
+       "message": "Could not prepare C++ output: output path contains symlink: <root>/v1.0.0/x86_64/bin/project",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "BuildError",
+        "path": ".",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "critical",
+       "tool_name": ""
+      }
+     ],
+     "status": "ERROR",
+     "summary": "Could not prepare C++ output: output path contains symlink: <root>/v1.0.0/x86_64/bin/project",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "Could not prepare C++ output: output path contains symlink: <root>/v1.0.0/x86_64/bin/project",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tool_evidence": []
+    }
+   },
+   "setup": "symlink"
+  }
+ },
+ "enable_build": "[engines.build]\nenabled = true\n",
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "real_cases": {
+  "real-compile-error": {
+   "body": "exec /usr/bin/g++ \"$@\"",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ Build did not produce a complete artifact set\n"
+    },
+    "verify": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "category": "build",
+       "message": "C++ compilation failed: <root>/src/main.cpp: In function ‘int main()’:\n<root>/src/main.cpp:1",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppBinary",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "high",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "FAIL",
+     "summary": "Build did not produce a complete artifact set",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "C++ compilation failed: <root>/src/main.cpp: In function ‘int main()’:\n<root>/src/main.cpp:1",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "CppBinary"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "C++ compilation failed: <root>/src/main.cpp: In function ‘int main()’:\n<root>/src/main.cpp:1",
+       "name": "g++ build",
+       "returncode": 1,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "sources": {
+    "src/main.cpp": "int main() { return missing; }\n"
+   }
+  },
+  "real-fixit": {
+   "body": "exec /usr/bin/g++ \"$@\"",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ Build did not produce a complete artifact set\n"
+    },
+    "verify": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "category": "build",
+       "message": "C++ compilation failed: <root>/src/main.cpp: In function ‘int main()’:\n<root>/src/main.cpp:1",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppBinary",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "high",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "FAIL",
+     "summary": "Build did not produce a complete artifact set",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "C++ compilation failed: <root>/src/main.cpp: In function ‘int main()’:\n<root>/src/main.cpp:1",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "CppBinary"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "C++ compilation failed: <root>/src/main.cpp: In function ‘int main()’:\n<root>/src/main.cpp:1",
+       "name": "g++ build",
+       "returncode": 1,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "sources": {
+    "src/main.cpp": "int main() { return 0 }\n"
+   }
+  },
+  "real-later-source": {
+   "body": "exec /usr/bin/g++ \"$@\"",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/a.cpp",
+      "src/b.cpp",
+      "src/c.cpp",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ Build did not produce a complete artifact set\n"
+    },
+    "verify": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "category": "build",
+       "message": "C++ compilation failed: <root>/src/b.cpp:1:9: error: ‘bad_b’ was not declared in this scope\n    1 | int b = bad_b;\n      |         ^~~~~\n/tmp/xxxxxxxxxxxxxxxx",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppBinary",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "high",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "FAIL",
+     "summary": "Build did not produce a complete artifact set",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "C++ compilation failed: <root>/src/b.cpp:1:9: error: ‘bad_b’ was not declared in this scope\n    1 | int b = bad_b;\n      |         ^~~~~\n/tmp/xxxxxxxxxxxxxxxx",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "CppBinary"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "C++ compilation failed: <root>/src/b.cpp:1:9: error: ‘bad_b’ was not declared in this scope\n    1 | int b = bad_b;\n      |         ^~~~~\n/tmp/xxxxxxxxxxxxxxxx",
+       "name": "g++ build",
+       "returncode": 1,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "sources": {
+    "src/a.cpp": "int a = 1;\n",
+    "src/b.cpp": "int b = bad_b;\n",
+    "src/c.cpp": "int c = bad_c;\n",
+    "src/main.cpp": "int main() { return 0; }\n"
+   }
+  },
+  "real-link-error": {
+   "body": "exec /usr/bin/g++ \"$@\"",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ Build did not produce a complete artifact set\n"
+    },
+    "verify": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "category": "build",
+       "message": "C++ compilation failed: /usr/bin/x86_64-linux-gnu-ld.bfd: /tmp/cc9ueGPO.o: in function `main':\nmain.cpp:(.text+0x9): undefined reference to `f()'\ncollect2: error: ld returned 1 exit status\n",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppBinary",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "high",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "FAIL",
+     "summary": "Build did not produce a complete artifact set",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "C++ compilation failed: /usr/bin/x86_64-linux-gnu-ld.bfd: /tmp/cc9ueGPO.o: in function `main':\nmain.cpp:(.text+0x9): undefined reference to `f()'\ncollect2: error: ld returned 1 exit status\n",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "CppBinary"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "C++ compilation failed: /usr/bin/x86_64-linux-gnu-ld.bfd: /tmp/cc9ueGPO.o: in function `main':\nmain.cpp:(.text+0x9): undefined reference to `f()'\ncollect2: error: ld returned 1 exit status\n",
+       "name": "g++ build",
+       "returncode": 1,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "sources": {
+    "src/main.cpp": "int f();\nint main() { return f(); }\n"
+   }
+  },
+  "real-two-errors": {
+   "body": "exec /usr/bin/g++ \"$@\"",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/a.cpp",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ Build did not produce a complete artifact set\n"
+    },
+    "verify": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "category": "build",
+       "message": "C++ compilation failed: <root>/src/a.cpp:1:9: error: ‘bad_a’ was not declared in this scope\n    1 | int a = bad_a;\n      |         ^~~~~\n/tmp/xxxxxxxxxxxxxxxx",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppBinary",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "high",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "FAIL",
+     "summary": "Build did not produce a complete artifact set",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "C++ compilation failed: <root>/src/a.cpp:1:9: error: ‘bad_a’ was not declared in this scope\n    1 | int a = bad_a;\n      |         ^~~~~\n/tmp/xxxxxxxxxxxxxxxx",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "CppBinary"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "C++ compilation failed: <root>/src/a.cpp:1:9: error: ‘bad_a’ was not declared in this scope\n    1 | int a = bad_a;\n      |         ^~~~~\n/tmp/xxxxxxxxxxxxxxxx",
+       "name": "g++ build",
+       "returncode": 1,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "sources": {
+    "src/a.cpp": "int a = bad_a;\n",
+    "src/main.cpp": "int main() { return bad_b; }\n"
+   }
+  }
+ },
+ "root_length": 64,
+ "source": "int main() { return 0; }\n"
+}

@@ -1,0 +1,195 @@
+{
+ "delta": {
+  "input": {
+   "baseline_location": {
+    "end_column": null,
+    "end_line": null,
+    "label": "label password=hunter2secret",
+    "path": "src/base.py",
+    "start_column": null,
+    "start_line": 3
+   },
+   "baseline_severity": null,
+   "current_location": {
+    "end_column": null,
+    "end_line": null,
+    "label": "label password=hunter2secret",
+    "path": "src/ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.py",
+    "start_column": null,
+    "start_line": 3
+   },
+   "current_severity": null,
+   "engine_name": "lint password=hunter2secret",
+   "fingerprint": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+   "gated": false,
+   "message": "new Bearer abc.def-123",
+   "regressed": false,
+   "rule_id": "ici.lint.ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+   "state": "new",
+   "suppressed": false
+  },
+  "redacted": {
+   "baseline_location": {
+    "end_column": null,
+    "end_line": null,
+    "label": "label password=***REDACTED***",
+    "path": "src/base.py",
+    "start_column": null,
+    "start_line": 3
+   },
+   "baseline_severity": null,
+   "current_location": {
+    "end_column": null,
+    "end_line": null,
+    "label": "label password=***REDACTED***",
+    "path": "src/***REDACTED***.py",
+    "start_column": null,
+    "start_line": 3
+   },
+   "current_severity": null,
+   "engine_name": "lint password=***REDACTED***",
+   "fingerprint": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+   "gated": false,
+   "message": "new Bearer ***REDACTED***",
+   "regressed": false,
+   "rule_id": "ici.lint.***REDACTED***",
+   "state": "new",
+   "suppressed": false
+  }
+ },
+ "finding": {
+  "input": {
+   "category": "correctness",
+   "confidence": "high",
+   "explanation": "Authorization: Bearer abc.def-123",
+   "fingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+   "fixes": [
+    {
+     "description": "replace password=hunter2secret",
+     "replacements": [
+      {
+       "end_column": 4,
+       "end_line": 1,
+       "path": "src/ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.py",
+       "replacement": "token = 'ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'",
+       "start_column": 1,
+       "start_line": 1
+      }
+     ]
+    }
+   ],
+   "message": "leaked ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA in message",
+   "metrics": {
+    "metric ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA": {
+     "unit": "unit Bearer abc.def-123",
+     "value": 1
+    },
+    "metric ghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB": {
+     "unit": "plain",
+     "value": 2
+    },
+    "plain": {
+     "unit": "",
+     "value": 3.5
+    }
+   },
+   "primary_location": {
+    "end_column": null,
+    "end_line": null,
+    "label": "label password=hunter2secret",
+    "path": "src/ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.py",
+    "start_column": null,
+    "start_line": 3
+   },
+   "related_locations": [
+    {
+     "end_column": null,
+     "end_line": null,
+     "label": "label password=hunter2secret",
+     "path": "src/other.py",
+     "start_column": null,
+     "start_line": 3
+    }
+   ],
+   "remediation": "rotate password=hunter2secret",
+   "rule_id": "ici.lint.rule",
+   "severity": "high",
+   "snippet": "x = 'ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'",
+   "suppression": {
+    "kind": "config",
+    "reason": "because password=hunter2secret",
+    "suppressed": true
+   },
+   "tool_name": "tool password=hunter2secret",
+   "tool_rule_id": "rule-ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+   "tool_version": "1.0 Bearer abc.def-123"
+  },
+  "redacted": {
+   "category": "correctness",
+   "confidence": "high",
+   "explanation": "Authorization: Bearer ***REDACTED***",
+   "fingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+   "fixes": [
+    {
+     "description": "replace password=***REDACTED***",
+     "replacements": [
+      {
+       "end_column": 4,
+       "end_line": 1,
+       "path": "src/***REDACTED***.py",
+       "replacement": "token = '***REDACTED***'",
+       "start_column": 1,
+       "start_line": 1
+      }
+     ]
+    }
+   ],
+   "message": "leaked ***REDACTED*** in message",
+   "metrics": {
+    "metric ***REDACTED***": {
+     "unit": "unit Bearer ***REDACTED***",
+     "value": 1
+    },
+    "metric ***REDACTED***#2": {
+     "unit": "plain",
+     "value": 2
+    },
+    "plain": {
+     "unit": "",
+     "value": 3.5
+    }
+   },
+   "primary_location": {
+    "end_column": null,
+    "end_line": null,
+    "label": "label password=***REDACTED***",
+    "path": "src/***REDACTED***.py",
+    "start_column": null,
+    "start_line": 3
+   },
+   "related_locations": [
+    {
+     "end_column": null,
+     "end_line": null,
+     "label": "label password=***REDACTED***",
+     "path": "src/other.py",
+     "start_column": null,
+     "start_line": 3
+    }
+   ],
+   "remediation": "rotate password=***REDACTED***",
+   "rule_id": "ici.lint.rule",
+   "severity": "high",
+   "snippet": "x = '***REDACTED***'",
+   "suppression": {
+    "kind": "config",
+    "reason": "because password=***REDACTED***",
+    "suppressed": true
+   },
+   "tool_name": "tool password=***REDACTED***",
+   "tool_rule_id": "rule-***REDACTED***",
+   "tool_version": "1.0 Bearer ***REDACTED***"
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

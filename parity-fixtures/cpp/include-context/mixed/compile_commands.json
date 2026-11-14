@@ -1,0 +1,7 @@
+[
+ {"directory": ".", "command": "g++ -std=c++17 -c src/a.cpp -o build/a.o", "file": "src/a.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -fplugin=evil.so -c src/b.cpp -o build/b.o", "file": "src/b.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/e.cpp -o build/e.o", "file": "src/e.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 @opts.rsp -c src/r.cpp -o build/r.o", "file": "src/r.cpp"},
+ "malformed row"
+]

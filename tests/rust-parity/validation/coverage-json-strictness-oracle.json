@@ -1,0 +1,496 @@
+{
+ "cases": {
+  "absolute-name": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 50.0,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 2,
+    "num_statements": 3
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"<ROOT>/main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "bom": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "\ufeff{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "bool-line": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [true, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "branch-arc-count-mismatch": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 50.0,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 2,
+    "num_statements": 3
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "branch-arc-duplicate": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 33.3,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 3,
+    "num_statements": 3
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 3}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3], [1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 3}}"
+  },
+  "branch-arc-shape": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 50.0,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 2,
+    "num_statements": 3
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "branch-arcs-not-list": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 50.0,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 2,
+    "num_statements": 3
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": \"arcs\", \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "branches-over-total": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 3, \"num_branches\": 2}}"
+  },
+  "branches-past-u64": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 0.0,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 18446744073709551616,
+    "num_statements": 3
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 18446744073709551616}}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 18446744073709551616}}"
+  },
+  "covered-over-statements": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 4, \"num_statements\": 3, \"missing_lines\": -1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "declared-file-missing": {
+   "expected": [
+    "main.py",
+    "other.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "dot-relative-name": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"./main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "duplicate-alias": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"<ROOT>/main.py\": {\"x\": 0}, \"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "duplicate-file-key": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 50.0,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 2,
+    "num_statements": 3
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"summary\": null}, \"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "duplicate-line": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 1], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "executed-count-mismatch": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "extra-file": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}, \"other.py\": {\"executed_lines\": [], \"missing_lines\": [], \"summary\": {\"covered_lines\": 0, \"num_statements\": 0, \"missing_lines\": 0, \"num_branches\": 0, \"covered_branches\": 0}}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "extra-key": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 50.0,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 2,
+    "num_statements": 3
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]], \"extra\": {\"x\": 1}}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "file-summary-missing": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "files-empty": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "files-past-16384": {
+   "frozen": {
+    "accepted": true,
+    "branch_cov": null,
+    "covered_branches": 0,
+    "covered_lines": 16385,
+    "file_count": 16385,
+    "files": null,
+    "line_cov": 100.0,
+    "num_branches": 0,
+    "num_statements": 16385
+   },
+   "generate": {
+    "files": 16385
+   }
+  },
+  "line-past-u32": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 50.0,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 2,
+    "num_statements": 3
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [4294967296, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "lines-overlap": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [2], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "meta-branch-false": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 50.0,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 2,
+    "num_statements": 3
+   },
+   "text": "{\"meta\": {\"branch_coverage\": false}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "meta-missing": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 50.0,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 2,
+    "num_statements": 3
+   },
+   "text": "{\"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "nan-in-meta": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 50.0,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 2,
+    "num_statements": 3
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true, \"timestamp\": NaN}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "no-branch-arcs": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 50.0,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 2,
+    "num_statements": 3
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "no-statements": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [], \"missing_lines\": [], \"summary\": {\"covered_lines\": 0, \"num_statements\": 0, \"missing_lines\": 0, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 0, \"num_statements\": 0, \"missing_lines\": 0, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "not-json": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{"
+  },
+  "parts-not-statements": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 2, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "top-level-list": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "[]"
+  },
+  "totals-bool": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": true, \"num_branches\": 2}}"
+  },
+  "totals-differ-from-files": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 0, \"num_branches\": 2}}"
+  },
+  "totals-float": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3.0, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "totals-missing": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}}"
+  },
+  "totals-negative": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": -1}}"
+  },
+  "valid": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": true,
+    "branch_cov": 50.0,
+    "covered_branches": 1,
+    "covered_lines": 2,
+    "file_count": 1,
+    "files": [
+     "main.py"
+    ],
+    "line_cov": 66.7,
+    "num_branches": 2,
+    "num_statements": 3
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [1, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  },
+  "zero-line": {
+   "expected": [
+    "main.py"
+   ],
+   "frozen": {
+    "accepted": false
+   },
+   "text": "{\"meta\": {\"branch_coverage\": true}, \"files\": {\"main.py\": {\"executed_lines\": [0, 2], \"missing_lines\": [3], \"summary\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}, \"executed_branches\": [[1, 2]], \"missing_branches\": [[1, 3]]}}, \"totals\": {\"covered_lines\": 2, \"num_statements\": 3, \"missing_lines\": 1, \"covered_branches\": 1, \"num_branches\": 2}}"
+  }
+ },
+ "python": "3.10.21",
+ "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

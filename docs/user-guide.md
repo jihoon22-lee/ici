@@ -1,9 +1,11 @@
 # ici (Integrated CI) 사용자 가이드
 
-> 2026-10-28 제품 전환: 일반 설치·정적 분석의 주 경로는
-> [범용 분석 가이드](general-analysis.md)의 `ici analyze`와 Python wheel입니다.
-> 아래 기존 verify/pyz 및 폐쇄망 설명·과거 릴리스 증거는 호환/환경별 문맥으로 읽습니다.
-> `ici.next.run` v2/event v1과 기존 verify 동작은 유지합니다.
+> **native 제품 전환**: ici는 Rust native 단일 제품입니다. 설치·업데이트·되돌리기는
+> [native 설치 가이드](native-install.md), 기존 pyz·uv·pip 설치에서 옮기는 방법(PATH 충돌,
+> `ICI_PYTHON`, 종료 코드 3, `.ici/rust-v1`, baseline 재생성)은 [이전 가이드](migration-to-native.md)에
+> 있습니다. 일반 정적 분석의 주 경로는 [범용 분석 가이드](general-analysis.md)의 `ici analyze`입니다.
+> 아래 기존 verify 명령·설정·결과 계약은 native 제품에서 호환 경로로 유지되며, pyz 배포·폐쇄망 설명과
+> 과거 릴리스 증거는 역사적·환경별 문맥으로 읽습니다.
 
 
 > **범위: 현행(stable) CLI와 설정.** 이 문서의 명령·옵션·`ici.toml` 구조는 현재 릴리스되는
@@ -27,7 +29,7 @@
 
 ## v0.12.0 공개 릴리스의 과거 검증 근거
 
-현재 공개 stable 릴리스는 [v0.12.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.12.0)다.
+당시 공개 stable 릴리스는 [v0.12.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.12.0)다.
 `v0.12.0` tag는 exact `main` commit
 [`65752bc86b49c9845e6282ddaf3c00584e415b60`](https://github.com/jihoon22-lee/ici/commit/65752bc86b49c9845e6282ddaf3c00584e415b60)을
 가리키며, [exact-main CI run `37713707168`](https://github.com/jihoon22-lee/ici/actions/runs/37713707168)의
@@ -48,19 +50,29 @@ sidecar가 이 값과 일치한다. 로컬 재현 빌드와 candidate acceptance
 ## 1. 빠른 시작 (Quick Start)
 
 ### 1.1 설치 및 실행 권한 부여
-별도의 가상환경 구성이나 `pip install` 없이, 단일 파일 `dist/ici.pyz`를 실행 경로에 복사하여 사용합니다.
+Python이나 가상환경 없이, release의 native archive를 digest로 확인한 뒤 root 없이 설치합니다.
+지원 범위는 측정한 Linux/WSL2 x86_64(`limited`)입니다. 상세 절차와 오프라인 반입, 업데이트,
+되돌리기는 [native 설치 가이드](native-install.md)에 있습니다.
 
 ```bash
-# 사용자 로컬 실행 경로에 복사
-mkdir -p ~/.local/bin
-cp dist/ici.pyz ~/.local/bin/ici && chmod +x ~/.local/bin/ici
+# release에서 archive, .sha256, install-native.sh, ici-<version>-supporting.sha256을 내려받은 뒤
+sha256sum --check --strict ici-<version>-x86_64-unknown-linux-musl.tar.gz.sha256
+sha256sum --check --ignore-missing --strict ici-<version>-supporting.sha256   # install-native.sh 확인
+sh install-native.sh --archive ici-<version>-x86_64-unknown-linux-musl.tar.gz --sha256 <trusted sha256>
 
-# PATH 환경변수 등록 (필요 시 ~/.bashrc 또는 ~/.cshrc에 추가)
-export PATH="$HOME/.local/bin:$PATH"
+# PATH 등록 (필요 시 ~/.bashrc 또는 ~/.cshrc에 추가; 기존 ici보다 앞에 둔다)
+export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/ici/native/bin:$PATH"
+ici --version
 ```
 
+tcsh에서는 `setenv PATH "$HOME/.local/share/ici/native/bin:$PATH"`처럼 등록합니다. 이전 pyz·uv·pip
+설치가 PATH에 남아 있으면 `ici doctor`가 `path    shadowing ici: …`로 알려 줍니다.
+
 ### 1.2 실행 환경 진단 (`ici doctor`)
-현재 시스템의 OS, glibc 버전, Python 런타임과 `doctor`에 포함된 제한된 도구 목록을 점검합니다.
+현재 시스템의 OS, Python 후보와 `doctor`에 포함된 제한된 도구 목록을 점검합니다.
+Python은 ici의 런타임이 아니라 프로젝트를 검사하는 외부 도구로 표시됩니다. PATH에 다른 `ici`가
+먼저 있으면 `path    shadowing ici: <경로>`, 뒤에 남은 설치는 `path    other ici: <경로>`로,
+설정된 `ICI_PYTHON`은 `legacy  ICI_PYTHON=<값>`으로 보이며 `resolve:` 줄에 조치를 적습니다.
 전체 검증 엔진은 자신이 실제로 호출한 도구에 대한 `ToolEvidence`를 결과에 남깁니다.
 
 ```bash
@@ -69,14 +81,18 @@ ici doctor --brief
 
 ```text
 ici <version> brief
-os      <os_id>-<os_version>  glibc=<glibc>  arch=<arch>  wsl=<yes|no>
-shell   <shell>  TERM=<term>  LANG=<lang>
-python  running=<major.minor.micro>  path=<executable>
-tools   gcc=<version-or->  g++=<version-or->  clang=<version-or->  make=<version-or->  cmake=<version-or->
-        ruff=<version-or->  mypy=<version-or->  pytest=<version-or->  git=<version-or->
+runtime Rust native; project Python is an external tool
+root    <project root>
+scope   languages=<languages>  profile=<profile>
+caps    status=<PASS|...>  ready=<ready>/<total>  required=<required>
+path    shadowing ici: <다른 ici 경로>          (있을 때만)
+legacy  ICI_PYTHON=<값>                        (설정돼 있을 때만)
+  resolve: <조치>
+tools
+  <tool>: <Ready (version only)|Unavailable> — <probe 결과 또는 준비 방법>
 ```
 
-`ici doctor`를 `--brief` 없이 실행하면 동일한 데이터를 OS/Python/도구/경로별 Rich 표로
+`ici doctor`를 `--brief` 없이 실행하면 같은 데이터에 도구 capability inventory와 엔진 capability matrix를 더해
 확장해서 보여줍니다. 위 출력의 버전과 경로는 실행 환경에 따라 달라지며 고정된 결과로
 해석해서는 안 됩니다. qmake/Qt, Ninja, binutils 전체 capability 검증과 프로젝트 정의 기반
 빌드 어댑터도 같은 bounded inventory·evidence 정책 안에서 동작하며, 실제 지원 범위와
@@ -559,7 +575,7 @@ ici verify --report --html verify_report.html --open
 - `--open`: 검증 완료 후 기본 브라우저(`firefox`, `chrome`, `xdg-open` 등)로 리포트를 즉시 띄웁니다.
 - `--report`: 파이프라인 데이터 연동용 `verify_report.json`을 `ici.result/v3` 형식으로 저장합니다.
   기존 `targets`와 canonical `findings`를 함께 포함하며, 기계 검증용 JSON Schema는
-  [`src/ici/schemas/ici-result-v3.schema.json`](../src/ici/schemas/ici-result-v3.schema.json)입니다.
+  [`schemas/ici-result-v3.schema.json`](../schemas/ici-result-v3.schema.json)입니다.
   프로젝트 언어·Qt 발견 결과와 엔진별 mode/tool/fallback/evidence/confidence를 담은
   `support_matrix`도 함께 저장됩니다. 단독 엔진 리포트에는 그 엔진의 두 언어 행만 들어갑니다.
 - `--sarif <path>`: 같은 canonical finding inventory를 SARIF 2.1.0으로 저장합니다. source-relative
@@ -640,7 +656,7 @@ ici export-compilation-context --prepare \
 분해합니다. duplicate JSON key, `NaN`/`Infinity`, 비정상 파일, symlink 탈출, malformed row,
 읽는 중 변경은 실행하거나 추측하지 않고 bounded diagnostic으로 처리합니다.
 
-출력 계약은 [`ici-compilation-export-v1.schema.json`](../src/ici/schemas/ici-compilation-export-v1.schema.json)의
+출력 계약은 [`ici-compilation-export-v1.schema.json`](../schemas/ici-compilation-export-v1.schema.json)의
 `ici.compilation-export/v1`입니다. key를 정렬한 UTF-8 JSON으로 `evidence`는 실제 DB를 읽거나
 준비했다는 `MEASURED`를 뜻합니다. `source_bytes_digest`는 선택된 DB 원본 바이트의 SHA-256이고,
 `semantic_digest`와 unit별 `configuration_digest`는 redacted·정규화된 origin, generator,
@@ -666,8 +682,8 @@ payload를 만들지 않고 exit 1로 닫힙니다. 그 밖의 측정 결과는 
 | `2` | 옵션/경로 검증 실패, 측정된 DB 또는 usable unit 부재, 보호된 출력 대상 |
 
 stdout 모드에서 오류 메시지는 stderr로만 출력되고, `--output` 파일 모드에서는 성공 stdout이
-비어 있습니다. schema는 `src/ici/schemas/` 아래 package data로 wheel/ZipApp에 함께 포함되며,
-`scripts/build-pyz.sh`가 ZipApp 구성 전에 두 공개 schema의 존재를 확인합니다.
+비어 있습니다. 공개 schema는 저장소 최상위 `schemas/`에 있으며, native 시험
+(`crates/ici-cli/tests/wire_schemas.rs`)이 실제 출력을 그 schema로 검증합니다.
 
 #### C++ compile database gate
 
@@ -1400,7 +1416,7 @@ function 96.6%, branch 78.9%), viewer PASS(TEM 4.89, 7/7 tests)였다. [ici Page
 [CI/CD 연동 가이드](ci-integration.md#3-신뢰된-html-publish---publish) 참조):
 
 ```bash
-dist/ici.pyz verify --report --html verify_report.html --github-summary --publish
+ici verify --report --html verify_report.html --github-summary --publish
 ```
 
 이 기능은 GitHub Contents API와 쓰기 토큰이 필요하므로, 실행 job의 `contents: write`와
@@ -1457,6 +1473,25 @@ report = ["build/analysis-report.json"]
 
 **매칭되지 않는 glob은 건너뛰지 않고 오류입니다.** wheel을 내보내기로 한 빌드가 내보내지
 않았다는 것은 manifest가 담아야 할 사실이지, 소비자가 침묵으로부터 추론할 일이 아닙니다.
+glob은 프로젝트 파일과 이 빌드가 만드는 파일(`v<version>/x86_64/...`) 모두에 대해 평가합니다.
+
+- legacy 설정(`[project]`): v0.13.0과 같은 순서로 패키지·env loader를 먼저 쓰고 기록한 뒤
+  선언을 평가합니다. 매칭이 없으면 앞의 target 뒤에 `BuildError`
+  `Declared artifacts could not be recorded: declared artifact glob matched nothing: <key>: <glob>`
+  가 붙고 `config.artifacts` manifest와 `DeclaredArtifacts` PASS는 없습니다. `ici build`는
+  종료 코드 1, deep `ici verify`는 build 엔진 ERROR(suite WARN)입니다.
+- schema 2: 끝까지 평가했는데 매칭이 없으면 측정된 계약 위반입니다. 검사는 실행 완료
+  (SUCCEEDED, 증거 완전)이고 그 glob을 선언한 `ici.toml` 줄에 blocking finding
+  `artifact.declared-unmatched`를 남기며 아무것도 쓰지 않습니다. 필수 검사면 gate FAIL,
+  종료 코드 1이고, 선택 검사면 finding만 남습니다. 루트 밖으로 해석되는 심링크만 매칭된
+  glob은 계약 위반이 아니라 불완전 입력(INCOMPLETE, 종료 코드 3)입니다. ici는 그 대상을 읽지 않고
+  사유에 link를 적습니다. 끊긴 link나 디렉터리만 맞은 glob은 기록할 파일이 없으므로 매칭 없음입니다.
+  같은 glob이 프로젝트 파일과 루트 밖 심링크를 함께 맞혀도 선언 전체를 기록할 수 없으므로 같은
+  불완전 입력이며, 프로젝트 파일만의 부분 manifest를 남기지 않습니다. 산출물을 준비하는 동안
+  (예: version probe) 선택한 source나 `ici.toml`이 바뀌면 `inputs changed while running` 사유와 함께
+  INCOMPLETE(종료 코드 3)입니다.
+- schema 1에는 `build` 표가 없습니다. `[build.artifacts]`는 `next plan`/`next verify`/`analyze`
+  에서 `build: unknown configuration key` 설정 오류(종료 코드 2)입니다.
 
 `binary_compat`은 kind로 대상을 고르므로 wheel이나 JSON 리포트에 readelf를 실행하지
 않습니다. 파일 확장자 allow-list가 아니라 typed record가 그것을 막습니다. `integration`
@@ -1778,7 +1813,7 @@ release-contract dependency graph에서 실행됩니다. `ici build`는 release 
 
 ## 5. 도구 설치, fallback, 한계, 그리고 finding을 처리하는 순서
 
-`ici.pyz` 자체는 외부 도구 없이 실행됩니다. 하지만 엔진이 **무엇을 근거로 판정하는지**는 어떤
+native `ici` 자체는 Python이나 외부 도구 없이 실행됩니다(검증된 Ruff/ty를 동봉). 하지만 엔진이 **무엇을 근거로 판정하는지**는 어떤
 도구가 있느냐에 따라 달라집니다. 도구가 없어도 대부분의 엔진은 계속 돌지만, 그 결과는 실행된
 도구의 증거가 아니라 추정입니다. 두 경우를 구분하지 않으면 초록불이 무엇을 뜻하는지 알 수
 없습니다.

@@ -1,0 +1,433 @@
+{
+ "cases": {
+  "database:both": {
+   "database": true,
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "findings": [
+    {
+     "confidence": "exact",
+     "message": "Compiler reports 'int unused_both()' defined but not used in all 1 analyzed configuration(s)",
+     "path": "src/vendor/generated/both.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "start_line": 1
+    },
+    {
+     "confidence": "exact",
+     "message": "Compiler reports 'int unused_lib()' defined but not used in all 1 analyzed configuration(s)",
+     "path": "src/vendor/lib.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "start_line": 1
+    },
+    {
+     "confidence": "exact",
+     "message": "Compiler reports 'int unused_main()' defined but not used in all 1 analyzed configuration(s)",
+     "path": "src/main.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "start_line": 1
+    },
+    {
+     "confidence": "exact",
+     "message": "Compiler reports 'int unused_moc()' defined but not used in all 1 analyzed configuration(s)",
+     "path": "src/moc_view.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "start_line": 1
+    },
+    {
+     "confidence": "exact",
+     "message": "Compiler reports 'int unused_gen()' defined but not used in all 1 analyzed configuration(s)",
+     "path": "src/generated/gen.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "start_line": 1
+    }
+   ],
+   "option": "both",
+   "required": true,
+   "source_extra": {
+    "source_bytes_analyzed": 314,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 5,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 5
+   },
+   "status": "WARN",
+   "summary": "5 dead-code finding(s): 0 heuristic Python, 5 compiler-local C/C++, 0 target-local GNU ELF",
+   "targets": [
+    {
+     "end_line": 1,
+     "file_path": "src/generated/gen.cpp",
+     "message": "Compiler reports 'int unused_gen()' defined but not used in all 1 analyzed configuration(s)",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    },
+    {
+     "end_line": 1,
+     "file_path": "src/main.cpp",
+     "message": "Compiler reports 'int unused_main()' defined but not used in all 1 analyzed configuration(s)",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    },
+    {
+     "end_line": 1,
+     "file_path": "src/moc_view.cpp",
+     "message": "Compiler reports 'int unused_moc()' defined but not used in all 1 analyzed configuration(s)",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    },
+    {
+     "end_line": 1,
+     "file_path": "src/vendor/generated/both.cpp",
+     "message": "Compiler reports 'int unused_both()' defined but not used in all 1 analyzed configuration(s)",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    },
+    {
+     "end_line": 1,
+     "file_path": "src/vendor/lib.cpp",
+     "message": "Compiler reports 'int unused_lib()' defined but not used in all 1 analyzed configuration(s)",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    }
+   ]
+  },
+  "database:generated": {
+   "database": true,
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "findings": [
+    {
+     "confidence": "exact",
+     "message": "Compiler reports 'int unused_main()' defined but not used in all 1 analyzed configuration(s)",
+     "path": "src/main.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "start_line": 1
+    },
+    {
+     "confidence": "exact",
+     "message": "Compiler reports 'int unused_moc()' defined but not used in all 1 analyzed configuration(s)",
+     "path": "src/moc_view.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "start_line": 1
+    },
+    {
+     "confidence": "exact",
+     "message": "Compiler reports 'int unused_gen()' defined but not used in all 1 analyzed configuration(s)",
+     "path": "src/generated/gen.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "start_line": 1
+    }
+   ],
+   "option": "generated",
+   "required": true,
+   "source_extra": {
+    "source_bytes_analyzed": 188,
+    "source_exclusion_counts": {
+     "vendor": 2
+    },
+    "source_files_analyzed": 3,
+    "source_files_excluded": 2,
+    "source_files_snapshotted": 3
+   },
+   "status": "WARN",
+   "summary": "3 dead-code finding(s): 0 heuristic Python, 3 compiler-local C/C++, 0 target-local GNU ELF",
+   "targets": [
+    {
+     "end_line": 1,
+     "file_path": "src/generated/gen.cpp",
+     "message": "Compiler reports 'int unused_gen()' defined but not used in all 1 analyzed configuration(s)",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    },
+    {
+     "end_line": 1,
+     "file_path": "src/main.cpp",
+     "message": "Compiler reports 'int unused_main()' defined but not used in all 1 analyzed configuration(s)",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    },
+    {
+     "end_line": 1,
+     "file_path": "src/moc_view.cpp",
+     "message": "Compiler reports 'int unused_moc()' defined but not used in all 1 analyzed configuration(s)",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    }
+   ]
+  },
+  "database:neither": {
+   "database": true,
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "findings": [
+    {
+     "confidence": "exact",
+     "message": "Compiler reports 'int unused_main()' defined but not used in all 1 analyzed configuration(s)",
+     "path": "src/main.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "start_line": 1
+    }
+   ],
+   "option": "neither",
+   "required": true,
+   "source_extra": {
+    "source_bytes_analyzed": 64,
+    "source_exclusion_counts": {
+     "generated": 3,
+     "vendor": 2
+    },
+    "source_files_analyzed": 1,
+    "source_files_excluded": 4,
+    "source_files_snapshotted": 1
+   },
+   "status": "WARN",
+   "summary": "1 dead-code finding(s): 0 heuristic Python, 1 compiler-local C/C++, 0 target-local GNU ELF",
+   "targets": [
+    {
+     "end_line": 1,
+     "file_path": "src/main.cpp",
+     "message": "Compiler reports 'int unused_main()' defined but not used in all 1 analyzed configuration(s)",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    }
+   ]
+  },
+  "database:vendor": {
+   "database": true,
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "findings": [
+    {
+     "confidence": "exact",
+     "message": "Compiler reports 'int unused_lib()' defined but not used in all 1 analyzed configuration(s)",
+     "path": "src/vendor/lib.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "start_line": 1
+    },
+    {
+     "confidence": "exact",
+     "message": "Compiler reports 'int unused_main()' defined but not used in all 1 analyzed configuration(s)",
+     "path": "src/main.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "start_line": 1
+    }
+   ],
+   "option": "vendor",
+   "required": true,
+   "source_extra": {
+    "source_bytes_analyzed": 126,
+    "source_exclusion_counts": {
+     "generated": 3
+    },
+    "source_files_analyzed": 2,
+    "source_files_excluded": 3,
+    "source_files_snapshotted": 2
+   },
+   "status": "WARN",
+   "summary": "2 dead-code finding(s): 0 heuristic Python, 2 compiler-local C/C++, 0 target-local GNU ELF",
+   "targets": [
+    {
+     "end_line": 1,
+     "file_path": "src/main.cpp",
+     "message": "Compiler reports 'int unused_main()' defined but not used in all 1 analyzed configuration(s)",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    },
+    {
+     "end_line": 1,
+     "file_path": "src/vendor/lib.cpp",
+     "message": "Compiler reports 'int unused_lib()' defined but not used in all 1 analyzed configuration(s)",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    }
+   ]
+  },
+  "no-database:both": {
+   "database": false,
+   "evidence": "NOT_RUN",
+   "exit_code": 2,
+   "findings": [
+    {
+     "confidence": "low",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "path": "src/generated/gen.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "start_line": 1
+    }
+   ],
+   "option": "both",
+   "required": false,
+   "source_extra": {
+    "source_bytes_analyzed": 314,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 5
+   },
+   "status": "SKIP",
+   "summary": "C++ dead-code analysis not run: exact native context unavailable",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/generated/gen.cpp",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsUnavailable"
+    }
+   ]
+  },
+  "no-database:generated": {
+   "database": false,
+   "evidence": "NOT_RUN",
+   "exit_code": 2,
+   "findings": [
+    {
+     "confidence": "low",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "path": "src/generated/gen.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "start_line": 1
+    }
+   ],
+   "option": "generated",
+   "required": false,
+   "source_extra": {
+    "source_bytes_analyzed": 188,
+    "source_exclusion_counts": {
+     "vendor": 2
+    },
+    "source_files_analyzed": 0,
+    "source_files_excluded": 2,
+    "source_files_snapshotted": 3
+   },
+   "status": "SKIP",
+   "summary": "C++ dead-code analysis not run: exact native context unavailable",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/generated/gen.cpp",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsUnavailable"
+    }
+   ]
+  },
+  "no-database:neither": {
+   "database": false,
+   "evidence": "NOT_RUN",
+   "exit_code": 2,
+   "findings": [
+    {
+     "confidence": "low",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "path": "src/main.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "start_line": 1
+    }
+   ],
+   "option": "neither",
+   "required": false,
+   "source_extra": {
+    "source_bytes_analyzed": 64,
+    "source_exclusion_counts": {
+     "generated": 3,
+     "vendor": 2
+    },
+    "source_files_analyzed": 0,
+    "source_files_excluded": 4,
+    "source_files_snapshotted": 1
+   },
+   "status": "SKIP",
+   "summary": "C++ dead-code analysis not run: exact native context unavailable",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsUnavailable"
+    }
+   ]
+  },
+  "no-database:vendor": {
+   "database": false,
+   "evidence": "NOT_RUN",
+   "exit_code": 2,
+   "findings": [
+    {
+     "confidence": "low",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "path": "src/main.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "start_line": 1
+    }
+   ],
+   "option": "vendor",
+   "required": false,
+   "source_extra": {
+    "source_bytes_analyzed": 126,
+    "source_exclusion_counts": {
+     "generated": 3
+    },
+    "source_files_analyzed": 0,
+    "source_files_excluded": 3,
+    "source_files_snapshotted": 2
+   },
+   "status": "SKIP",
+   "summary": "C++ dead-code analysis not run: exact native context unavailable",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsUnavailable"
+    }
+   ]
+  }
+ },
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "options": {
+  "both": "include_generated=true\ninclude_vendor=true\n",
+  "generated": "include_generated=true\n",
+  "neither": "",
+  "vendor": "include_vendor=true\n"
+ },
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "tree": {
+  "src/generated/gen.cpp": "static int unused_gen() { return 2; }\nint gen() { return 2; }\n",
+  "src/main.cpp": "static int unused_main() { return 1; }\nint main() { return 0; }\n",
+  "src/moc_view.cpp": "static int unused_moc() { return 5; }\nint moc() { return 5; }\n",
+  "src/vendor/generated/both.cpp": "static int unused_both() { return 4; }\nint both() { return 4; }\n",
+  "src/vendor/lib.cpp": "static int unused_lib() { return 3; }\nint lib() { return 3; }\n"
+ }
+}

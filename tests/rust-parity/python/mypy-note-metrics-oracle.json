@@ -1,0 +1,52 @@
+{
+ "base": "[project]\ntype='python'\nsource_dirs=['src']\n",
+ "cases": {
+  "repeated-note": {
+   "frozen": {
+    "exit_code": 0,
+    "status": "WARN",
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.py",
+      "message": "Revealed type is \"def (x: int) -> int\" (x2)",
+      "metrics": {
+       "base_message": "Revealed type is \"def (x: int) -> int\"",
+       "repeats": 2
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "MypyNote"
+     }
+    ]
+   },
+   "source": "def f(x: int) -> int:\n    return x\n\n\nreveal_type(f)\nreveal_type(f)\n"
+  },
+  "single-note": {
+   "frozen": {
+    "exit_code": 0,
+    "status": "WARN",
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.py",
+      "message": "Revealed type is \"def (x: int) -> int\"",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "MypyNote"
+     }
+    ]
+   },
+   "source": "def f(x: int) -> int:\n    return x\n\n\nreveal_type(f)\n"
+  }
+ },
+ "mypy": "mypy 2.3.1 (compiled: yes)",
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

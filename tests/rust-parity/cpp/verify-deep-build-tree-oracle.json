@@ -1,0 +1,55 @@
+{
+ "cases": {
+  "lib-symlink": {
+   "changes": {
+    "elsewhere/.keep": "",
+    "v2.3.4/x86_64/lib": {
+     "symlink": "../../elsewhere"
+    }
+   },
+   "frozen": {
+    "created": [
+     "v2.3.4/x86_64/bin/"
+    ],
+    "evidence": "NOT_RUN",
+    "exit_code": 0,
+    "status": "ERROR",
+    "suite_status": "WARN",
+    "summary": "Build metadata or setup error: output path contains symlink: {root}/v2.3.4/x86_64/lib",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "Build metadata or setup error: output path contains symlink: {root}/v2.3.4/x86_64/lib",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "BuildError"
+     }
+    ]
+   }
+  },
+  "version-file": {
+   "changes": {
+    "v2.3.4": "not a directory\n"
+   },
+   "frozen": {
+    "created": [],
+    "evidence": "NOT_RUN",
+    "exit_code": 0,
+    "status": "ERROR",
+    "suite_status": "WARN",
+    "summary": "Build metadata or setup error: output path is not a directory: {root}/v2.3.4",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "Build metadata or setup error: output path is not a directory: {root}/v2.3.4",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "BuildError"
+     }
+    ]
+   }
+  }
+ },
+ "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.line]\nenabled=false\n[engines.lint]\nenabled=false\n[engines.compile_db]\nenabled=false\n[engines.test]\nenabled=false\n[engines.type]\nenabled=false\n[engines.python_compat]\nenabled=false\n[engines.complexity]\nenabled=false\n[engines.sanitize]\nenabled=false\n[engines.thread_sanitize]\nenabled=false\n[engines.dead]\nenabled=false\n[engines.dup]\nenabled=false\n[engines.exception]\nenabled=false\n[engines.cognitive]\nenabled=false\n[engines.security]\nenabled=false\n[engines.resource]\nenabled=false\n[engines.binary_compat]\nenabled=false\n[engines.integration]\nenabled=false\n[engines.cycle]\nenabled=false\n[engines.build]\nenabled=true\n",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

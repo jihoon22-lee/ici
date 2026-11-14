@@ -1,0 +1,149 @@
+{
+ "frozen": {
+  "changed": [
+   {
+    "exit_code": 3,
+    "fingerprint": "sha256:746d084d03d1a973cc2071044f1e20af13db9a323a2af4c8ce5beef1ebc281e1",
+    "message": "include cycle: project/src/d.hpp -> project/src/c.hpp -> project/src/b.hpp -> project/src/a.hpp -> project/src/d.hpp",
+    "parent": "one",
+    "related": [
+     "project/src/c.hpp",
+     "project/src/b.hpp",
+     "project/src/a.hpp"
+    ],
+    "rule_id": "cycle.include",
+    "seed": 0
+   },
+   {
+    "exit_code": 3,
+    "fingerprint": "sha256:511bc889960da697867147760cf4d8a6b04088381d25939fd85b43ee76cc0ff8",
+    "message": "include cycle: project/src/d.hpp -> project/src/c.hpp -> project/src/b.hpp -> project/src/a.hpp -> project/src/d.hpp",
+    "parent": "one",
+    "related": [
+     "project/src/c.hpp",
+     "project/src/b.hpp",
+     "project/src/a.hpp"
+    ],
+    "rule_id": "cycle.include",
+    "seed": 1
+   },
+   {
+    "exit_code": 3,
+    "fingerprint": "sha256:7a7931002585141bde618d02790a0e79b3f53027fa583b5b3c29b0910cb32e08",
+    "message": "include cycle: project/src/d.hpp -> project/src/c.hpp -> project/src/b.hpp -> project/src/a.hpp -> project/src/d.hpp",
+    "parent": "one",
+    "related": [
+     "project/src/c.hpp",
+     "project/src/b.hpp",
+     "project/src/a.hpp"
+    ],
+    "rule_id": "cycle.include",
+    "seed": 2
+   },
+   {
+    "exit_code": 3,
+    "fingerprint": "sha256:7073400c6e02d4147a406a7da9966efc71fa7d3450c64e4cb79ce06e3060ba06",
+    "message": "include cycle: project/src/b.hpp -> project/src/d.hpp -> project/src/c.hpp -> project/src/a.hpp -> project/src/b.hpp",
+    "parent": "one",
+    "related": [
+     "project/src/d.hpp",
+     "project/src/c.hpp",
+     "project/src/a.hpp"
+    ],
+    "rule_id": "cycle.include",
+    "seed": 3
+   },
+   {
+    "exit_code": 3,
+    "fingerprint": "sha256:916ae71e55846bfb8abed01f22b7a74bb806550cff3d23ff22936fe46725fa25",
+    "message": "include cycle: project/src/d.hpp -> project/src/c.hpp -> project/src/b.hpp -> project/src/a.hpp -> project/src/d.hpp",
+    "parent": "two/deeper",
+    "related": [
+     "project/src/c.hpp",
+     "project/src/b.hpp",
+     "project/src/a.hpp"
+    ],
+    "rule_id": "cycle.include",
+    "seed": 0
+   }
+  ],
+  "cycle": [
+   {
+    "exit_code": 3,
+    "fingerprint": "sha256:e9e1f37230cd02a0656a26818c26138a9abd8e6ce2ab9ba9b3ea9b25c481228a",
+    "message": "include cycle: project/src/c.hpp -> project/src/b.hpp -> project/src/a.hpp -> project/src/c.hpp",
+    "parent": "one",
+    "related": [
+     "project/src/b.hpp",
+     "project/src/a.hpp"
+    ],
+    "rule_id": "cycle.include",
+    "seed": 0
+   },
+   {
+    "exit_code": 3,
+    "fingerprint": "sha256:eb116fe69d4743f30b12957d7399e2b41a35ec9d416cd5ac78c255fb8a7ca196",
+    "message": "include cycle: project/src/b.hpp -> project/src/c.hpp -> project/src/a.hpp -> project/src/b.hpp",
+    "parent": "one",
+    "related": [
+     "project/src/c.hpp",
+     "project/src/a.hpp"
+    ],
+    "rule_id": "cycle.include",
+    "seed": 1
+   },
+   {
+    "exit_code": 3,
+    "fingerprint": "sha256:bd9f2709036eff2398f6605dcf1e5e021d24c2a680c16967029cd8e0e82b1e79",
+    "message": "include cycle: project/src/c.hpp -> project/src/b.hpp -> project/src/a.hpp -> project/src/c.hpp",
+    "parent": "one",
+    "related": [
+     "project/src/b.hpp",
+     "project/src/a.hpp"
+    ],
+    "rule_id": "cycle.include",
+    "seed": 2
+   },
+   {
+    "exit_code": 3,
+    "fingerprint": "sha256:60cb9a6ed4ec62ccf2c4bbc18254ef2c7911eaf983fe7afce1aec5a8a156d0c8",
+    "message": "include cycle: project/src/b.hpp -> project/src/c.hpp -> project/src/a.hpp -> project/src/b.hpp",
+    "parent": "one",
+    "related": [
+     "project/src/c.hpp",
+     "project/src/a.hpp"
+    ],
+    "rule_id": "cycle.include",
+    "seed": 3
+   },
+   {
+    "exit_code": 3,
+    "fingerprint": "sha256:d3bdd3062ef0942a1c9ca862b9acf7008c0e84c39c04a5300848ddb41a5d7420",
+    "message": "include cycle: project/src/b.hpp -> project/src/c.hpp -> project/src/a.hpp -> project/src/b.hpp",
+    "parent": "two/deeper",
+    "related": [
+     "project/src/c.hpp",
+     "project/src/a.hpp"
+    ],
+    "rule_id": "cycle.include",
+    "seed": 0
+   }
+  ]
+ },
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "trees": {
+  "changed": {
+   "src/a.hpp": "#include \"b.hpp\"\n#include \"c.hpp\"\n",
+   "src/b.hpp": "#include \"a.hpp\"\n",
+   "src/c.hpp": "#include \"d.hpp\"\n",
+   "src/d.hpp": "#include \"a.hpp\"\n",
+   "src/main.cpp": "#include \"a.hpp\"\nint main() { return 0; }\n"
+  },
+  "cycle": {
+   "src/a.hpp": "#include \"b.hpp\"\n#include \"c.hpp\"\n",
+   "src/b.hpp": "#include \"a.hpp\"\n",
+   "src/c.hpp": "#include \"a.hpp\"\n",
+   "src/main.cpp": "#include \"a.hpp\"\nint main() { return 0; }\n"
+  }
+ }
+}

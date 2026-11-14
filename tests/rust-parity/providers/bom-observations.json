@@ -1,0 +1,32 @@
+{
+  "eslint": {
+    "exit": 1,
+    "stdout": "[{\"filePath\":\"<ROOT>/main.js\",\"messages\":[{\"ruleId\":\"no-undef\",\"severity\":2,\"message\":\"'missing' is not defined.\",\"line\":1,\"column\":17,\"messageId\":\"undef\",\"endLine\":1,\"endColumn\":24}],\"suppressedMessages\":[],\"errorCount\":1,\"fatalErrorCount\":0,\"warningCount\":0,\"fixableErrorCount\":0,\"fixableWarningCount\":0,\"source\":\"﻿const s = '😀'; missing();\\n\",\"usedDeprecatedRules\":[]}]\n",
+    "stderr": ""
+  },
+  "tsc": {
+    "exit": 1,
+    "stdout": "main.ts(1,23): error TS2322: Type 'number' is not assignable to type 'string'.\n",
+    "stderr": ""
+  },
+  "mypy": {
+    "exit": 1,
+    "stdout": "main.py:1:26: error: Incompatible types in assignment (expression has type \"int\", variable has type \"str\")  [assignment]\nFound 1 error in 1 file (checked 1 source file)\n",
+    "stderr": ""
+  },
+  "clang": {
+    "exit": 1,
+    "stdout": "",
+    "stderr": "main.cpp:1:45: error: use of undeclared identifier 'missing'\n    1 | <U+FEFF>int main(){ const char* s=\"😀\"; return missing; }\n      |                                                ^~~~~~~\n1 error generated.\n"
+  },
+  "gcc-byte": {
+    "exit": 1,
+    "stdout": "",
+    "stderr": "main.cpp: In function 'int main()':\nmain.cpp:1:42: error: 'missing' was not declared in this scope\n    1 | int main(){ const char* s=\"😀\"; return missing; }\n      |                                        ^~~~~~~\n"
+  },
+  "ty": {
+    "exit": 1,
+    "stdout": "{\n  \"$schema\": \"https://json.schemastore.org/sarif-2.1.0.json\",\n  \"runs\": [\n    {\n      \"results\": [\n        {\n          \"level\": \"error\",\n          \"locations\": [\n            {\n              \"physicalLocation\": {\n                \"artifactLocation\": {\n                  \"uri\": \"file://<ROOT>/main.py\"\n                },\n                \"region\": {\n                  \"endColumn\": 25,\n                  \"endLine\": 1,\n                  \"startColumn\": 23,\n                  \"startLine\": 1\n                }\n              }\n            }\n          ],\n          \"message\": {\n            \"text\": \"Object of type `Literal[42]` is not assignable to `str`\"\n          },\n          \"ruleId\": \"invalid-assignment\"\n        }\n      ],\n      \"tool\": {\n        \"driver\": {\n          \"informationUri\": \"https://github.com/astral-sh/ty\",\n          \"name\": \"ty\",\n          \"rules\": [\n            {\n              \"defaultConfiguration\": {\n                \"enabled\": true,\n                \"level\": \"error\"\n              },\n              \"fullDescription\": {\n                \"text\": \"## What it does\\n\\nChecks for assignments where the type of the value is not [assignable to] the type of the assignee.\\n\\n## Why is this bad?\\n\\nSuch assignments break the rules of the type system and weaken a type checker's ability to\\naccurately reason about your code.\\n\\n## Examples\\n\\n```python\\na: int = \\\"\\\"  # error\\n```\\n\\n[assignable to]: https://typing.python.org/en/latest/spec/glossary.html#term-assignable\"\n              },\n              \"help\": {\n                \"text\": \"detects invalid assignments\"\n              },\n              \"helpUri\": \"https://ty.dev/rules#invalid-assignment\",\n              \"id\": \"invalid-assignment\",\n              \"properties\": {\n                \"id\": \"invalid-assignment\",\n                \"kind\": null,\n                \"name\": \"invalid-assignment\",\n                \"problem.severity\": \"error\"\n              },\n              \"shortDescription\": {\n                \"text\": \"detects invalid assignments\"\n              }\n            }\n          ],\n          \"version\": \"0.0.93\"\n        }\n      }\n    }\n  ],\n  \"version\": \"2.1.0\"\n}",
+    "stderr": ""
+  }
+}

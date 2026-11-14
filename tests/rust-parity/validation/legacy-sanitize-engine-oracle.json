@@ -1,0 +1,1813 @@
+{
+  "runs": {
+    "cpp-type-partial-clean": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "ESTIMATED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "WARN",
+        "summary": "Sanitize partially executed: one or more applicable scopes were skipped"
+      },
+      "exit_code": 0,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        },
+        {
+          "fingerprint": "sha256:b6030115aff3a08ecfa6ed01743dfe6d952e2ac827c1dd828b1d78b0795a6eda",
+          "message": "No C++ sanitizer test sources were selected; compilation was not run",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "No C++ sanitizer test sources were selected; compilation was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "C++Sanitizer"
+        },
+        {
+          "file_path": "tests",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "cpp"
+    },
+    "hybrid-both-measured": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "PASS",
+        "summary": "Memory Safety & Sanitize Clean (0 Defects)"
+      },
+      "exit_code": 0,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_twice.cpp": "int twice(int value);\nint main() { return twice(2) == 4 ? 0 : 1; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:100f4493cd49180caa4dd35eaf2a7b77d7028cd6f6381ab653174520b923c906",
+          "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+          "path": "tests/test_twice.cpp",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "sanitizer compile"
+        },
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "sanitizer compile"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests/test_twice.cpp",
+          "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "ASan/UBSan"
+        },
+        {
+          "file_path": "tests",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "sanitizer compile",
+        "sanitizer execution",
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-both-measured-leak": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 1,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "FAIL",
+        "summary": "1 Memory / Resource Defect(s) Detected"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/leak.py": "import warnings\n\n\ndef read(path):\n    warnings.warn(f'unclosed file {path}', ResourceWarning)\n    return 'x'\n",
+        "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_leak.py": "from leak import read\n\n\ndef test_read():\n    assert read('x.txt') == 'x'\n",
+        "tests/test_twice.cpp": "int twice(int value);\nint main() { return twice(2) == 4 ? 0 : 1; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:0efbdab95f8543451fe6ae6c0a450c9d978c67e8b4436655b235e2e594fb84bf",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "path": "src/leak.py",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "high",
+          "start_line": 5,
+          "tool_name": "sanitizer compile"
+        },
+        {
+          "fingerprint": "sha256:100f4493cd49180caa4dd35eaf2a7b77d7028cd6f6381ab653174520b923c906",
+          "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+          "path": "tests/test_twice.cpp",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "sanitizer compile"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests/test_twice.cpp",
+          "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "ASan/UBSan"
+        },
+        {
+          "file_path": "src/leak.py",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "start_line": 5,
+          "status": "FAIL",
+          "target_name": "ResourceWarning"
+        }
+      ],
+      "tool_evidence": [
+        "sanitizer compile",
+        "sanitizer execution",
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-both-skipped": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "ESTIMATED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": false,
+        "status": "SKIP",
+        "summary": "Sanitize skipped: no applicable checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/twice.cpp": "int twice(int value) { return value * 2; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        },
+        {
+          "fingerprint": "sha256:b6030115aff3a08ecfa6ed01743dfe6d952e2ac827c1dd828b1d78b0795a6eda",
+          "message": "No C++ sanitizer test sources were selected; compilation was not run",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "required = false\n",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "No C++ sanitizer test sources were selected; compilation was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "C++Sanitizer"
+        },
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-cpp-measured-python-skipped": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "ESTIMATED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": false,
+        "status": "WARN",
+        "summary": "Sanitize partially executed: one or more applicable scopes were skipped"
+      },
+      "exit_code": 0,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+        "tests/test_twice.cpp": "int twice(int value);\nint main() { return twice(2) == 4 ? 0 : 1; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:100f4493cd49180caa4dd35eaf2a7b77d7028cd6f6381ab653174520b923c906",
+          "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+          "path": "tests/test_twice.cpp",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "sanitizer compile"
+        },
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "sanitizer compile"
+        }
+      ],
+      "sanitize": "required = false\n",
+      "targets": [
+        {
+          "file_path": "tests/test_twice.cpp",
+          "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "ASan/UBSan"
+        },
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "sanitizer compile",
+        "sanitizer execution",
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-empty-tests": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_RUN",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "ERROR",
+        "summary": "Python ResourceWarning check skipped: no Python test files were selected"
+      },
+      "exit_code": 1,
+      "files": {
+        "tests/data.txt": "x\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "critical",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-nested-empty-tests": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_RUN",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "ERROR",
+        "summary": "Python ResourceWarning check skipped: no Python test files were selected"
+      },
+      "exit_code": 1,
+      "files": {
+        "tests/sub/data.txt": "x\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "critical",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-partial-clean": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "ESTIMATED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "WARN",
+        "summary": "Sanitize partially executed: one or more applicable scopes were skipped"
+      },
+      "exit_code": 0,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        },
+        {
+          "fingerprint": "sha256:b6030115aff3a08ecfa6ed01743dfe6d952e2ac827c1dd828b1d78b0795a6eda",
+          "message": "No C++ sanitizer test sources were selected; compilation was not run",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "No C++ sanitizer test sources were selected; compilation was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "C++Sanitizer"
+        },
+        {
+          "file_path": "tests",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-partial-leak": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "ESTIMATED",
+        "extra": {
+          "sanitize_issues": 1,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "FAIL",
+        "summary": "Sanitize partially executed: one or more applicable scopes were skipped"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/leak.py": "import warnings\n\n\ndef read(path):\n    warnings.warn(f'unclosed file {path}', ResourceWarning)\n    return 'x'\n",
+        "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_leak.py": "from leak import read\n\n\ndef test_read():\n    assert read('x.txt') == 'x'\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:0efbdab95f8543451fe6ae6c0a450c9d978c67e8b4436655b235e2e594fb84bf",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "path": "src/leak.py",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "high",
+          "start_line": 5,
+          "tool_name": "pytest resource warnings"
+        },
+        {
+          "fingerprint": "sha256:b6030115aff3a08ecfa6ed01743dfe6d952e2ac827c1dd828b1d78b0795a6eda",
+          "message": "No C++ sanitizer test sources were selected; compilation was not run",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "No C++ sanitizer test sources were selected; compilation was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "C++Sanitizer"
+        },
+        {
+          "file_path": "src/leak.py",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "start_line": 5,
+          "status": "FAIL",
+          "target_name": "ResourceWarning"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-partial-leak-pass-warn": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "ESTIMATED",
+        "extra": {
+          "sanitize_issues": 1,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "WARN",
+        "summary": "Sanitize partially executed: one or more applicable scopes were skipped"
+      },
+      "exit_code": 0,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/leak.py": "import warnings\n\n\ndef read(path):\n    warnings.warn(f'unclosed file {path}', ResourceWarning)\n    return 'x'\n",
+        "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_leak.py": "from leak import read\n\n\ndef test_read():\n    assert read('x.txt') == 'x'\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:0efbdab95f8543451fe6ae6c0a450c9d978c67e8b4436655b235e2e594fb84bf",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "path": "src/leak.py",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "high",
+          "start_line": 5,
+          "tool_name": "pytest resource warnings"
+        },
+        {
+          "fingerprint": "sha256:b6030115aff3a08ecfa6ed01743dfe6d952e2ac827c1dd828b1d78b0795a6eda",
+          "message": "No C++ sanitizer test sources were selected; compilation was not run",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "mode = \"pass_warn\"\n",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "No C++ sanitizer test sources were selected; compilation was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "C++Sanitizer"
+        },
+        {
+          "file_path": "src/leak.py",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "start_line": 5,
+          "status": "FAIL",
+          "target_name": "ResourceWarning"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-python-only-leak": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 1,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "FAIL",
+        "summary": "1 Memory / Resource Defect(s) Detected"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/leak.py": "import warnings\n\n\ndef read(path):\n    warnings.warn(f'unclosed file {path}', ResourceWarning)\n    return 'x'\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_leak.py": "from leak import read\n\n\ndef test_read():\n    assert read('x.txt') == 'x'\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:0efbdab95f8543451fe6ae6c0a450c9d978c67e8b4436655b235e2e594fb84bf",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "path": "src/leak.py",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "high",
+          "start_line": 5,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "src/leak.py",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "start_line": 5,
+          "status": "FAIL",
+          "target_name": "ResourceWarning"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-python-only-measured": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "PASS",
+        "summary": "Memory Safety & Sanitize Clean (0 Defects)"
+      },
+      "exit_code": 0,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-python-only-missing-tests": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_RUN",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "ERROR",
+        "summary": "Python ResourceWarning check skipped: tests directory is missing"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "critical",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-python-only-missing-tests-optional": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "ESTIMATED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": false,
+        "status": "SKIP",
+        "summary": "Sanitize skipped: no applicable checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "required = false\n",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "measured-clean": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "PASS",
+        "summary": "Memory Safety & Sanitize Clean (0 Defects)"
+      },
+      "exit_code": 0,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": null
+    },
+    "measured-clean-optional": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": false,
+        "status": "PASS",
+        "summary": "Memory Safety & Sanitize Clean (0 Defects)"
+      },
+      "exit_code": 0,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "required = false\n",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": null
+    },
+    "measured-leak": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 1,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "FAIL",
+        "summary": "1 Memory / Resource Defect(s) Detected"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/leak.py": "import warnings\n\n\ndef read(path):\n    warnings.warn(f'unclosed file {path}', ResourceWarning)\n    return 'x'\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_leak.py": "from leak import read\n\n\ndef test_read():\n    assert read('x.txt') == 'x'\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:0efbdab95f8543451fe6ae6c0a450c9d978c67e8b4436655b235e2e594fb84bf",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "path": "src/leak.py",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "high",
+          "start_line": 5,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "src/leak.py",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "start_line": 5,
+          "status": "FAIL",
+          "target_name": "ResourceWarning"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": null
+    },
+    "measured-leak-pass-warn": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 1,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "WARN",
+        "summary": "1 Memory / Resource Defect(s) Detected"
+      },
+      "exit_code": 0,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/leak.py": "import warnings\n\n\ndef read(path):\n    warnings.warn(f'unclosed file {path}', ResourceWarning)\n    return 'x'\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_leak.py": "from leak import read\n\n\ndef test_read():\n    assert read('x.txt') == 'x'\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:0efbdab95f8543451fe6ae6c0a450c9d978c67e8b4436655b235e2e594fb84bf",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "path": "src/leak.py",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "high",
+          "start_line": 5,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "mode = \"pass_warn\"\n",
+      "targets": [
+        {
+          "file_path": "src/leak.py",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "start_line": 5,
+          "status": "FAIL",
+          "target_name": "ResourceWarning"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": null
+    },
+    "measured-leak-pass-warn-fail": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 1,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "FAIL",
+        "summary": "1 Memory / Resource Defect(s) Detected"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/leak.py": "import warnings\n\n\ndef read(path):\n    warnings.warn(f'unclosed file {path}', ResourceWarning)\n    return 'x'\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_leak.py": "from leak import read\n\n\ndef test_read():\n    assert read('x.txt') == 'x'\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:0efbdab95f8543451fe6ae6c0a450c9d978c67e8b4436655b235e2e594fb84bf",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "path": "src/leak.py",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "high",
+          "start_line": 5,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "mode = \"pass_warn_fail\"\n",
+      "targets": [
+        {
+          "file_path": "src/leak.py",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "start_line": 5,
+          "status": "FAIL",
+          "target_name": "ResourceWarning"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": null
+    },
+    "noscope-cpp-type-tests-data": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_APPLICABLE",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "SKIP",
+        "summary": "Sanitize skipped: no applicable checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "tests/data.txt": "x\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:7e4ea4cb0e41fb0810dbf2af8309c9c47c0f270315b9eb77893ae4091db8f8ac",
+          "message": "No applicable Python or C++ sources were selected; sanitize was not run",
+          "path": ".",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": ""
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": ".",
+          "message": "No applicable Python or C++ sources were selected; sanitize was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "Sanitize"
+        }
+      ],
+      "tool_evidence": [],
+      "type": "cpp"
+    },
+    "noscope-hybrid-type": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_APPLICABLE",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "SKIP",
+        "summary": "Sanitize skipped: no applicable checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "docs/guide.md": "# guide\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:7e4ea4cb0e41fb0810dbf2af8309c9c47c0f270315b9eb77893ae4091db8f8ac",
+          "message": "No applicable Python or C++ sources were selected; sanitize was not run",
+          "path": ".",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": ""
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": ".",
+          "message": "No applicable Python or C++ sources were selected; sanitize was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "Sanitize"
+        }
+      ],
+      "tool_evidence": [],
+      "type": "hybrid"
+    },
+    "noscope-python-type": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_APPLICABLE",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "SKIP",
+        "summary": "Sanitize skipped: no applicable checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "docs/guide.md": "# guide\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:7e4ea4cb0e41fb0810dbf2af8309c9c47c0f270315b9eb77893ae4091db8f8ac",
+          "message": "No applicable Python or C++ sources were selected; sanitize was not run",
+          "path": ".",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": ""
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": ".",
+          "message": "No applicable Python or C++ sources were selected; sanitize was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "Sanitize"
+        }
+      ],
+      "tool_evidence": [],
+      "type": "python"
+    },
+    "noscope-undeclared": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_APPLICABLE",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "SKIP",
+        "summary": "Sanitize skipped: no applicable checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "docs/guide.md": "# guide\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:7e4ea4cb0e41fb0810dbf2af8309c9c47c0f270315b9eb77893ae4091db8f8ac",
+          "message": "No applicable Python or C++ sources were selected; sanitize was not run",
+          "path": ".",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": ""
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": ".",
+          "message": "No applicable Python or C++ sources were selected; sanitize was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "Sanitize"
+        }
+      ],
+      "tool_evidence": [],
+      "type": null
+    },
+    "python-type-empty-tests": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_RUN",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "ERROR",
+        "summary": "Python ResourceWarning check skipped: no Python test files were selected"
+      },
+      "exit_code": 1,
+      "files": {
+        "tests/data.txt": "x\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "critical",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "python"
+    },
+    "tests-helper-only": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_RUN",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "ERROR",
+        "summary": "Python ResourceWarning check skipped: no Python test files were selected"
+      },
+      "exit_code": 1,
+      "files": {
+        "tests/helper.py": "X = 1\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "critical",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": null
+    },
+    "tests-only": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "PASS",
+        "summary": "Memory Safety & Sanitize Clean (0 Defects)"
+      },
+      "exit_code": 0,
+      "files": {
+        "tests/test_calc.py": "def test_add():\n    assert 1 + 2 == 3\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": null
+    },
+    "undeclared-empty-tests": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_RUN",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "ERROR",
+        "summary": "Python ResourceWarning check skipped: no Python test files were selected"
+      },
+      "exit_code": 1,
+      "files": {
+        "tests/data.txt": "x\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "critical",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": null
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "thread_sanitize": {
+    "hybrid-empty-tests": {
+      "created": [
+        "ici.toml",
+        "thread_sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_APPLICABLE",
+        "extra": {
+          "sanitizer_diagnostics": [],
+          "thread_sanitize_issues": 0
+        },
+        "required": true,
+        "status": "SKIP",
+        "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "tests/data.txt": "x\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:c55c00734c75ba6f7b0705dc685797ed102fcb7a069cab866df84e71144ce923",
+          "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+          "path": ".",
+          "rule_id": "ici.legacy.thread-sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": ""
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": ".",
+          "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "ThreadSanitizer"
+        }
+      ],
+      "tool_evidence": [],
+      "type": "hybrid"
+    },
+    "hybrid-python-only-measured": {
+      "created": [
+        "ici.toml",
+        "thread_sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_APPLICABLE",
+        "extra": {
+          "sanitizer_diagnostics": [],
+          "thread_sanitize_issues": 0
+        },
+        "required": true,
+        "status": "SKIP",
+        "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:c55c00734c75ba6f7b0705dc685797ed102fcb7a069cab866df84e71144ce923",
+          "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+          "path": ".",
+          "rule_id": "ici.legacy.thread-sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": ""
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": ".",
+          "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "ThreadSanitizer"
+        }
+      ],
+      "tool_evidence": [],
+      "type": "hybrid"
+    },
+    "noscope-hybrid-type": {
+      "created": [
+        "ici.toml",
+        "thread_sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_APPLICABLE",
+        "extra": {
+          "sanitizer_diagnostics": [],
+          "thread_sanitize_issues": 0
+        },
+        "required": true,
+        "status": "SKIP",
+        "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "docs/guide.md": "# guide\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:c55c00734c75ba6f7b0705dc685797ed102fcb7a069cab866df84e71144ce923",
+          "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+          "path": ".",
+          "rule_id": "ici.legacy.thread-sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": ""
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": ".",
+          "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "ThreadSanitizer"
+        }
+      ],
+      "tool_evidence": [],
+      "type": "hybrid"
+    }
+  },
+  "verify": {
+    "hybrid-both-measured": {
+      "created": [
+        ".mypy_cache/.gitignore",
+        ".mypy_cache/3.10/cache.0.db",
+        ".mypy_cache/3.10/cache.1.db",
+        ".mypy_cache/3.10/cache.10.db",
+        ".mypy_cache/3.10/cache.11.db",
+        ".mypy_cache/3.10/cache.12.db",
+        ".mypy_cache/3.10/cache.13.db",
+        ".mypy_cache/3.10/cache.14.db",
+        ".mypy_cache/3.10/cache.15.db",
+        ".mypy_cache/3.10/cache.2.db",
+        ".mypy_cache/3.10/cache.3.db",
+        ".mypy_cache/3.10/cache.4.db",
+        ".mypy_cache/3.10/cache.5.db",
+        ".mypy_cache/3.10/cache.6.db",
+        ".mypy_cache/3.10/cache.7.db",
+        ".mypy_cache/3.10/cache.8.db",
+        ".mypy_cache/3.10/cache.9.db",
+        ".mypy_cache/CACHEDIR.TAG",
+        ".pytest_cache/.gitignore",
+        ".pytest_cache/CACHEDIR.TAG",
+        ".pytest_cache/README.md",
+        ".pytest_cache/v/cache/nodeids",
+        "build/coverage/.coverage",
+        "build/coverage/coverage.json",
+        "build/tests/obj_0###tmp#ici-legacy-sanitize-engine-evc66dt6#project#build#tests#obj_0.gcov.json.gz",
+        "build/tests/obj_0.gcda",
+        "build/tests/obj_0.gcno",
+        "build/tests/obj_0.o",
+        "build/tests/obj_1###tmp#ici-legacy-sanitize-engine-evc66dt6#project#build#tests#obj_1.gcov.json.gz",
+        "build/tests/obj_1.gcda",
+        "build/tests/obj_1.gcno",
+        "build/tests/obj_1.o",
+        "build/tests/test_twice",
+        "ici.toml",
+        "src/__pycache__/calc.cpython-310.pyc",
+        "tests/__pycache__/test_calc.cpython-310-pytest-9.1.1.pyc",
+        "verify_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "PASS",
+        "summary": "Memory Safety & Sanitize Clean (0 Defects)"
+      },
+      "exit_code": 0,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_twice.cpp": "int twice(int value);\nint main() { return twice(2) == 4 ? 0 : 1; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:100f4493cd49180caa4dd35eaf2a7b77d7028cd6f6381ab653174520b923c906",
+          "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+          "path": "tests/test_twice.cpp",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "sanitizer compile"
+        },
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "sanitizer compile"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests/test_twice.cpp",
+          "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "ASan/UBSan"
+        },
+        {
+          "file_path": "tests",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "sanitizer compile",
+        "sanitizer execution",
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-both-measured-leak": {
+      "created": [
+        ".mypy_cache/.gitignore",
+        ".mypy_cache/3.10/cache.0.db",
+        ".mypy_cache/3.10/cache.1.db",
+        ".mypy_cache/3.10/cache.10.db",
+        ".mypy_cache/3.10/cache.11.db",
+        ".mypy_cache/3.10/cache.12.db",
+        ".mypy_cache/3.10/cache.13.db",
+        ".mypy_cache/3.10/cache.14.db",
+        ".mypy_cache/3.10/cache.15.db",
+        ".mypy_cache/3.10/cache.2.db",
+        ".mypy_cache/3.10/cache.3.db",
+        ".mypy_cache/3.10/cache.4.db",
+        ".mypy_cache/3.10/cache.5.db",
+        ".mypy_cache/3.10/cache.6.db",
+        ".mypy_cache/3.10/cache.7.db",
+        ".mypy_cache/3.10/cache.8.db",
+        ".mypy_cache/3.10/cache.9.db",
+        ".mypy_cache/CACHEDIR.TAG",
+        ".pytest_cache/.gitignore",
+        ".pytest_cache/CACHEDIR.TAG",
+        ".pytest_cache/README.md",
+        ".pytest_cache/v/cache/nodeids",
+        "build/coverage/.coverage",
+        "build/coverage/coverage.json",
+        "build/tests/obj_0###tmp#ici-legacy-sanitize-engine-d5_wir13#project#build#tests#obj_0.gcov.json.gz",
+        "build/tests/obj_0.gcda",
+        "build/tests/obj_0.gcno",
+        "build/tests/obj_0.o",
+        "build/tests/obj_1###tmp#ici-legacy-sanitize-engine-d5_wir13#project#build#tests#obj_1.gcov.json.gz",
+        "build/tests/obj_1.gcda",
+        "build/tests/obj_1.gcno",
+        "build/tests/obj_1.o",
+        "build/tests/test_twice",
+        "ici.toml",
+        "src/__pycache__/calc.cpython-310.pyc",
+        "src/__pycache__/leak.cpython-310.pyc",
+        "tests/__pycache__/test_calc.cpython-310-pytest-9.1.1.pyc",
+        "tests/__pycache__/test_leak.cpython-310-pytest-9.1.1.pyc",
+        "verify_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 1,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "FAIL",
+        "summary": "1 Memory / Resource Defect(s) Detected"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/leak.py": "import warnings\n\n\ndef read(path):\n    warnings.warn(f'unclosed file {path}', ResourceWarning)\n    return 'x'\n",
+        "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_leak.py": "from leak import read\n\n\ndef test_read():\n    assert read('x.txt') == 'x'\n",
+        "tests/test_twice.cpp": "int twice(int value);\nint main() { return twice(2) == 4 ? 0 : 1; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:0efbdab95f8543451fe6ae6c0a450c9d978c67e8b4436655b235e2e594fb84bf",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "path": "src/leak.py",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "high",
+          "start_line": 5,
+          "tool_name": "sanitizer compile"
+        },
+        {
+          "fingerprint": "sha256:100f4493cd49180caa4dd35eaf2a7b77d7028cd6f6381ab653174520b923c906",
+          "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+          "path": "tests/test_twice.cpp",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "sanitizer compile"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests/test_twice.cpp",
+          "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "ASan/UBSan"
+        },
+        {
+          "file_path": "src/leak.py",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "start_line": 5,
+          "status": "FAIL",
+          "target_name": "ResourceWarning"
+        }
+      ],
+      "tool_evidence": [
+        "sanitizer compile",
+        "sanitizer execution",
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-partial-clean": {
+      "created": [
+        ".mypy_cache/.gitignore",
+        ".mypy_cache/3.10/cache.0.db",
+        ".mypy_cache/3.10/cache.1.db",
+        ".mypy_cache/3.10/cache.10.db",
+        ".mypy_cache/3.10/cache.11.db",
+        ".mypy_cache/3.10/cache.12.db",
+        ".mypy_cache/3.10/cache.13.db",
+        ".mypy_cache/3.10/cache.14.db",
+        ".mypy_cache/3.10/cache.15.db",
+        ".mypy_cache/3.10/cache.2.db",
+        ".mypy_cache/3.10/cache.3.db",
+        ".mypy_cache/3.10/cache.4.db",
+        ".mypy_cache/3.10/cache.5.db",
+        ".mypy_cache/3.10/cache.6.db",
+        ".mypy_cache/3.10/cache.7.db",
+        ".mypy_cache/3.10/cache.8.db",
+        ".mypy_cache/3.10/cache.9.db",
+        ".mypy_cache/CACHEDIR.TAG",
+        ".pytest_cache/.gitignore",
+        ".pytest_cache/CACHEDIR.TAG",
+        ".pytest_cache/README.md",
+        ".pytest_cache/v/cache/nodeids",
+        "build/coverage/.coverage",
+        "build/coverage/coverage.json",
+        "ici.toml",
+        "src/__pycache__/calc.cpython-310.pyc",
+        "tests/__pycache__/test_calc.cpython-310-pytest-9.1.1.pyc",
+        "verify_report.json"
+      ],
+      "engine": {
+        "evidence": "ESTIMATED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "WARN",
+        "summary": "Sanitize partially executed: one or more applicable scopes were skipped"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        },
+        {
+          "fingerprint": "sha256:b6030115aff3a08ecfa6ed01743dfe6d952e2ac827c1dd828b1d78b0795a6eda",
+          "message": "No C++ sanitizer test sources were selected; compilation was not run",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "No C++ sanitizer test sources were selected; compilation was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "C++Sanitizer"
+        },
+        {
+          "file_path": "tests",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    }
+  }
+}

@@ -15,7 +15,7 @@
 |계층|워크플로|트리거|소유|release 필수|
 |---|---|---|---|---|
 |PR 게이트|[ci.yml](../../../.github/workflows/ci.yml)|pull_request|ici 저장소|**예** — 단위·디퍼렌셜·보안·fixture corpus·pyz 빌드·stable+next dogfood|
-|번들 smoke|[bundle-smoke.yml](../../../.github/workflows/bundle-smoke.yml)|정기 + bundle 경로 변경|ici 저장소|**예** — 오프라인·read-only·이동·symlink·두 버전 병행|
+|번들 smoke|[bundle-smoke.yml](https://github.com/jihoon22-lee/ici/blob/v0.13.0/.github/workflows/bundle-smoke.yml)|정기 + bundle 경로 변경|ici 저장소|**예** — 오프라인·read-only·이동·symlink·두 버전 병행|
 |candidate artifact|[candidate-artifact.yml](../../../.github/workflows/candidate-artifact.yml)|수동 dispatch|ici 저장소|release 판정 시 — 고정 소스에서 재조립·재검증|
 |corpus 회귀 검증|[candidate-quality-zoo.yml](../../../.github/workflows/candidate-quality-zoo.yml)|수동 dispatch|ici 저장소(정확한 SHA 고정)|release 판정 시 — candidate를 ici 소유 known-answer corpus로 판정|
 

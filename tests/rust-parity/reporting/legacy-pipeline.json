@@ -1,0 +1,666 @@
+{
+  "oracle": "6fe3e405",
+  "cases": [
+    {
+      "name": "all-target-inventory-and-overloads",
+      "engine_name": "exception",
+      "check_id": "python.exception",
+      "evidence": "ESTIMATED",
+      "status": "WARN",
+      "targets": [
+        {
+          "file_path": "src/café.py",
+          "start_line": 2,
+          "end_line": 4,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "f",
+          "status": "WARN",
+          "message": "first occurrence",
+          "snippet": "",
+          "metrics": {
+            "lines": 3,
+            "nesting": 2
+          }
+        },
+        {
+          "file_path": "src/café.py",
+          "start_line": 8,
+          "end_line": 10,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "f",
+          "status": "WARN",
+          "message": "second occurrence",
+          "snippet": "",
+          "metrics": {}
+        },
+        {
+          "file_path": "src/café.py",
+          "start_line": 15,
+          "end_line": 16,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "g",
+          "status": "PASS",
+          "message": "checked okay",
+          "snippet": "",
+          "metrics": {}
+        },
+        {
+          "file_path": "src/café.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "ASTScan",
+          "status": "PASS",
+          "message": "",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "explicit": [],
+      "expected_findings": [
+        {
+          "rule_id": "ici.legacy.exception.target",
+          "category": "correctness",
+          "severity": "info",
+          "confidence": "medium",
+          "fingerprint": "sha256:11f88f578322cba25a11a84716bf233feaf085d45d2bd61f49f037c3ae5801cf",
+          "primary_location": {
+            "path": "src/café.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "ASTScan"
+          },
+          "related_locations": [],
+          "message": "",
+          "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.exception.target",
+          "category": "correctness",
+          "severity": "medium",
+          "confidence": "medium",
+          "fingerprint": "sha256:6bbfe4de477b2560afaef122c3fa6a91e0c317c78052054671c7c352b9951a22",
+          "primary_location": {
+            "path": "src/café.py",
+            "start_line": 2,
+            "end_line": 4,
+            "start_column": null,
+            "end_column": null,
+            "label": "f"
+          },
+          "related_locations": [],
+          "message": "first occurrence",
+          "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "lines": {
+              "value": 3,
+              "unit": "lines"
+            },
+            "nesting": {
+              "value": 2,
+              "unit": "levels"
+            }
+          },
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.exception.target",
+          "category": "correctness",
+          "severity": "info",
+          "confidence": "medium",
+          "fingerprint": "sha256:7ded426abb37559128650f7bb4c6b0c0814e9858d84d5ebc3be980b5b6af0ab9",
+          "primary_location": {
+            "path": "src/café.py",
+            "start_line": 15,
+            "end_line": 16,
+            "start_column": null,
+            "end_column": null,
+            "label": "g"
+          },
+          "related_locations": [],
+          "message": "checked okay",
+          "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.exception.target",
+          "category": "correctness",
+          "severity": "medium",
+          "confidence": "medium",
+          "fingerprint": "sha256:fe57333eb9bfc2797757cbd1a5e48065c6b1adf14ebe2a54aaeacf643d83b422",
+          "primary_location": {
+            "path": "src/café.py",
+            "start_line": 8,
+            "end_line": 10,
+            "start_column": null,
+            "end_column": null,
+            "label": "f"
+          },
+          "related_locations": [],
+          "message": "second occurrence",
+          "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ]
+    },
+    {
+      "name": "native-resource-replaces-adapter",
+      "engine_name": "resource",
+      "check_id": "python.resource",
+      "evidence": "MEASURED",
+      "status": "WARN",
+      "targets": [
+        {
+          "file_path": "src/resource.py",
+          "start_line": 5,
+          "end_line": 5,
+          "start_column": 1,
+          "end_column": 19,
+          "target_name": "Resource:OpenWithoutWith",
+          "status": "WARN",
+          "message": "resource handle can leave scope",
+          "snippet": "handle = open(path)",
+          "metrics": {}
+        },
+        {
+          "file_path": "src/resource.py",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "Resource:ASTFlow",
+          "status": "PASS",
+          "message": "",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "explicit": [
+        {
+          "modern": {
+            "rule_id": "ici.legacy.resource.target",
+            "category": "resource",
+            "severity": "medium",
+            "confidence": "exact",
+            "primary_location": {
+              "path": "src/resource.py",
+              "start_line": 5,
+              "end_line": 5,
+              "start_column": 1,
+              "end_column": 19,
+              "label": "Resource:OpenWithoutWith"
+            },
+            "message": "resource handle can leave scope",
+            "related_locations": [],
+            "fingerprint": "producer-0",
+            "provider": "ici Python AST",
+            "evidence": "MEASURED",
+            "native_rule_id": "Resource:OpenWithoutWith",
+            "rule_version": ""
+          },
+          "details": {
+            "legacy_rule_id": "ici.legacy.resource.target",
+            "legacy_category": "resource",
+            "legacy_severity": "medium",
+            "legacy_confidence": "exact",
+            "legacy_label": "Resource:OpenWithoutWith",
+            "tool_name": "ici Python AST",
+            "tool_rule_id": "Resource:OpenWithoutWith",
+            "tool_version": "",
+            "explanation": "Bounded lifetime flow confirms an unmanaged path.",
+            "remediation": "Use a context manager.",
+            "snippet": "handle = open(path)",
+            "metrics": {},
+            "fixes": []
+          }
+        }
+      ],
+      "expected_findings": [
+        {
+          "rule_id": "ici.legacy.resource.target",
+          "category": "resource",
+          "severity": "medium",
+          "confidence": "exact",
+          "fingerprint": "sha256:3944904d97935975d8caace3d8fe6b28e3c553ba0bb7940341f2c7a4f164c90c",
+          "primary_location": {
+            "path": "src/resource.py",
+            "start_line": 5,
+            "end_line": 5,
+            "start_column": 1,
+            "end_column": 19,
+            "label": "Resource:OpenWithoutWith"
+          },
+          "related_locations": [],
+          "message": "resource handle can leave scope",
+          "explanation": "Bounded lifetime flow confirms an unmanaged path.",
+          "remediation": "Use a context manager.",
+          "tool_rule_id": "Resource:OpenWithoutWith",
+          "tool_name": "ici Python AST",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "handle = open(path)",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.legacy.resource.target",
+          "category": "resource",
+          "severity": "info",
+          "confidence": "high",
+          "fingerprint": "sha256:88a7da217e8da5095d011cad6f2db8a55757265f35ef2982d9623c10f245a0db",
+          "primary_location": {
+            "path": "src/resource.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "Resource:ASTFlow"
+          },
+          "related_locations": [],
+          "message": "",
+          "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "Resource:ASTFlow",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ]
+    },
+    {
+      "name": "native-compiler-diagnostics-replace-adapter",
+      "engine_name": "lint",
+      "check_id": "cpp.diagnostics",
+      "evidence": "MEASURED",
+      "status": "WARN",
+      "targets": [
+        {
+          "file_path": "src/main.cpp",
+          "start_line": 12,
+          "end_line": 12,
+          "start_column": 1,
+          "end_column": 6,
+          "target_name": "GCC:-Wunused-function",
+          "status": "WARN",
+          "message": "unused helper",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "explicit": [
+        {
+          "modern": {
+            "rule_id": "ici.legacy.lint.target",
+            "category": "correctness",
+            "severity": "medium",
+            "confidence": "exact",
+            "primary_location": {
+              "path": "src/main.cpp",
+              "start_line": 12,
+              "end_line": 12,
+              "start_column": 1,
+              "end_column": 6,
+              "label": "GCC:-Wunused-function"
+            },
+            "message": "unused helper",
+            "related_locations": [
+              {
+                "path": "include/a.hpp",
+                "start_line": 4,
+                "end_line": 4,
+                "start_column": 1,
+                "end_column": 7,
+                "label": "declaration"
+              }
+            ],
+            "fingerprint": "producer-0",
+            "provider": "g++",
+            "evidence": "MEASURED",
+            "native_rule_id": "-Wunused-function",
+            "rule_version": "12.2.0"
+          },
+          "details": {
+            "legacy_rule_id": "ici.legacy.lint.target",
+            "legacy_category": "correctness",
+            "legacy_severity": "medium",
+            "legacy_confidence": "exact",
+            "legacy_label": "GCC:-Wunused-function",
+            "tool_name": "g++",
+            "tool_rule_id": "-Wunused-function",
+            "tool_version": "12.2.0",
+            "explanation": "Compiler replay diagnostic.",
+            "remediation": "Remove the unused helper.",
+            "snippet": "",
+            "metrics": {},
+            "fixes": []
+          }
+        }
+      ],
+      "expected_findings": [
+        {
+          "rule_id": "ici.legacy.lint.target",
+          "category": "correctness",
+          "severity": "medium",
+          "confidence": "exact",
+          "fingerprint": "sha256:eabd42a268d73df712ae1e2e3d740f5c432b6254d553f7b84d5c66be2f8eec97",
+          "primary_location": {
+            "path": "src/main.cpp",
+            "start_line": 12,
+            "end_line": 12,
+            "start_column": 1,
+            "end_column": 6,
+            "label": "GCC:-Wunused-function"
+          },
+          "related_locations": [
+            {
+              "path": "include/a.hpp",
+              "start_line": 4,
+              "end_line": 4,
+              "start_column": 1,
+              "end_column": 7,
+              "label": "declaration"
+            }
+          ],
+          "message": "unused helper",
+          "explanation": "Compiler replay diagnostic.",
+          "remediation": "Remove the unused helper.",
+          "tool_rule_id": "-Wunused-function",
+          "tool_name": "g++",
+          "tool_version": "12.2.0",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ]
+    },
+    {
+      "name": "linker-native-identity-coexists-with-target-adapter",
+      "engine_name": "dead",
+      "check_id": "cpp.dead",
+      "evidence": "MEASURED",
+      "status": "WARN",
+      "targets": [
+        {
+          "file_path": "src/main.cpp",
+          "start_line": 9,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "target_name": "hidden_helper()",
+          "status": "WARN",
+          "message": "section discarded in both executables",
+          "snippet": "",
+          "metrics": {}
+        }
+      ],
+      "explicit": [
+        {
+          "modern": {
+            "rule_id": "ici.dead.gnu-elf-discarded-function",
+            "category": "maintainability",
+            "severity": "medium",
+            "confidence": "exact",
+            "primary_location": {
+              "path": "src/main.cpp",
+              "start_line": 9,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "hidden_helper()"
+            },
+            "message": "section discarded in both executables",
+            "related_locations": [],
+            "fingerprint": "producer-0",
+            "provider": "GNU ld",
+            "evidence": "MEASURED",
+            "native_rule_id": "--gc-sections/--print-gc-sections",
+            "rule_version": ""
+          },
+          "details": {
+            "legacy_rule_id": "ici.dead.gnu-elf-discarded-function",
+            "legacy_category": "maintainability",
+            "legacy_severity": "medium",
+            "legacy_confidence": "exact",
+            "legacy_label": "hidden_helper()",
+            "tool_name": "GNU ld",
+            "tool_rule_id": "--gc-sections/--print-gc-sections",
+            "tool_version": "",
+            "explanation": "Actual GNU ld section removal.",
+            "remediation": "",
+            "snippet": "",
+            "metrics": {
+              "link_targets": {
+                "value": 1,
+                "unit": "targets"
+              }
+            },
+            "fixes": []
+          }
+        }
+      ],
+      "expected_findings": [
+        {
+          "rule_id": "ici.legacy.dead.target",
+          "category": "maintainability",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:414694a337e9dab63110bf95033ae9a2f1307100a6df0db4ca1abf4d5f425d2a",
+          "primary_location": {
+            "path": "src/main.cpp",
+            "start_line": 9,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "hidden_helper()"
+          },
+          "related_locations": [],
+          "message": "section discarded in both executables",
+          "explanation": "Adapted from the legacy dead InspectionTarget contract.",
+          "remediation": "",
+          "tool_rule_id": "",
+          "tool_name": "",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        },
+        {
+          "rule_id": "ici.dead.gnu-elf-discarded-function",
+          "category": "maintainability",
+          "severity": "medium",
+          "confidence": "exact",
+          "fingerprint": "sha256:669ee33dea54d767db8c17d5e0a952f572377121f6b17edc5935a3b0df95a1c0",
+          "primary_location": {
+            "path": "src/main.cpp",
+            "start_line": 9,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "hidden_helper()"
+          },
+          "related_locations": [],
+          "message": "section discarded in both executables",
+          "explanation": "Actual GNU ld section removal.",
+          "remediation": "",
+          "tool_rule_id": "--gc-sections/--print-gc-sections",
+          "tool_name": "GNU ld",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "link_targets": {
+              "value": 1,
+              "unit": "targets"
+            }
+          },
+          "snippet": "",
+          "fixes": []
+        }
+      ]
+    },
+    {
+      "name": "native-package-no-target-is-retained",
+      "engine_name": "python_compat",
+      "check_id": "python.compat",
+      "evidence": "MEASURED",
+      "status": "WARN",
+      "targets": [],
+      "explicit": [
+        {
+          "modern": {
+            "rule_id": "ici.python.package.requires-python",
+            "category": "compatibility",
+            "severity": "medium",
+            "confidence": "high",
+            "primary_location": {
+              "path": "pyproject.toml",
+              "start_line": 4,
+              "end_line": 4,
+              "start_column": 1,
+              "end_column": 18,
+              "label": ""
+            },
+            "message": "Requires-Python excludes declared target",
+            "related_locations": [],
+            "fingerprint": "producer-0",
+            "provider": "ici package inspection",
+            "evidence": "MEASURED",
+            "native_rule_id": "",
+            "rule_version": ""
+          },
+          "details": {
+            "legacy_rule_id": "ici.python.package.requires-python",
+            "legacy_category": "compatibility",
+            "legacy_severity": "medium",
+            "legacy_confidence": "high",
+            "legacy_label": "",
+            "tool_name": "ici package inspection",
+            "tool_rule_id": "",
+            "tool_version": "",
+            "explanation": "",
+            "remediation": "",
+            "snippet": "",
+            "metrics": {
+              "target_minor": {
+                "value": 10,
+                "unit": "minor"
+              }
+            },
+            "fixes": []
+          }
+        }
+      ],
+      "expected_findings": [
+        {
+          "rule_id": "ici.python.package.requires-python",
+          "category": "compatibility",
+          "severity": "medium",
+          "confidence": "high",
+          "fingerprint": "sha256:c63b9804ac108bd4ba64a494ef3493b3a5f277a2bbc081f2420402797ea9c3cd",
+          "primary_location": {
+            "path": "pyproject.toml",
+            "start_line": 4,
+            "end_line": 4,
+            "start_column": 1,
+            "end_column": 18,
+            "label": ""
+          },
+          "related_locations": [],
+          "message": "Requires-Python excludes declared target",
+          "explanation": "",
+          "remediation": "",
+          "tool_rule_id": "",
+          "tool_name": "ici package inspection",
+          "tool_version": "",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {
+            "target_minor": {
+              "value": 10,
+              "unit": "minor"
+            }
+          },
+          "snippet": "",
+          "fixes": []
+        }
+      ]
+    }
+  ]
+}

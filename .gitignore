@@ -71,3 +71,6 @@ pr4-report.png
 
 # Local isolated implementation worktrees
 .worktrees/
+
+# Rust replacement build artifacts (owned by this checkout).
+/target/

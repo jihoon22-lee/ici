@@ -1,0 +1,204 @@
+{
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "runs": [
+  {
+   "argv": [
+    "verify",
+    "--report"
+   ],
+   "engines": {
+    "compile_db": {
+     "cache_hit": false,
+     "keyed": true
+    },
+    "complexity": {
+     "cache_hit": false,
+     "keyed": true
+    },
+    "cycle": {
+     "cache_hit": false,
+     "keyed": true
+    },
+    "dead": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "dup": {
+     "cache_hit": false,
+     "keyed": true
+    },
+    "exception": {
+     "cache_hit": false,
+     "keyed": true
+    },
+    "line": {
+     "cache_hit": false,
+     "keyed": true
+    },
+    "lint": {
+     "cache_hit": false,
+     "keyed": true
+    },
+    "python_compat": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "resource": {
+     "cache_hit": false,
+     "keyed": true
+    },
+    "sanitize": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "security": {
+     "cache_hit": false,
+     "keyed": true
+    },
+    "test": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "type": {
+     "cache_hit": false,
+     "keyed": true
+    }
+   },
+   "exit_code": 1
+  },
+  {
+   "argv": [
+    "verify",
+    "--report"
+   ],
+   "engines": {
+    "compile_db": {
+     "cache_hit": false,
+     "keyed": true
+    },
+    "complexity": {
+     "cache_hit": true,
+     "keyed": true
+    },
+    "cycle": {
+     "cache_hit": true,
+     "keyed": true
+    },
+    "dead": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "dup": {
+     "cache_hit": true,
+     "keyed": true
+    },
+    "exception": {
+     "cache_hit": true,
+     "keyed": true
+    },
+    "line": {
+     "cache_hit": true,
+     "keyed": true
+    },
+    "lint": {
+     "cache_hit": false,
+     "keyed": true
+    },
+    "python_compat": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "resource": {
+     "cache_hit": true,
+     "keyed": true
+    },
+    "sanitize": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "security": {
+     "cache_hit": true,
+     "keyed": true
+    },
+    "test": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "type": {
+     "cache_hit": true,
+     "keyed": true
+    }
+   },
+   "exit_code": 1
+  },
+  {
+   "argv": [
+    "verify",
+    "--report",
+    "--no-cache"
+   ],
+   "engines": {
+    "compile_db": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "complexity": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "cycle": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "dead": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "dup": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "exception": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "line": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "lint": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "python_compat": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "resource": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "sanitize": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "security": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "test": {
+     "cache_hit": false,
+     "keyed": false
+    },
+    "type": {
+     "cache_hit": false,
+     "keyed": false
+    }
+   },
+   "exit_code": 1
+  }
+ ],
+ "tree": {
+  "src/core.py": "import pickle\n\n\ndef load(blob):\n    return pickle.loads(blob)\n"
+ }
+}

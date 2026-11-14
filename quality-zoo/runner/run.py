@@ -13,6 +13,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from runner.candidate_overrides import PYZ, candidate_format
 from runner.common import (
     SCENARIO_ID_RE,
     SHA256_RE,
@@ -26,6 +27,10 @@ from runner.common import (
 from runner.report_contract import SUITE_SCOPE, evaluate_contract
 
 MAX_TOOL_OUTPUT_BYTES = 1024 * 1024
+# The executable digest bound. A pyz is a few MiB; the native Rust release binary measured
+# 36,130,096 bytes (x86_64-unknown-linux-musl, R8 rehearsal archive bin/ici), above the former
+# 32 MiB bound, so the bound is 64 MiB: still a fixed cap on an untrusted read.
+MAX_ICI_BIN_BYTES = 64 * 1024 * 1024
 ALLOWED_PROFILES = {"fast", "standard", "deep"}
 
 
@@ -215,6 +220,7 @@ def run_scenario(
     timeout_seconds: int,
     producer_version: str,
     ici_sha256: str,
+    ici_format: str = PYZ,
 ) -> dict[str, Any]:
     scenario = _load_scenario(scenario_id, scenario_root, ici_sha256)
     project_relative = require_string(scenario["project_root"], "project_root")
@@ -291,7 +297,7 @@ def run_scenario(
                 error_message,
             )
         report = load_json_object(report_path, label=f"{scenario_id} ici report")
-        contract = evaluate_contract(report, scenario)
+        contract = evaluate_contract(report, scenario, candidate_format=ici_format)
         expected_exit = {
             "PASS": 0,
             "WARN": 0,
@@ -334,6 +340,7 @@ def run_scenario(
             "observed_suite_status": contract.observed_suite_status,
             "producer_version": contract.producer_version,
             "ici_sha256": ici_sha256,
+            "ici_format": ici_format,
             "argv": command[1:],
             "exit_code": completed.returncode,
             "matched_findings": contract.matched_findings,
@@ -434,9 +441,10 @@ def run_manifest(
             "unsafe-ici-bin", "ICI_BIN must be an executable regular file"
         )
     ici_bin = ici_bin.resolve(strict=True)
-    ici_sha256, _ = sha256_file(ici_bin, max_bytes=32 * 1024 * 1024)
+    ici_sha256, _ = sha256_file(ici_bin, max_bytes=MAX_ICI_BIN_BYTES)
+    ici_format = candidate_format(ici_bin)
     producer_version = _run_version(ici_bin, timeout_seconds)
-    version_probe_sha256, _ = sha256_file(ici_bin, max_bytes=32 * 1024 * 1024)
+    version_probe_sha256, _ = sha256_file(ici_bin, max_bytes=MAX_ICI_BIN_BYTES)
     if version_probe_sha256 != ici_sha256:
         raise ContractError("ici-changed", "ICI_BIN changed during version probing")
     if output_root.exists():
@@ -451,10 +459,11 @@ def run_manifest(
             timeout_seconds=timeout_seconds,
             producer_version=producer_version,
             ici_sha256=ici_sha256,
+            ici_format=ici_format,
         )
         for scenario_id in selected
     ]
-    final_sha256, _ = sha256_file(ici_bin, max_bytes=32 * 1024 * 1024)
+    final_sha256, _ = sha256_file(ici_bin, max_bytes=MAX_ICI_BIN_BYTES)
     if final_sha256 != ici_sha256:
         raise ContractError("ici-changed", "ICI_BIN changed during scenario execution")
     aggregate = {
@@ -468,6 +477,7 @@ def run_manifest(
             "path": str(ici_bin),
             "sha256": ici_sha256,
             "version": producer_version,
+            "format": ici_format,
         },
         "scenario_count": len(results),
         "results": results,

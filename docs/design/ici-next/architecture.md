@@ -115,12 +115,12 @@ probe하지 않는다. 이 규칙을 import/side-effect 테스트로 검증한�
 > 겸한다(`src/ici/core/context.py:113`). `AnalysisContext`·`CompilationContext`·
 > `ArtifactManifest`·`AnalysisIdentity`는 이미 frozen dataclass로 존재하므로 이관 자산이다.
 >
-> **구현 시작됨 (WP02 PR A)**: 이 표의 모델이 [`src/ici/domain/`](../../../src/ici/domain)에
+> **구현 시작됨 (WP02 PR A)**: 이 표의 모델이 [`src/ici/domain/`](https://github.com/jihoon22-lee/ici/tree/v0.13.0/src/ici/domain)에
 > frozen dataclass로 존재한다. 기존 `core/`는 손대지 않았고 새 namespace는 opt-in이다.
 > `ici.domain.legacy`가 유일한 연결 지점이며, 각 방향에서 무엇이 손실되는지 이름으로 남긴다.
 > 직렬화·JSON Schema·이벤트 IO도 구현됐다 —
-> [`schemas/ici-next-run-v1.schema.json`](../../../src/ici/schemas/ici-next-run-v1.schema.json)과
-> [`schemas/ici-next-event-v1.schema.json`](../../../src/ici/schemas/ici-next-event-v1.schema.json)이
+> [`schemas/ici-next-run-v1.schema.json`](../../../schemas/ici-next-run-v1.schema.json)과
+> [`schemas/ici-next-event-v1.schema.json`](../../../schemas/ici-next-event-v1.schema.json)이
 > 외부 계약이다.
 
 ## 5. 실행 계약
@@ -190,10 +190,10 @@ TU 범위와 함께 보고한다.
 
 |현행 위치|이관 방향|
 |---|---|
-|[`core/models.py`](../../../src/ici/core/models.py)|finding/evidence/support 자산 보존|
-|[`core/context.py`](../../../src/ici/core/context.py)|단일 `ProjectModel`을 workspace/component/analysis unit으로 분해|
-|[`core/pipeline.py`](../../../src/ici/core/pipeline.py)|descriptor/DAG를 check/provider/task 구조로 발전|
-|[`engines/test_interpreter.py`](../../../src/ici/engines/test_interpreter.py)|interpreter fallback 제거·공통 선택 계층 사용|
+|[`core/models.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/core/models.py)|finding/evidence/support 자산 보존|
+|[`core/context.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/core/context.py)|단일 `ProjectModel`을 workspace/component/analysis unit으로 분해|
+|[`core/pipeline.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/core/pipeline.py)|descriptor/DAG를 check/provider/task 구조로 발전|
+|[`engines/test_interpreter.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/engines/test_interpreter.py)|interpreter fallback 제거·공통 선택 계층 사용|
 |runner/cache/config/qmake/reporting|현행 inventory에서 파일·테스트를 매핑하여 이관. 규칙 변경과 구조 변경은 별도 검토|
 
 각 파일의 실제 규모·책임·테스트는 [inventory/current-engines.md](inventory/current-engines.md)와
@@ -208,7 +208,7 @@ superpowers 문서에는 현행/next 상태와 링크를 명시한다. ADR에는
 - [x] AGENTS의 Python 3.10/순수 wheel/zipapp/toy gate 규약을 새 요구에 맞게 명시적으로 개정했다.
       → [AGENTS.md](../../../AGENTS.md) §3·§4·§8
 - [x] 모델·모듈 경계와 금지 side effect에 계약 테스트가 있다.
-      → [`tests/next/test_ici_next_inventory.py`](../../../tests/next/test_ici_next_inventory.py)
+      → [`tests/next/test_ici_next_inventory.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_ici_next_inventory.py)
       (registry coverage·문서 링크·설정 예시). 모듈 경계 import 테스트는 신규 패키지가
       만들어지는 [WP02 #200](https://github.com/jihoon22-lee/ici/issues/200) 이후에 붙는다.
 - [x] SPEC/WP에 이 설계가 연결되고 미확인 선택은 release blocker 또는 증거 있는 결정으로

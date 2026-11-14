@@ -1,0 +1,325 @@
+{
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "pkg_config": "2.5.1",
+ "cases": {
+  "test:direct-external": {
+   "fixture": "sanitize-direct-external",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\ncpp_external_build_dirs=['src/external']\n",
+   "frozen": {
+    "exit_code": 0,
+    "status": "PASS",
+    "summary": "1/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0",
+    "evidence": "MEASURED",
+    "targets": [
+     {
+      "target_name": "[C++] test_ok.cpp",
+      "status": "PASS",
+      "message": "C++ Test Passed",
+      "file_path": "tests/test_ok.cpp",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "Coverage:Overall line",
+      "status": "PASS",
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+      "file_path": ".",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "Coverage:Functions",
+      "status": "PASS",
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "file_path": ".",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "Coverage:Function:answer()",
+      "status": "PASS",
+      "message": "Function answer() was exercised by the aggregate project test suite",
+      "file_path": "src/lib.cpp",
+      "start_line": 1,
+      "end_line": 1
+     }
+    ],
+    "coverage_files": [
+     "src/lib.cpp"
+    ],
+    "coverage": {
+     "line_coverage": 100.0,
+     "branch_coverage": 100.0,
+     "function_coverage": 100.0
+    }
+   }
+  },
+  "test:direct-external-unset": {
+   "fixture": "sanitize-direct-external",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "frozen": {
+    "exit_code": 1,
+    "status": "FAIL",
+    "summary": "0/1 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+    "evidence": "ESTIMATED",
+    "targets": [
+     {
+      "target_name": "[C++] test_ok.cpp",
+      "status": "FAIL",
+      "message": "Compilation Error: <root>/src/external/broken.cpp: In function ‘int broken()’:\n<tmp>/ici-cpp-com",
+      "file_path": "tests/test_ok.cpp",
+      "start_line": 1,
+      "end_line": null
+     }
+    ],
+    "coverage_files": [],
+    "coverage": {
+     "line_coverage": null,
+     "branch_coverage": 45.0,
+     "function_coverage": 50.0
+    }
+   }
+  },
+  "test:direct-pkg-config": {
+   "fixture": "sanitize-direct-pkg",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\ncpp_pkg_config=['icipkg']\n",
+   "frozen": {
+    "exit_code": 0,
+    "status": "PASS",
+    "summary": "1/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0",
+    "evidence": "MEASURED",
+    "targets": [
+     {
+      "target_name": "[C++] test_ok.cpp",
+      "status": "PASS",
+      "message": "C++ Test Passed",
+      "file_path": "tests/test_ok.cpp",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "Coverage:Overall line",
+      "status": "PASS",
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+      "file_path": ".",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "Coverage:Functions",
+      "status": "PASS",
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "file_path": ".",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "Coverage:Function:answer()",
+      "status": "PASS",
+      "message": "Function answer() was exercised by the aggregate project test suite",
+      "file_path": "src/lib.cpp",
+      "start_line": 1,
+      "end_line": 1
+     }
+    ],
+    "coverage_files": [
+     "src/lib.cpp"
+    ],
+    "coverage": {
+     "line_coverage": 100.0,
+     "branch_coverage": 100.0,
+     "function_coverage": 100.0
+    }
+   }
+  },
+  "test:direct-pkg-config-missing": {
+   "fixture": "sanitize-direct-pkg",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\ncpp_pkg_config=['absentpkg']\n",
+   "frozen": {
+    "exit_code": 1,
+    "status": "FAIL",
+    "summary": "0/1 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+    "evidence": "ESTIMATED",
+    "targets": [
+     {
+      "target_name": "[C++] test_ok.cpp",
+      "status": "FAIL",
+      "message": "Compilation Error: <root>/src/lib.cpp: In function ‘int answer()’:\n<tmp>/ici-cpp-compile-inputs-",
+      "file_path": "tests/test_ok.cpp",
+      "start_line": 1,
+      "end_line": null
+     }
+    ],
+    "coverage_files": [],
+    "coverage": {
+     "line_coverage": null,
+     "branch_coverage": 45.0,
+     "function_coverage": 50.0
+    }
+   }
+  },
+  "complexity:direct-external": {
+   "fixture": "sanitize-direct-external",
+   "command": "complexity",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\ncpp_external_build_dirs=['src/external']\n",
+   "frozen": {
+    "exit_code": 0,
+    "status": "PASS",
+    "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 2 functions (0 issues)",
+    "evidence": "ESTIMATED",
+    "targets": [
+     {
+      "target_name": "broken()",
+      "status": "PASS",
+      "message": "Complexity: 1, Nesting: 0",
+      "file_path": "src/external/broken.cpp",
+      "start_line": 1,
+      "end_line": 1
+     },
+     {
+      "target_name": "answer()",
+      "status": "PASS",
+      "message": "Complexity: 1, Nesting: 0",
+      "file_path": "src/lib.cpp",
+      "start_line": 1,
+      "end_line": 1
+     }
+    ]
+   }
+  },
+  "complexity:direct-external-unset": {
+   "fixture": "sanitize-direct-external",
+   "command": "complexity",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "frozen": {
+    "exit_code": 0,
+    "status": "PASS",
+    "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 2 functions (0 issues)",
+    "evidence": "ESTIMATED",
+    "targets": [
+     {
+      "target_name": "broken()",
+      "status": "PASS",
+      "message": "Complexity: 1, Nesting: 0",
+      "file_path": "src/external/broken.cpp",
+      "start_line": 1,
+      "end_line": 1
+     },
+     {
+      "target_name": "answer()",
+      "status": "PASS",
+      "message": "Complexity: 1, Nesting: 0",
+      "file_path": "src/lib.cpp",
+      "start_line": 1,
+      "end_line": 1
+     }
+    ]
+   }
+  },
+  "cognitive:direct-external": {
+   "fixture": "sanitize-direct-external",
+   "command": "cognitive",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\ncpp_external_build_dirs=['src/external']\n",
+   "frozen": {
+    "exit_code": 0,
+    "status": "PASS",
+    "summary": "Max cognitive complexity: 0 across 2 functions",
+    "evidence": "ESTIMATED",
+    "targets": [
+     {
+      "target_name": "broken",
+      "status": "PASS",
+      "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+      "file_path": "src/external/broken.cpp",
+      "start_line": 1,
+      "end_line": 1
+     },
+     {
+      "target_name": "answer",
+      "status": "PASS",
+      "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+      "file_path": "src/lib.cpp",
+      "start_line": 1,
+      "end_line": 1
+     }
+    ]
+   }
+  },
+  "cognitive:direct-external-unset": {
+   "fixture": "sanitize-direct-external",
+   "command": "cognitive",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "frozen": {
+    "exit_code": 0,
+    "status": "PASS",
+    "summary": "Max cognitive complexity: 0 across 2 functions",
+    "evidence": "ESTIMATED",
+    "targets": [
+     {
+      "target_name": "broken",
+      "status": "PASS",
+      "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+      "file_path": "src/external/broken.cpp",
+      "start_line": 1,
+      "end_line": 1
+     },
+     {
+      "target_name": "answer",
+      "status": "PASS",
+      "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+      "file_path": "src/lib.cpp",
+      "start_line": 1,
+      "end_line": 1
+     }
+    ]
+   }
+  },
+  "dead:direct-external": {
+   "fixture": "sanitize-direct-external",
+   "command": "dead",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\ncpp_external_build_dirs=['src/external']\n",
+   "frozen": {
+    "exit_code": 2,
+    "status": "SKIP",
+    "summary": "C++ dead-code analysis not run: exact native context unavailable",
+    "evidence": "NOT_RUN",
+    "targets": [
+     {
+      "target_name": "C++UnusedFunctionsUnavailable",
+      "status": "SKIP",
+      "message": "Exact C++ unused-function analysis requires a compilation database",
+      "file_path": "src/lib.cpp",
+      "start_line": 1,
+      "end_line": null
+     }
+    ]
+   }
+  },
+  "dead:direct-external-unset": {
+   "fixture": "sanitize-direct-external",
+   "command": "dead",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "frozen": {
+    "exit_code": 2,
+    "status": "SKIP",
+    "summary": "C++ dead-code analysis not run: exact native context unavailable",
+    "evidence": "NOT_RUN",
+    "targets": [
+     {
+      "target_name": "C++UnusedFunctionsUnavailable",
+      "status": "SKIP",
+      "message": "Exact C++ unused-function analysis requires a compilation database",
+      "file_path": "src/lib.cpp",
+      "start_line": 1,
+      "end_line": null
+     }
+    ]
+   }
+  }
+ }
+}

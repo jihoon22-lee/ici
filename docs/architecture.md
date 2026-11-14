@@ -1,5 +1,12 @@
 # ici 시스템 아키텍처 및 상세 설계 (System Architecture Guide)
 
+> **역사 문서 (v0.13.x Python 제품).** v0.14.0의 R9 cutover로 ici는 Rust native 단일 제품이 되었고
+> 이 문서가 설명하는 `src/ici` 구현, ZipApp·Polyglot launcher·재현 pyz build는 저장소에서 제거됐다.
+> 현행 구조는 [ADR-0008](design/ici-next/adr/0008-rust-native-replacement.md)의 Cargo workspace 경계
+> (`crates/ici-*`), 배포는 [native 설치 가이드](native-install.md), 기능 대응은
+> [이전 대응표](design/rust-replacement/inventory.md)를 본다. 아래 본문의 `src/ici/...` 링크는
+> v0.13.0 tag를 가리킨다.
+
 > 2026-10-28 제품 전환: 일반 설치·정적 분석의 주 경로는
 > [범용 분석 가이드](general-analysis.md)의 `ici analyze`와 Python wheel입니다.
 > 아래 기존 verify/pyz 및 폐쇄망 설명·과거 릴리스 증거는 호환/환경별 문맥으로 읽습니다.
@@ -316,7 +323,7 @@ limited to canonical member ordering; it is not a claim of zlib- or platform-ind
   - JSON writer는 `ici.result/v3`를 사용합니다. 기존 `targets`와 엔진·도구 증거를 보존하면서
     `findings`를 추가하므로 점진적으로 소비자를 전환할 수 있습니다. v2 archive는 migration
     helper와 v2/v3 겸용 viewer로 계속 읽을 수 있습니다. 기계 검증 계약은
-    [`ici-result-v3.schema.json`](../src/ici/schemas/ici-result-v3.schema.json)입니다.
+    [`ici-result-v3.schema.json`](../schemas/ici-result-v3.schema.json)입니다.
 
 ### 4.2 공유 분석 맥락과 산출물 소유권 (`AnalysisContext`)
 
@@ -411,7 +418,7 @@ unmodeled option·비치명 diagnostic·unity build가 있으면 `comparison_sta
 JSON-only이며 오류는 stderr로 보낸다. 파일 출력은 validated target에 같은 디렉터리
 임시 파일, flush/`fsync`, atomic replace와 directory sync를 사용한다. DB와 project policy
 파일, alias 및 special file은 보호하며 허용된 symlink는 referent가 아니라 link 자체를 교체한다.
-기계 계약은 [`ici-compilation-export-v1.schema.json`](../src/ici/schemas/ici-compilation-export-v1.schema.json)이며,
+기계 계약은 [`ici-compilation-export-v1.schema.json`](../schemas/ici-compilation-export-v1.schema.json)이며,
 `build-pyz.sh`가 ZipApp 구성에 이 schema와 기존 v3 schema가 포함되는지 확인한다.
 
 #### Compile database boundary and C++ coverage gate
