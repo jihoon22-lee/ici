@@ -616,8 +616,17 @@ fn cxx_step(name: &str) -> bool {
     name.starts_with("g++") || name.starts_with("gcov") || name == "C++ test"
 }
 
-/// The Python tool steps (name, return code, invocation) and the C++ tests' return codes; the
-/// C++ build steps are native's actual executions (decisions.md "C++ 도구 증거는 실제 실행 기록").
+/// The CMake adapter's configure/build/test steps: their argv names native's own shadow
+/// (`.ici/rust-v1/build/legacy-<16 hex>/<variant>`, decisions.md "native C++ shadow build 위치"),
+/// its job count and its run-owned JUnit path (decisions.md "C++ 도구 증거는 실제 실행 기록"), so
+/// they are compared by name, order and return code.
+fn cmake_step(name: &str) -> bool {
+    name.starts_with("cmake ") || name == "ctest"
+}
+
+/// The Python tool steps (name, return code, invocation), the CMake adapter steps (name, return
+/// code) and the C++ tests' return codes; the C++ build steps are native's actual executions
+/// (decisions.md "C++ 도구 증거는 실제 실행 기록").
 fn tools(evidence: &Value, native: bool) -> (Vec<Value>, Vec<Value>) {
     let items = evidence.as_array().unwrap();
     let python = items
@@ -625,6 +634,9 @@ fn tools(evidence: &Value, native: bool) -> (Vec<Value>, Vec<Value>) {
         .filter(|item| !cxx_step(item["name"].as_str().unwrap()))
         .map(|item| {
             let name = item["name"].as_str().unwrap();
+            if cmake_step(name) {
+                return json!([name, item["returncode"]]);
+            }
             json!([
                 name,
                 item["returncode"],
