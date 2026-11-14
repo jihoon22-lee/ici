@@ -1511,6 +1511,17 @@ pub fn declared_artifacts(
 ) -> Result<BTreeMap<String, String>, String> {
     declarations::Declarations::collect(project, component)?.select(&[], true)
 }
+/// The `config.artifacts` records frozen publishes for a legacy `[build.artifacts]` declaration
+/// (path to kind, sorted by path); `None` when it publishes no such manifest.
+pub fn legacy_declared_publication(
+    project: &ResolvedProject,
+    component: &Component,
+) -> Option<BTreeMap<String, String>> {
+    declarations::Declarations::collect(project, component)
+        .ok()?
+        .legacy_publication()
+        .ok()
+}
 /// Existing files selected by typed configuration declarations, using their canonical identities.
 pub fn declared_outputs(
     project: &ResolvedProject,

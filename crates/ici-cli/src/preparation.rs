@@ -717,37 +717,31 @@ fn legacy_adapter_build_failure(
     }
 }
 
-/// Frozen `BinaryCompatibilityEngine.run` (binary_compat.py:96-117) after the legacy release
-/// build failed: no manifest was published, so with no `artifacts` selection the engine is the
-/// not-applicable SKIP (or, when required, the "no published executable or shared-library
-/// artifacts" ERROR). Frozen publishes manifests only from the build, test and sanitizer
-/// sessions, so this holds once every preparation of the run has failed or built nothing
-/// (`contexts`: the preparations that succeeded). `None` when a prepared session built
-/// executables or artifacts, Python packaging could still publish one, or a selection names
-/// only declared `[build.artifacts]` records (or a glob declaration); those keep the blocked
-/// check.
+/// Frozen `BinaryCompatibilityEngine.run` (binary_compat.py:32-165) after the legacy release
+/// build failed. Frozen publishes manifests only from the build, test and sanitizer sessions
+/// and `[build.artifacts]` (`config.artifacts`); `_package_python` publishes none. Once every
+/// preparation of the run has failed or built nothing (`contexts`: the preparations that
+/// succeeded), the analysis context holds only the declared manifest, so: no selection is the
+/// not-applicable SKIP (declared kinds are never `_BINARY_KINDS`), or when required the "no
+/// published executable or shared-library artifacts" ERROR; a selection the declared manifest
+/// does not hold is the sorted `configured artifact was not published: …` ERROR; a selection of
+/// declared records is inspected (non-ELF FAIL, or the NonElf SKIP under `allow_non_elf`)
+/// (binary-compat-declared-artifacts-oracle.json, root ruling 2026-11-14 (g3)). `None` when a
+/// prepared session built executables or artifacts, or a selected declared record is an ELF
+/// object or unreadable (frozen runs readelf on it; not captured).
 fn legacy_binary_compat_without_manifests(
     prepared: &PreparedPlan,
     plan: &crate::export_context::ContextPreparationPlan,
     contexts: &[crate::export_context::PreparedContext],
+    environment: &BTreeMap<String, String>,
 ) -> Option<AnalysisOutput> {
     if contexts.iter().any(|context| {
         !context.artifacts.is_empty()
             || context.test_executable.is_some()
             || !context.test_executables.is_empty()
-    }) || prepared
-        .plan
-        .checks
-        .iter()
-        .any(|check| check.check.id == "python.artifact")
-    {
+    }) {
         return None;
     }
-    // `[build.artifacts]` declares only `python-wheel` and `report` outputs (frozen
-    // `DECLARED_ARTIFACT_KINDS`), never one of `_BINARY_KINDS`: without a selection frozen
-    // `_records` skips them, so the published `config.artifacts` manifest changes nothing
-    // (binary-compat-declared-artifacts-oracle.json `declared-report`).
-    let declared = prepared.project.effective.pointer("/build/artifacts");
     let check = prepared.plan.checks.iter().find(|check| {
         check.component_id == plan.component_id && check.check.id == "cpp.binary-compat"
     })?;
@@ -757,7 +751,7 @@ fn legacy_binary_compat_without_manifests(
         .iter()
         .find(|component| component.id == plan.component_id)?;
     let settings = component.settings.pointer("/engines/binary_compat");
-    let mut selected: Vec<&str> = settings
+    let selected: BTreeSet<&str> = settings
         .and_then(|settings| settings.get("artifacts"))
         .and_then(serde_json::Value::as_array)
         .map(|artifacts| {
@@ -767,67 +761,95 @@ fn legacy_binary_compat_without_manifests(
                 .collect()
         })
         .unwrap_or_default();
-    if !selected.is_empty() {
-        // Frozen `_records` with no session manifest: a selection the `config.artifacts`
-        // manifest does not hold (by `release:project:<path>` id or path) is missing; the missing
-        // ones are joined in sorted order (`configured artifact was not published: …`), whatever
-        // `required` says (binary-compat-declared-artifacts-oracle.json `selected-*`,
-        // `declared-selected-missing`, `declared-selected-mixed`; root ruling 2026-11-14 (g3)).
-        let mut published: BTreeSet<String> = BTreeSet::new();
-        for patterns in declared
-            .and_then(serde_json::Value::as_object)
-            .into_iter()
-            .flat_map(|kinds| kinds.values())
-        {
-            for pattern in patterns.as_array()? {
-                let pattern = pattern.as_str()?;
-                // A glob or a non-normal path is expanded by frozen `_declared_artifact_paths`,
-                // which is not reproduced here: keep the blocked check.
-                if pattern.contains(['*', '?', '[']) || !legacy_plain_relative(pattern) {
-                    return None;
-                }
-                // A declared file that does not exist publishes no manifest in frozen.
-                if prepared.project.root.join(pattern).is_file() {
-                    published.insert(pattern.to_owned());
-                    published.insert(format!("release:project:{pattern}"));
-                }
-            }
-        }
-        selected.sort_unstable();
-        selected.dedup();
-        selected.retain(|item| !published.contains(*item));
-        if selected.is_empty() {
-            // Every selection names a declared record: frozen inspects it with readelf
-            // (`declared-selected-declared`, a non-ELF FAIL), which this path does not port.
-            return None;
-        }
-        let message = format!(
-            "configured artifact was not published: {}",
-            selected.join(", ")
-        );
+    if selected.is_empty() {
+        let required = settings
+            .and_then(|settings| settings.get("required"))
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false);
         return Some(crate::cpp::legacy_binary_compat_unavailable(
             &check.task_id,
-            Some(&message),
+            required.then_some("no published executable or shared-library artifacts"),
         ));
     }
-    let required = settings
-        .and_then(|settings| settings.get("required"))
+    // Frozen `_declared_artifact_paths` (globs included; a pattern that matched nothing
+    // publishes no manifest), recorded as `release:project:<path>` in path order.
+    let published =
+        crate::artifact_build::legacy_declared_publication(&prepared.project, component)
+            .unwrap_or_default();
+    let records: Vec<&String> = published
+        .keys()
+        .filter(|path| {
+            selected.contains(path.as_str())
+                || selected.contains(format!("release:project:{path}").as_str())
+        })
+        .collect();
+    let mut missing: Vec<&str> = selected
+        .iter()
+        .copied()
+        .filter(|item| {
+            !records
+                .iter()
+                .any(|path| *item == path.as_str() || *item == format!("release:project:{path}"))
+        })
+        .collect();
+    missing.sort_unstable();
+    let maximum = settings
+        .and_then(|settings| settings.get("max_artifacts"))
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(64);
+    let error = if !missing.is_empty() {
+        Some(format!(
+            "configured artifact was not published: {}",
+            missing.join(", ")
+        ))
+    } else if records.len() as u64 > maximum {
+        Some(format!(
+            "binary artifact count exceeds configured maximum {maximum}"
+        ))
+    } else if !legacy_on_path(environment, "readelf") {
+        Some("readelf capability is unavailable".to_owned())
+    } else {
+        None
+    };
+    if let Some(error) = error {
+        return Some(crate::cpp::legacy_binary_compat_unavailable(
+            &check.task_id,
+            Some(&error),
+        ));
+    }
+    // Frozen reads each record's first four bytes; an ELF object goes to readelf, which this
+    // path does not run, so such a selection keeps the blocked check.
+    for path in &records {
+        let mut magic = [0u8; 4];
+        let read = std::fs::File::open(prepared.project.root.join(path))
+            .and_then(|mut file| std::io::Read::read(&mut file, &mut magic));
+        if read.is_err() || magic == *b"\x7fELF" {
+            return None;
+        }
+    }
+    let allow_non_elf = settings
+        .and_then(|settings| settings.get("allow_non_elf"))
         .and_then(serde_json::Value::as_bool)
         .unwrap_or(false);
-    Some(crate::cpp::legacy_binary_compat_unavailable(
+    let paths: Vec<String> = records.into_iter().cloned().collect();
+    Some(crate::cpp::legacy_binary_compat_declared_non_elf(
         &check.task_id,
-        required.then_some("no published executable or shared-library artifacts"),
+        &component.id,
+        &paths,
+        allow_non_elf,
     ))
 }
-/// A relative path with only normal components (no `.`, `..`, empty or absolute part).
-fn legacy_plain_relative(path: &str) -> bool {
-    !path.is_empty()
-        && !path.starts_with('/')
-        && path
-            .split('/')
-            .all(|part| !part.is_empty() && part != "." && part != "..")
+/// Frozen `shutil.which(name)` over the run's PATH: an executable regular file.
+fn legacy_on_path(environment: &BTreeMap<String, String>, name: &str) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    environment.get("PATH").is_some_and(|path| {
+        std::env::split_paths(path).any(|directory| {
+            std::fs::metadata(directory.join(name)).is_ok_and(|metadata| {
+                metadata.is_file() && metadata.permissions().mode() & 0o111 != 0
+            })
+        })
+    })
 }
-
 fn rebind(
     runtime: &Runtime<'_>,
     project: ici_config::ResolvedProject,
@@ -1534,9 +1556,12 @@ pub fn execute(
             }
         }
         for plan in &compat_without_release {
-            if let Some(mut compat) =
-                legacy_binary_compat_without_manifests(&prepared, plan, &contexts)
-                && crate::execute::redact(&mut compat).is_ok()
+            if let Some(mut compat) = legacy_binary_compat_without_manifests(
+                &prepared,
+                plan,
+                &contexts,
+                runtime.environment,
+            ) && crate::execute::redact(&mut compat).is_ok()
             {
                 observed_failures.insert(compat.observation.task_id.clone());
                 outputs.insert(compat.observation.task_id.clone(), compat);

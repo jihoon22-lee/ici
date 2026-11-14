@@ -16,7 +16,17 @@ analysis context's manifests. Cases over parity-fixtures/cpp/test-cmake/plain wi
 - `declared-selected-missing`: that declaration with a selection it does not publish.
 - `declared-selected-mixed`: a selection naming the declared path and a missing artifact (only
   the missing one is reported).
-- `declared-selected-declared`: a selection naming only the declared record's id.
+- `declared-selected-declared`: a selection naming only the declared record's id (frozen
+  inspects it: the non-ELF FAIL).
+- `declared-selected-allow-non-elf`: the same with `allow_non_elf = true` (the NonElf SKIP).
+- `declared-selected-two`: two declared records selected by id and by path, declared in two
+  patterns (frozen's manifest order: sorted keys, declared patterns, sorted matches).
+- `glob-selected-missing`, `glob-selected-declared`: a glob declaration beside a selection.
+- `glob-unmatched-selected`: a declaration whose second glob matches nothing (frozen publishes
+  no `config.artifacts` manifest, so the selection of its literal path is missing).
+- `python-control`, `python-selected`, `python-selected-declared`: the same tree as a legacy
+  `type='hybrid'` project with a Python package (`python.artifact`): frozen `_package_python`
+  publishes no artifact manifest.
 
 Each case records the exit code, the suite counters, the build and binary_compat engines
 (status, evidence, required, summary, targets, findings) and the analysis context's manifests,
@@ -45,6 +55,7 @@ BASE = (
     "[project]\ntype='cpp'\nsource_dirs=['src']\n"
     "[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\n"
 )
+HYBRID = BASE.replace("type='cpp'", "type='hybrid'")
 CASES = {
     "control": BASE,
     "selected-artifact": BASE + "artifacts=['release:shadow:calc']\n",
@@ -58,6 +69,28 @@ CASES = {
     + "[build.artifacts]\nreport=['CMakeLists.txt']\n",
     "declared-selected-declared": BASE
     + "artifacts=['release:project:CMakeLists.txt']\n[build.artifacts]\nreport=['CMakeLists.txt']\n",
+    "declared-selected-allow-non-elf": BASE
+    + "artifacts=['release:project:CMakeLists.txt']\nallow_non_elf=true\n"
+    + "[build.artifacts]\nreport=['CMakeLists.txt']\n",
+    "declared-selected-two": BASE
+    + "artifacts=['release:project:tests/test_pass.cpp', 'CMakeLists.txt']\n"
+    + "[build.artifacts]\nreport=['tests/*.cpp', 'CMakeLists.txt']\n",
+    "glob-selected-missing": BASE
+    + "artifacts=['release:shadow:calc']\n[build.artifacts]\nreport=['*.txt']\n",
+    "glob-selected-declared": BASE
+    + "artifacts=['release:project:tests/test_fail.cpp']\n[build.artifacts]\nreport=['tests/*.cpp']\n",
+    "glob-unmatched-selected": BASE
+    + "artifacts=['CMakeLists.txt']\n[build.artifacts]\nreport=['CMakeLists.txt', '*.none']\n",
+    "python-control": HYBRID,
+    "python-selected": HYBRID
+    + "artifacts=['release:shadow:calc', '0.1.0/x86_64/lib/calcpy/__init__.py']\n",
+    "python-selected-declared": HYBRID
+    + "artifacts=['release:project:pyproject.toml']\n[build.artifacts]\nreport=['pyproject.toml']\n",
+}
+# Files the hybrid cases add (a legacy `type='hybrid'` project packages its Python sources).
+HYBRID_FILES = {
+    "pyproject.toml": "[project]\nname = 'calcpy'\nversion = '0.1.0'\n",
+    "src/calcpy/__init__.py": "def add(a, b):\n    return a + b\n",
 }
 ENGINES = ("build", "binary_compat")
 COUNTERS = (
@@ -93,7 +126,7 @@ def engine_view(engine: dict) -> dict:
     }
 
 
-def run(config: str) -> dict:
+def run(name: str, config: str) -> dict:
     work = Path(tempfile.mkdtemp(prefix="ici-compat-declared-"))
     try:
         project = work / "project"
@@ -102,6 +135,10 @@ def run(config: str) -> dict:
         (work / ".hg").mkdir()
         (project / "ici.toml").write_text(config, encoding="utf-8")
         (project / "CMakeLists.txt").write_text(FAILING, encoding="utf-8")
+        if name.startswith("python-"):
+            for relative, text in HYBRID_FILES.items():
+                (project / relative).parent.mkdir(parents=True, exist_ok=True)
+                (project / relative).write_text(text, encoding="utf-8")
         result = subprocess.run(
             [PYTHON, "-B", "-m", "ici", "verify", "--profile", "deep", "--report"],
             cwd=project,
@@ -137,7 +174,7 @@ cases = json.loads(OUTPUT.read_text(encoding="utf-8"))["cases"] if only and OUTP
 for name, config in CASES.items():
     if only and name not in only:
         continue
-    cases[name] = {"config": config, "frozen": run(config)}
+    cases[name] = {"config": config, "frozen": run(name, config)}
     print(name, cases[name]["frozen"]["exit_code"], flush=True)
 OUTPUT.write_text(
     json.dumps(
@@ -146,6 +183,7 @@ OUTPUT.write_text(
             "cmake": CMAKE,
             "fixture": "test-cmake/plain",
             "cmake_lists": FAILING,
+            "hybrid_files": HYBRID_FILES,
             "cases": {name: cases[name] for name in CASES if name in cases},
         },
         indent=1,

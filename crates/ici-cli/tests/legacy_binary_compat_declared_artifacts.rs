@@ -5,7 +5,10 @@
 //! is BinaryCompatibilityEngine's `configured artifact was not published: …` ERROR (sorted,
 //! comma-joined, optional or required), and a `[build.artifacts]` declaration (only report and
 //! python-wheel kinds) leaves the NOT_APPLICABLE SKIP of the control; beside that declaration
-//! only the selections it does not publish are missing. Compared per case: the
+//! (literal or glob; one glob matching nothing publishes nothing) only the selections it does
+//! not publish are missing, and a selection of declared records is frozen's non-ELF FAIL (or
+//! the NonElf SKIP under `allow_non_elf`). A legacy `type='hybrid'` package (`python.artifact`)
+//! publishes no manifest either. Compared per case: the
 //! build engine's verdict, the binary_compat engine (status, evidence, required, summary,
 //! targets, findings) and the analysis context's manifests by producer and kind.
 use ici_cli::{commands, registry};
@@ -22,8 +25,6 @@ const TARGET_FIELDS: [&str; 5] = [
     "file_path",
     "start_line",
 ];
-/// Captured but not replayed (see the test).
-const UNPORTED: [&str; 1] = ["declared-selected-declared"];
 const FINDING_FIELDS: [&str; 5] = ["rule_id", "severity", "confidence", "category", "message"];
 
 fn copy_tree(from: &Path, to: &Path) {
@@ -108,6 +109,14 @@ fn run(oracle: &Value, name: &str, case: &Value, path: &str) -> Option<String> {
         oracle["cmake_lists"].as_str().unwrap(),
     )
     .unwrap();
+    // The `python-*` cases are the same tree as a legacy `type='hybrid'` Python package.
+    if name.starts_with("python-") {
+        for (relative, text) in oracle["hybrid_files"].as_object().unwrap() {
+            let path = root.join(relative);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, text.as_str().unwrap()).unwrap();
+        }
+    }
     let invocation = registry::parse(["ici", "verify", "--profile", "deep", "--report"]).unwrap();
     let environment = BTreeMap::from([
         ("PATH".to_string(), path.to_string()),
@@ -165,7 +174,7 @@ fn run(oracle: &Value, name: &str, case: &Value, path: &str) -> Option<String> {
 
 /// Positive: a selection names an artifact no session published (frozen's ERROR, optional and
 /// required, two selections sorted, beside a `[build.artifacts]` declaration only the missing
-/// one). Negative: the control and a `[build.artifacts]` report
+/// one), or declared records (the non-ELF FAIL). Negative: the control and a `[build.artifacts]` report
 /// declaration stay frozen's NOT_APPLICABLE SKIP. Failure: every case's build engine is the
 /// configure's ERROR. Needs /usr/bin/cmake and /usr/bin/g++; missing tools are reported, and
 /// fail under ICI_REQUIRE_BUILD_ADAPTERS=1.
@@ -177,7 +186,7 @@ fn legacy_binary_compat_beside_a_failed_configure_follows_frozen_declared_artifa
     .unwrap();
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 8);
+    assert_eq!(cases.len(), 16);
     // Independent literals of the capture.
     let compat = |name: &str| &cases[name]["frozen"]["engines"]["binary_compat"];
     assert_eq!(
@@ -188,10 +197,16 @@ fn legacy_binary_compat_beside_a_failed_configure_follows_frozen_declared_artifa
     assert_eq!(compat("selected-artifact-required")["required"], true);
     assert_eq!(compat("declared-report")["status"], "SKIP");
     assert_eq!(compat("control")["evidence"], "NOT_APPLICABLE");
-    // Not replayed: a selection naming only the declared record is frozen's readelf non-ELF
-    // FAIL, which native does not port (it keeps the blocked check); recorded open in
-    // closure/cpp.json capability:compile-context-export.
-    assert_eq!(compat("declared-selected-declared")["status"], "FAIL");
+    assert_eq!(
+        compat("declared-selected-declared")["targets"][0]["message"],
+        "Selected binary manifest artifact is not an ELF object"
+    );
+    assert_eq!(compat("declared-selected-allow-non-elf")["status"], "PASS");
+    assert_eq!(
+        compat("glob-unmatched-selected")["summary"],
+        "Binary compatibility analysis incomplete: configured artifact was not published: CMakeLists.txt"
+    );
+    assert_eq!(compat("python-control")["status"], "SKIP");
     assert_eq!(
         compat("declared-selected-mixed")["summary"],
         "Binary compatibility analysis incomplete: configured artifact was not published: release:shadow:calc"
@@ -207,7 +222,6 @@ fn legacy_binary_compat_beside_a_failed_configure_follows_frozen_declared_artifa
     let host = host_tools::mirror(&host_tools::NO_LLVM);
     let mismatches: Vec<String> = cases
         .iter()
-        .filter(|(name, _)| !UNPORTED.contains(&name.as_str()))
         .filter_map(|(name, case)| run(&oracle, name, case, &host.path))
         .collect();
     assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
