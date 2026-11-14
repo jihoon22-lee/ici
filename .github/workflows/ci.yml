@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      CARGO_INCREMENTAL: "0"
 
     steps:
       - name: Checkout Source Code
@@ -23,15 +25,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # Installed before 3.10 on purpose. setup-python puts the last version it
-      # installs first on PATH, and every other step in this job must resolve
-      # 3.10 as the default. This one only has to leave `python3.14` findable so
-      # python_compat measures the newest supported runtime next to the floor.
-      - name: Set up the newest supported Python (3.14)
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.14"
-
+      # The development harness (ledger, candidate audit, Quality Zoo runner)
+      # and the project interpreter the root dogfood inspects run on 3.10.
       - name: Set up Python 3.10
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -43,145 +38,90 @@ jobs:
           version: "0.12.5"
           enable-cache: true
 
-      # uv run 을 쓰는 이유: uvx 는 ruff 를 임시로 내려받아 실행할 뿐 PATH 에 남기지 않아,
-      # 뒤의 도그푸딩 스텝에서 lint 엔진이 ruff 를 못 찾고 AST 폴백으로 내려간다.
-      # uv run 은 프로젝트 .venv 에 설치하므로 엔진과 CI 가 같은 바이너리를 쓴다.
-      - name: Code Style & Lint Check
+      # The harness venv is the project environment of this repository: the
+      # root dogfood resolves its Ruff from PATH and its interpreter from .venv.
+      - name: Harness Environment, Ruff Lint and Format
         run: |
-          uv run --python 3.10 ruff check .
-          uv run --python 3.10 ruff format --check .
-          project_python="$GITHUB_WORKSPACE/.venv/bin/python"
-          test -x "$project_python"
-          printf 'ICI_PYTHON=%s\n' "$project_python" >> "$GITHUB_ENV"
-          printf '%s\n' "$(dirname "$project_python")" >> "$GITHUB_PATH"
+          uv sync --frozen --python 3.10
+          uv run --frozen --python 3.10 ruff check .
+          uv run --frozen --python 3.10 ruff format --check .
+          test -x "$GITHUB_WORKSPACE/.venv/bin/python"
+          printf '%s\n' "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
 
-      # Installed before pytest, not after: the build-adapter E2E tests run
-      # inside pytest and need cmake/qmake/Qt. viewer/src/gui is project source
-      # and is linted like the rest of it, so the later verify step needs Qt's
-      # headers too — not to build a GUI, but to parse one.
-      #
-      # qmake6 is a separate package from qt6-base-dev. clang-tidy and clazy
-      # keep the I4 actual-process adapter tests and dogfood path non-skippable.
-      # cmake ships with the runner image.
-      - name: Install the C++ toolchain for the adapters and the C++ gate
+      # Repository-asset contracts: the candidate Merge Gate audit, the fixture
+      # register, corpus hygiene and the workflow shape this file must keep.
+      - name: Repository asset unit tests
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends qt6-base-dev qmake6 pkg-config clang-tidy clazy
-
-      - name: Install ecosystem fixture tools
-        run: |
-          rustup toolchain install 1.99.1 --profile minimal --component clippy
-          rustup default 1.99.1
-          npm install --prefix "$RUNNER_TEMP/ici-ecosystem-tools" --ignore-scripts --no-audit --no-fund typescript@7.0.2 eslint@10.13.0
-          echo "$RUNNER_TEMP/ici-ecosystem-tools/node_modules/.bin" >> "$GITHUB_PATH"
-
-      - name: Unit Tests & Coverage
-        env:
-          # The adapter E2E tests skip when cmake/qmake/Qt are missing. They are
-          # present on this runner, so a skip means something broke — and a
-          # silently skipped gate is how lint went unrun for several releases
-          # (C-6).
-          ICI_REQUIRE_BUILD_ADAPTERS: "1"
-          ICI_REQUIRE_STATIC_ANALYSIS_TOOLS: "1"
-          ICI_REQUIRE_ECOSYSTEM_TOOLS: "1"
-        run: |
-          uv run --python 3.10 pytest -v
-
-      # Runs the C++ engines against deliberately broken fixtures, so a detector
-      # that stops detecting fails here. The unit tests cover parsing; these
-      # cover the path a real project takes.
-      - name: C++ Detection Fixtures
-        run: |
-          uv run --python 3.10 pytest tests/test_cpp_e2e.py -v
+          .venv/bin/python -m unittest discover -s scripts/tests -v
 
       # The corpus's own contract tests: runner/manifest/expectation integrity.
-      # They live outside pytest's testpaths on purpose — they are the corpus's
-      # unit suite, not ici's — and run on the pinned 3.10 the workflow uses.
       - name: Quality Zoo corpus unit tests
         working-directory: quality-zoo
         run: |
           python3.10 -m unittest discover -s tests -v
 
-      - name: Build Reproducible Standalone ZipApp (dist/ici.pyz)
+      # viewer/src/gui is project source and is linted like the rest of it, so
+      # the viewer dogfood needs Qt's headers — not to build a GUI, but to parse
+      # one. qmake6 is a separate package from qt6-base-dev; clang-tidy and clazy
+      # keep the C++ lint path non-skippable. cmake ships with the runner image.
+      - name: Install the C++ toolchain for the viewer dogfood
         run: |
-          chmod +x ./scripts/build-pyz.sh ./scripts/verify-reproducibility.sh ./scripts/smoke.sh ./scripts/launcher.sh
-          ./scripts/verify-reproducibility.sh
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qt6-base-dev qmake6 pkg-config clang-tidy clazy
 
-      - name: Build and install standard Python package
+      - name: Pinned Rust toolchain (rust-toolchain.toml)
         run: |
-          ./scripts/build-package.sh
-          ./scripts/smoke-package.sh
+          rustup toolchain install 1.99.1 --profile minimal
+          rustc --version
 
-      - name: Run Isolated Smoke Test
+      # The product under test is the native binary built from this commit; no
+      # Python product, worker or fallback exists (ADR-0008).
+      - name: Build the native ici
         run: |
-          ./scripts/smoke.sh
+          set -euo pipefail
+          cargo build --release --locked -p ici-cli
+          ici="$GITHUB_WORKSPACE/target/release/ici"
+          "$ici" --version
+          printf 'ICI_BIN=%s\n' "$ici" >> "$GITHUB_ENV"
 
-      - name: 🐶 Dogfooding — Self-Verification Gate via ici
+      - name: 🐶 Dogfooding — Self-Verification Gate via native ici
         run: |
-          chmod +x dist/ici.pyz
-          dist/ici.pyz verify --report --html verify_report.html --github-summary
+          set -euo pipefail
+          "$ICI_BIN" verify --report --html verify_report.html --github-summary
+          # Zero-CDN on the produced page, not on a promise.
+          ! grep -qiE '<(script|link)[^>]+(src|href)="https?://' verify_report.html
 
-      # viewer/ 는 순수 C++17 코어라 Qt 없이 빌드된다. 이 스텝이 있어야 ici 의 C++ 경로
-      # (lint 의 g++ 진단, test 의 gcov 커버리지, sanitize 의 ASan/UBSan, cycle 의 include 순환)가
-      # CI 에서 실제로 실행된다 — 그 전까지 C++ 엔진은 단위 테스트로만 덮여 있었다.
-      # --github-summary 는 $GITHUB_STEP_SUMMARY 에 append 하므로, Actions 실행 요약에
-      # Python 결과와 C++ 결과가 나란히 남는다. 두 리포트를 모두 볼 수 있어야 한다 —
       # The viewer-gui job proves a configure-time property ici cannot express:
       # the CLI configures with both Qt package families disabled. This proves
       # the other half — the linkage policy of the produced binary, from ici's
       # own readelf evidence — so the release asset's static contract is a
       # measurement in a report rather than a grep in a shell script.
       #
-      # It runs here rather than in viewer-gui because dist/ici.pyz and the Qt6
-      # toolchain already exist in this job; rebuilding the pyz there to run one
-      # engine pair would double the build for no extra coverage. It runs before
-      # the C++ gate because --report writes a fixed filename, and the C++ gate's
-      # report is the one that keeps the canonical name.
-      - name: 🐶 Dogfooding — static CLI artifact contract via ici (viewer/)
+      # It runs before the C++ gate because --report writes a fixed filename,
+      # and the C++ gate's report is the one that keeps the canonical name.
+      - name: 🐶 Dogfooding — static CLI artifact contract via native ici (viewer/)
         working-directory: viewer
         env:
           ICI_CONFIG: ici-static-cli.toml
         run: |
           set -euo pipefail
-          ../dist/ici.pyz verify --profile deep --report
+          "$ICI_BIN" verify --profile deep --report
           mv verify_report.json static_cli_report.json
 
-      - name: 🐶 Dogfooding — C++ Gate via ici (viewer/)
+      # viewer/ is a pure C++17 core that builds without Qt. This step runs
+      # ici's C++ path for real in CI: g++ diagnostics, gcov coverage,
+      # ASan/UBSan and include cycles. --github-summary appends to the step
+      # summary, so the root result and the C++ result sit side by side.
+      - name: 🐶 Dogfooding — C++ Gate via native ici (viewer/)
         working-directory: viewer
         env:
           # The adapter executes every CTest, including the QWidget-based
           # MainWindow test. GitHub-hosted runners do not provide a display.
           QT_QPA_PLATFORM: offscreen
-        run: ../dist/ici.pyz verify --report --html verify_report.html --github-summary
-
-      # The unit suite exercises the next path from source; this exercises it
-      # from the shipped artifact. The fixture is a committed next-schema
-      # project with no interpreter of its own, so the interpreter-dependent
-      # checks stay out of scope and the run must come back clean — a next
-      # path that cannot reach exit 0 from dist/ici.pyz fails here, not in a
-      # bug report.
-      - name: 🐶 Dogfooding — next path via dist/ici.pyz
-        working-directory: tests/fixtures/next-self-verify
         run: |
           set -euo pipefail
-          out="$(mktemp -d)"
-          "$GITHUB_WORKSPACE/dist/ici.pyz" next plan
-          "$GITHUB_WORKSPACE/dist/ici.pyz" next verify --result "$out/result.json"
-          "$GITHUB_WORKSPACE/dist/ici.pyz" next report --result "$out/result.json" --out "$out/result.html"
-          test -s "$out/result.json" && test -s "$out/result.html"
-          # Zero-CDN on the produced page, not on a promise (SPEC-04).
-          ! grep -qE 'https?://' "$out/result.html"
-          cp "$out/result.json" next_self_result.json
-          cp "$out/result.html" next_self_result.html
-
-      # A trend artifact, not a gate. Wall clock on a shared runner moves for
-      # reasons that have nothing to do with the reporters, so --enforce stays
-      # off here and the recorded budgets are read from the artifact instead.
-      - name: Large-report reporter benchmark (trend artifact)
-        if: always()
-        run: |
-          uv run --python 3.10 python scripts/benchmark_report.py \
-            --json report_benchmark.json
+          "$ICI_BIN" verify --report --html verify_report.html --github-summary
+          ! grep -qiE '<(script|link)[^>]+(src|href)="https?://' verify_report.html
 
       - name: Upload Verification Reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -194,15 +134,11 @@ jobs:
             viewer/verify_report.html
             viewer/verify_report.json
             viewer/static_cli_report.json
-            tests/fixtures/next-self-verify/next_self_result.json
-            tests/fixtures/next-self-verify/next_self_result.html
-            report_benchmark.json
           retention-days: 14
 
-  # Native Rust replacement (ADR-0008). Runs beside the stable Python gates, which
-  # stay required until the R9 cutover. Tests that need external tools are
-  # `#[ignore]`d explicit gates; this job runs the ordinary suite with the
-  # project interpreter some CLI tests expect at .venv/bin/python.
+  # The product gate (ADR-0008). Tests that need external tools are `#[ignore]`d
+  # explicit gates; this job runs the ordinary suite with the project
+  # interpreter some CLI tests expect at .venv/bin/python (the dev harness).
   rust:
     name: Rust workspace (fmt, Clippy, tests)
     runs-on: ubuntu-latest
@@ -364,7 +300,7 @@ jobs:
     steps:
       # PR head가 아닌 base(병합 대상 main)를 체크아웃한다: 이 job은
       # contents:write + pull-requests:write 를 가진 신뢰된 job이므로, 여기서
-      # 빌드해 실행하는 dist/ici.pyz는 신뢰된 코드에서만 나와야 한다. PR이
+      # 빌드해 실행하는 native ici는 신뢰된 코드에서만 나와야 한다. PR이
       # 실제로 검증된 내용(verify_report.html/json)은 verify job의 아티팩트로만
       # 받으므로, PR 소스 자체를 이 job에서 체크아웃할 필요가 없다.
       - name: Checkout Trusted Base Source Code
@@ -373,21 +309,24 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
 
+      # Only the sticky-comment verifier below uses Python.
       - name: Set up Python 3.10
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with:
-          version: "0.12.5"
-          enable-cache: true
-
-      - name: Build Standalone ZipApp (dist/ici.pyz)
+      # The binary leaves the checkout before the report artifact is unpacked
+      # into it, so nothing from the artifact can replace what runs with the token.
+      - name: Build the native ici from the trusted base
+        env:
+          CARGO_INCREMENTAL: "0"
         run: |
-          chmod +x ./scripts/build-pyz.sh ./scripts/smoke.sh ./scripts/launcher.sh
-          ./scripts/build-pyz.sh
+          set -euo pipefail
+          rustup toolchain install 1.99.1 --profile minimal
+          cargo build --release --locked -p ici-cli
+          mkdir -- "$RUNNER_TEMP/ici-trusted"
+          install -m 0755 target/release/ici "$RUNNER_TEMP/ici-trusted/ici"
+          "$RUNNER_TEMP/ici-trusted/ici" --version
 
       - name: Download Verification Reports (artifact)
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -396,13 +335,12 @@ jobs:
           path: .
 
       # Both reports in one comment. This repository verifies two things — the
-      # Python package at the root and the C++ viewer under viewer/ — and a
-      # comment carrying only the first hides half the gate. The root needs an
-      # explicit label because its directory name is ".".
+      # repository root and the C++ viewer under viewer/ — and a comment
+      # carrying only the first hides half the gate. The root needs an explicit
+      # label because its directory name is ".".
       - name: Publish HTML Reports & Sticky PR Comment
         run: |
-          chmod +x dist/ici.pyz
-          dist/ici.pyz publish --report-dir ici=. --report-dir viewer
+          "$RUNNER_TEMP/ici-trusted/ici" publish --report-dir ici=. --report-dir viewer
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -506,21 +444,18 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.10"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with:
-          version: "0.12.5"
-          enable-cache: true
-
-      - name: Build Standalone ZipApp (dist/ici.pyz)
+      # The binary leaves the checkout before the report artifact is unpacked
+      # into it, so nothing from the artifact can replace what runs with the token.
+      - name: Build the native ici from main
+        env:
+          CARGO_INCREMENTAL: "0"
         run: |
-          chmod +x ./scripts/build-pyz.sh ./scripts/smoke.sh ./scripts/launcher.sh
-          ./scripts/build-pyz.sh
+          set -euo pipefail
+          rustup toolchain install 1.99.1 --profile minimal
+          cargo build --release --locked -p ici-cli
+          mkdir -- "$RUNNER_TEMP/ici-trusted"
+          install -m 0755 target/release/ici "$RUNNER_TEMP/ici-trusted/ici"
+          "$RUNNER_TEMP/ici-trusted/ici" --version
 
       # Consumes the verify job's artifacts rather than re-running verify. The
       # push is on main, so those artifacts already come from trusted code, and
@@ -538,8 +473,7 @@ jobs:
 
       - name: Publish Trusted Main Verification Reports
         run: |
-          chmod +x dist/ici.pyz
-          dist/ici.pyz publish --report-dir ici=. --report-dir viewer
+          "$RUNNER_TEMP/ici-trusted/ici" publish --report-dir ici=. --report-dir viewer
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
