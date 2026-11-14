@@ -58,8 +58,11 @@ fn view(engines: &BTreeMap<String, Value>, manifests: &Value) -> Value {
         json!(
             compat[field]
                 .as_array()
-                .map(|items| items.iter().map(|item| pick(item, fields)).collect())
-                .unwrap_or_else(Vec::new)
+                .map(|items| items
+                    .iter()
+                    .map(|item| pick(item, fields))
+                    .collect::<Vec<_>>())
+                .unwrap_or_default()
         )
     };
     let manifests: Vec<Value> = manifests
@@ -404,7 +407,8 @@ fn legacy_declared_elf_record_is_inspected_like_a_built_artifact() {
         &["/usr/bin/g++", "src/main.cpp", "-o", "tool.bin"],
     );
     assert_eq!(built_build["status"], "PASS");
-    assert_eq!(declared_build["status"], "ERROR");
+    // A failed Make build is the BuildAdapter FAIL (no configure step).
+    assert_eq!(declared_build["status"], "FAIL");
     assert_eq!(
         declared["targets"][0]["target_name"],
         "BinaryCompatibility:release:project:tool.bin"

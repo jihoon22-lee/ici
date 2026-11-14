@@ -41,6 +41,15 @@ fn request(root: &Path) -> ValidationRequest {
     request
 }
 
+/// A path of the capture's project length: `tempfile.mkdtemp(prefix=
+/// "ici-python-sanitize-incomplete-")` plus `/project` (capture_python_sanitize_incomplete.py).
+const CAPTURED_ROOT: &str = "/tmp/ici-python-sanitize-incomplete-XXXXXXXX/project";
+
+/// Native's text over the stand-in path, normalized like the capture.
+fn normalized(text: &str) -> String {
+    text.replace(CAPTURED_ROOT, "<root>")
+}
+
 /// The suite outcome native's runner gives for what frozen's run_process returned.
 fn outcome(id: &str, mode: &str, process: Option<&Value>) -> TaskOutcome {
     let mut outcome = TaskOutcome::empty(id);
@@ -51,8 +60,13 @@ fn outcome(id: &str, mode: &str, process: Option<&Value>) -> TaskOutcome {
         outcome.error = Some("injected runner failure".into());
         return outcome;
     };
-    let text = |key: &str| process[key].as_str().unwrap().as_bytes().to_vec();
-    outcome.stdout = text("stdout_prefix");
+    // The capture normalized its project path to `<root>`; frozen's 300-character snippet was
+    // cut from the real stream, so native reads a path of the same length in its place.
+    outcome.stdout = process["stdout_prefix"]
+        .as_str()
+        .unwrap()
+        .replace("<root>", CAPTURED_ROOT)
+        .into_bytes();
     let stderr = process["stderr_prefix"].as_str().unwrap();
     match mode {
         "timeout" => {
@@ -82,7 +96,10 @@ fn outcome(id: &str, mode: &str, process: Option<&Value>) -> TaskOutcome {
     // The prefix holds every character the 300-character snippet reads.
     for key in ["stdout", "stderr"] {
         let length = process[format!("{key}_length")].as_u64().unwrap();
-        let prefix = process[format!("{key}_prefix")].as_str().unwrap();
+        let prefix = process[format!("{key}_prefix")]
+            .as_str()
+            .unwrap()
+            .replace("<root>", CAPTURED_ROOT);
         assert!(
             prefix.chars().count() as u64 == length
                 || prefix
@@ -162,7 +179,7 @@ fn incomplete_resource_warning_runs_are_frozen_scope_errors() {
             .filter(|target| target.target_name == "PythonResourceWarnings")
             .collect();
         assert_eq!(native.len(), 1, "{mode}: {output:?}");
-        assert_eq!(native[0].message, frozen["message"], "{mode}");
+        assert_eq!(normalized(&native[0].message), frozen["message"], "{mode}");
         assert_eq!(native[0].status, "ERROR", "{mode}");
         assert_eq!(native[0].file_path, "tests", "{mode}");
         assert_eq!(native[0].start_line, 1, "{mode}");
@@ -177,7 +194,10 @@ fn incomplete_resource_warning_runs_are_frozen_scope_errors() {
         } else {
             assert_eq!(record["error"], frozen["message"], "{mode}");
             assert_eq!(
-                legacy_evidence_error(&suite_outcome, Some(deadline.unwrap_or(300.0))),
+                normalized(&legacy_evidence_error(
+                    &suite_outcome,
+                    Some(deadline.unwrap_or(300.0))
+                )),
                 frozen["message"].as_str().unwrap(),
                 "{mode}"
             );
