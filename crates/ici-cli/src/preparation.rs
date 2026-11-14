@@ -836,11 +836,20 @@ fn legacy_binary_compat_without_manifests(
     }
     // Frozen `_declared_artifact_paths` (globs included; a pattern that matched nothing
     // publishes no manifest), recorded as `release:project:<path>` in path order.
-    let published =
-        crate::artifact_build::legacy_declared_publication(&prepared.project, component)
-            .unwrap_or_default();
+    // Frozen `ArtifactManifest.create` reads every declared file (`_file_digest`); a file it
+    // cannot read fails the publication, so no `config.artifacts` manifest holds anything.
+    let published: BTreeSet<String> =
+        match crate::artifact_build::legacy_declared_manifest(&prepared.project, component) {
+            Ok(Some((_, manifest))) => manifest["artifacts"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|record| record["path"].as_str().map(str::to_owned))
+                .collect(),
+            _ => BTreeSet::new(),
+        };
     let records: Vec<&String> = published
-        .keys()
+        .iter()
         .filter(|path| {
             selected.contains(path.as_str())
                 || selected.contains(format!("release:project:{path}").as_str())
@@ -884,11 +893,17 @@ fn legacy_binary_compat_without_manifests(
     // declared records (root ruling 2026-11-14 (g3), `declared-elf-truncated`).
     for path in &records {
         let mut magic = Vec::with_capacity(4);
-        std::fs::File::open(prepared.project.root.join(path))
-            .and_then(|file| {
-                std::io::Read::read_to_end(&mut std::io::Read::take(file, 4), &mut magic)
-            })
-            .ok()?;
+        if let Err(error) = std::fs::File::open(prepared.project.root.join(path)).and_then(|file| {
+            std::io::Read::read_to_end(&mut std::io::Read::take(file, 4), &mut magic)
+        }) {
+            // Frozen binary_compat.py:131-135.
+            return Some(LegacyCompatBeside::Decided(
+                crate::cpp::legacy_binary_compat_unavailable(
+                    &check.task_id,
+                    Some(&format!("artifact could not be read: {path}: {error}")),
+                ),
+            ));
+        }
         if magic.starts_with(b"\x7fELF") {
             return Some(LegacyCompatBeside::Inspect);
         }
@@ -1653,6 +1668,15 @@ pub fn execute(
                     );
                 }
                 None => {}
+            }
+        }
+        // The inspection reads only declared project files: it consumes no build prerequisite
+        // (like planning's decided binary-compat verdicts), so the failed build output does not
+        // gate it at execution.
+        for check in &mut prepared.plan.checks {
+            if legacy_declared_inspection.contains(&check.task_id) {
+                check.check.needs.clear();
+                prepared.graph.edges.remove(&check.task_id);
             }
         }
         // Frozen `_with_capture_coverage`: a qmake capture that missed a production translation
