@@ -4,8 +4,8 @@
 |---|---|
 |상태|**구현 중 (WP05 PR A·B).** schema v1 읽기·출처 보존(PR A), 계층 합성·정책 보호(PR B). 탐색과 `init`은 PR C 이후.|
 |근거 이슈|[WP05 #203](https://github.com/jihoon22-lee/ici/issues/203) 작업 1·3·4, [SPEC-01 #193](https://github.com/jihoon22-lee/ici/issues/193) §2~§3|
-|구현|[`src/ici/config/`](../../../src/ici/config) — `origin.py`, `paths.py`, `reader.py`, `documents.py`, `schema.py`, `layers.py`, `composition.py`, `overlay.py`|
-|검증|[`tests/test_config_schema.py`](../../../tests/next/test_config_schema.py), [`tests/test_config_composition.py`](../../../tests/next/test_config_composition.py), [`tests/fixtures/config/`](../../../tests/fixtures/config)|
+|구현|[`src/ici/config/`](https://github.com/jihoon22-lee/ici/tree/v0.13.0/src/ici/config) — `origin.py`, `paths.py`, `reader.py`, `documents.py`, `schema.py`, `layers.py`, `composition.py`, `overlay.py`|
+|검증|[`tests/test_config_schema.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_config_schema.py), [`tests/test_config_composition.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_config_composition.py), [`tests/fixtures/config/`](https://github.com/jihoon22-lee/ici/tree/v0.13.0/tests/fixtures/config)|
 
 ## 출발점: 품질 게이트가 조용히 뒤집힌다
 
@@ -21,7 +21,7 @@ load_config(base)["engines"]["lint"]["required"]
 `dev.toml` 하나가 프로젝트가 **필수로 선언한 검사를 필수가 아니게 만들었다.** 그 자체는 의도된
 우선순위일 수 있다. 문제는 그다음이다 — **반환된 dict에는 누가 그렇게 만들었는지가 없다.**
 `_deep_merge`가 값을 덮어쓸 때 출처를 남기지 않기 때문이다
-([`src/ici/config/__init__.py`](../../../src/ici/config/__init__.py) `_deep_merge`).
+([`src/ici/config/__init__.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/config/__init__.py) `_deep_merge`).
 
 게이트가 왜 통과했는지 물어보는 사람에게 지금 줄 수 있는 답이 없다. 파일 네 개
 (XDG 전역, `ici.toml`, `dev.toml`, `ICI_CONFIG`)를 직접 열어 보라는 것뿐이다.
@@ -102,7 +102,7 @@ SPEC-01 §4의 root/child 예시는 그동안 **TOML로 파싱되는지만** 검
 ## 계층 합성 (PR B)
 
 순서는 SPEC-01 §3 그대로 defaults → root → component → local → CLI이고,
-[`layers.py`](../../../src/ici/config/layers.py)의 **선언 순서가 곧 우선순위**다.
+[`layers.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/config/layers.py)의 **선언 순서가 곧 우선순위**다.
 따로 적어 둔 우선순위 표와 코드가 어긋날 자리를 만들지 않는다.
 
 합성된 값은 `Decided[T]` — 값, 출처, **어느 계층이 이겼는지**를 같이 든다.

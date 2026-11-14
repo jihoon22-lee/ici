@@ -29,7 +29,7 @@
 
 ## v0.12.0 공개 릴리스의 과거 검증 근거
 
-현재 공개 stable 릴리스는 [v0.12.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.12.0)다.
+당시 공개 stable 릴리스는 [v0.12.0](https://github.com/jihoon22-lee/ici/releases/tag/v0.12.0)다.
 `v0.12.0` tag는 exact `main` commit
 [`65752bc86b49c9845e6282ddaf3c00584e415b60`](https://github.com/jihoon22-lee/ici/commit/65752bc86b49c9845e6282ddaf3c00584e415b60)을
 가리키며, [exact-main CI run `37713707168`](https://github.com/jihoon22-lee/ici/actions/runs/37713707168)의
@@ -1416,7 +1416,7 @@ function 96.6%, branch 78.9%), viewer PASS(TEM 4.89, 7/7 tests)였다. [ici Page
 [CI/CD 연동 가이드](ci-integration.md#3-신뢰된-html-publish---publish) 참조):
 
 ```bash
-dist/ici.pyz verify --report --html verify_report.html --github-summary --publish
+ici verify --report --html verify_report.html --github-summary --publish
 ```
 
 이 기능은 GitHub Contents API와 쓰기 토큰이 필요하므로, 실행 job의 `contents: write`와
@@ -1813,7 +1813,7 @@ release-contract dependency graph에서 실행됩니다. `ici build`는 release 
 
 ## 5. 도구 설치, fallback, 한계, 그리고 finding을 처리하는 순서
 
-`ici.pyz` 자체는 외부 도구 없이 실행됩니다. 하지만 엔진이 **무엇을 근거로 판정하는지**는 어떤
+native `ici` 자체는 Python이나 외부 도구 없이 실행됩니다(검증된 Ruff/ty를 동봉). 하지만 엔진이 **무엇을 근거로 판정하는지**는 어떤
 도구가 있느냐에 따라 달라집니다. 도구가 없어도 대부분의 엔진은 계속 돌지만, 그 결과는 실행된
 도구의 증거가 아니라 추정입니다. 두 경우를 구분하지 않으면 초록불이 무엇을 뜻하는지 알 수
 없습니다.

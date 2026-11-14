@@ -381,7 +381,7 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
 | R3/R5–R9 | 미완료 — 선행 구현/전체 인수 이후 실행 |
 | 후보·PR·릴리스 | 미착수 |
 
-근거: [현재 Python 유지 ADR](ici-next/adr/0001-keep-python-core.md), [CPython 배포 ADR](ici-next/adr/0002-standalone-runtime-bundle.md), [이전 engine inventory](ici-next/inventory/current-engines.md), [현재 registry](../../src/ici/languages/registry.py), [기본 설정](../../src/ici/config/automatic.py), [CLI](../../src/ici/cli/next_path.py), [identity](../../src/ici/application/check_scope.py), [qmake recorder](../../src/ici/core/qmake_context.py), [runtime compatibility](../../src/ici/engines/python_compat.py).
+근거: [현재 Python 유지 ADR](ici-next/adr/0001-keep-python-core.md), [CPython 배포 ADR](ici-next/adr/0002-standalone-runtime-bundle.md), [이전 engine inventory](ici-next/inventory/current-engines.md), [현재 registry](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/languages/registry.py), [기본 설정](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/config/automatic.py), [CLI](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/cli/next_path.py), [identity](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/application/check_scope.py), [qmake recorder](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/core/qmake_context.py), [runtime compatibility](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/engines/python_compat.py).
 
 외부 기술 후보의 현재 근거: [Ruff](https://github.com/astral-sh/ruff), [ty](https://github.com/astral-sh/ty), [RustPython Parser의 대체 안내](https://github.com/RustPython/Parser). 이름이나 언어만으로 배포·문법·성능 지원을 확정하지 않고 R0 실측으로 고정한다.
 

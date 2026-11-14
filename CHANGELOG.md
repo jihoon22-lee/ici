@@ -3022,7 +3022,7 @@ complexity는 148건·최대 CC 24, 중복률 3.4%로 **둘 다 기준선 그대
   설정 파일을 **씁니다** — 읽기 전용 HOME에서 걸릴 수 있는 제약입니다.
 
 측정 기록: [`docs/design/ici-next/spikes/wp01-runtime-environment.md`](docs/design/ici-next/spikes/wp01-runtime-environment.md).
-재실행 스크립트: [`scripts/spikes/wp01/`](scripts/spikes/wp01).
+재실행 스크립트: [`scripts/spikes/wp01/`](https://github.com/jihoon22-lee/ici/tree/v0.13.0/scripts/spikes/wp01).
 
 
 ### 문서 — ici-next 설계 채택 (WP00, [#198](https://github.com/jihoon22-lee/ici/issues/198))

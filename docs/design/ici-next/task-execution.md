@@ -4,8 +4,8 @@
 |---|---|
 |상태|**구현 시작됨 (WP07 PR A).** 결과 분류와 provider 계약. 취소·process tree는 PR B, output manifest·lock은 PR C.|
 |근거 이슈|[WP07 #205](https://github.com/jihoon22-lee/ici/issues/205) 작업 1·2·6|
-|구현|[`src/ici/execution/process.py`](../../../src/ici/execution/process.py)|
-|검증|[`tests/test_execution_process.py`](../../../tests/next/test_execution_process.py)|
+|구현|[`src/ici/execution/process.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/execution/process.py)|
+|검증|[`tests/test_execution_process.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_execution_process.py)|
 
 ## 다섯 가지가 PASS가 되면 안 된다
 

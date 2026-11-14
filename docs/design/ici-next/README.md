@@ -92,7 +92,7 @@ WP가 "가정을 시험한다"고 정의한 작업의 실행 기록이다. 재�
 |---|---|---|
 |[spikes/wp01-runtime-environment.md](spikes/wp01-runtime-environment.md)|[#199](https://github.com/jihoon22-lee/ici/issues/199)|PBS 런타임 manifest와 glibc 하한, bundle 이동·read-only·clean HOME·offline 실행, core/project 양방향 분리, symlink launch path, 테스트 도구 경로와 overlay 판정, compile DB 컴파일러 준수|
 
-스크립트: [`scripts/spikes/wp01/`](../../../scripts/spikes/wp01) — `build-bundle.sh`,
+스크립트: [`scripts/spikes/wp01/`](https://github.com/jihoon22-lee/ici/tree/v0.13.0/scripts/spikes/wp01) — `build-bundle.sh`,
 `smoke-environment.sh`, `probe-test-tools.sh`, `probe-compiler.sh`.
 **배포 기본값·프로젝트 `.venv`·공용 Python을 건드리지 않는다.**
 
@@ -153,4 +153,4 @@ WP가 "가정을 시험한다"고 정의한 작업의 실행 기록이다. 재�
 5. **측정하지 않은 것을 지원한다고 쓰지 않는다.** `planned`/`tested`/`supported`/`limited`/
    `unsupported`를 구분한다([spec-05 §1](spec-05-verification-transition.md)).
 6. 문서 링크와 registry 일치는
-   [`tests/next/test_ici_next_inventory.py`](../../../tests/next/test_ici_next_inventory.py)가 기계 검증한다.
+   [`tests/next/test_ici_next_inventory.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/next/test_ici_next_inventory.py)가 기계 검증한다.

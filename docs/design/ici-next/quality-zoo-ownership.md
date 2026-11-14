@@ -52,7 +52,7 @@
 `required_capabilities`를 반영하고, capability 이름이 라이브러리를 표현하지 못하는
 Qt 시나리오에는 `cmake_package = "Qt6"` probe를 썼다.
 
-위생 검사([`tests/test_corpus_hygiene.py`](../../../tests/test_corpus_hygiene.py))는
+위생 검사([`tests/test_corpus_hygiene.py`](https://github.com/jihoon22-lee/ici/blob/v0.13.0/tests/test_corpus_hygiene.py))는
 등록된 corpus 전체를 스캔한다. `python.security-resource-correctness`의 bait는
 의도적인 credential-shaped assignment이므로 등록 행의 `hygiene_allow`로
 그 패턴만 exempt한다 — 나머지 패턴은 그 fixture에도 계속 적용된다.
