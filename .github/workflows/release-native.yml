@@ -98,7 +98,11 @@ jobs:
           VERSION="$(git show "$TARGET_SHA:Cargo.toml" | sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"$/\1/p')"
           test "$TAG" = "v$VERSION" || {
             echo "::error::tag $TAG does not match the Cargo workspace version $VERSION"; exit 1; }
-          git show "$TARGET_SHA:CHANGELOG.md" | grep -Fq "## [$VERSION]" || {
+          # Read the whole file before searching: piping git show into an early-exiting grep fails under
+          # pipefail, because git show gets SIGPIPE on a large CHANGELOG when grep stops at the match.
+          changelog="$RUNNER_TEMP/changelog-$VERSION.md"
+          git show "$TARGET_SHA:CHANGELOG.md" > "$changelog"
+          grep -Fq "## [$VERSION]" "$changelog" || {
             echo "::error::CHANGELOG.md has no release section for $VERSION"; exit 1; }
           git cat-file -e "$TARGET_SHA:docs/release-notes/$VERSION.md" 2>/dev/null || {
             echo "::error::docs/release-notes/$VERSION.md is missing"; exit 1; }

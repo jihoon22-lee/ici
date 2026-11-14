@@ -77,6 +77,15 @@ def event_block(text: str) -> str:
 
 
 class WorkflowSetTest(unittest.TestCase):
+    def test_no_early_exit_grep_reads_a_streamed_file_under_pipefail(self) -> None:
+        # `producer | grep -q` makes the producer die of SIGPIPE when grep stops at the first match,
+        # and pipefail turns that into a failure; for a large file (the CHANGELOG release section
+        # check) the release job then refuses a release that has the section.
+        streamed = re.compile(r"(?:git show|cat|curl|gh api)[^\n|]*\|\s*grep\s+-[A-Za-z]*q")
+        for path in all_workflows():
+            with self.subTest(workflow=path.name):
+                self.assertIsNone(streamed.search(path.read_text(encoding="utf-8")))
+
     def test_only_the_native_workflows_remain(self) -> None:
         names = {path.name for path in all_workflows()}
         self.assertEqual(
