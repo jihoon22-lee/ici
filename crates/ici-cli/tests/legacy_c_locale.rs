@@ -13,11 +13,27 @@ const ORACLE: &str = include_str!("../../../tests/rust-parity/cpp/c-locale-oracl
 
 /// Root ruling 2026-11-14 (b6(a)): a failed compile's excerpt is compared by its first line; a
 /// test case's line is its definition natively (`legacy_test_parity.rs`), so it is not compared.
+/// A direct g++ tree with a failed test compile compares only its `[C++] ` case targets, sorted:
+/// frozen walks tests/ with an unsorted `rglob` (engines/test.py:547, the order the filesystem
+/// returns, `legacy_cpp_test.rs` direct-broken), and native measures the compiled library where
+/// frozen's failed coverage compile left the coverage estimated (decisions.md "실패한 test
+/// compile이 남긴 notes", the approved frozen-defect correction), so native alone has the coverage
+/// targets.
 fn targets(report: &Value) -> Vec<Value> {
-    report["targets"]
-        .as_array()
-        .unwrap()
+    let all = report["targets"].as_array().unwrap();
+    let compile_failed = all.iter().any(|target| {
+        target["message"]
+            .as_str()
+            .is_some_and(|text| text.starts_with("Compilation Error: "))
+    });
+    let mut picked: Vec<Value> = all
         .iter()
+        .filter(|target| {
+            !compile_failed
+                || target["target_name"]
+                    .as_str()
+                    .is_some_and(|name| name.starts_with("[C++] "))
+        })
         .map(|target| {
             let name = target["target_name"].as_str().unwrap_or_default();
             let text = target["message"].as_str().unwrap_or_default();
@@ -34,7 +50,16 @@ fn targets(report: &Value) -> Vec<Value> {
                 "message": message,
             })
         })
-        .collect()
+        .collect();
+    if compile_failed {
+        picked.sort_by_key(|target| {
+            target["target_name"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned()
+        });
+    }
+    picked
 }
 
 fn run(case: &Value, python: &str) -> (i32, Value) {
