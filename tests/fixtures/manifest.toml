@@ -5,12 +5,11 @@
 # things follow from having it, and neither is available from the fixtures
 # themselves:
 #
-# - a test guards on the fixture's declared requirements instead of a list
-#   copied into the test by hand. `examples/cpp-fixtures/cmake_project` is why:
-#   its CMakeLists calls find_package(Qt6 REQUIRED), the tests that use it
+# - a run is guarded on the fixture's declared requirements instead of a list
+#   copied by hand. The v0.13.x `examples/cpp-fixtures/cmake_project` was why:
+#   its CMakeLists called find_package(Qt6 REQUIRED), the tests that used it
 #   guarded on cmake/ctest/gcov, and cmake being present says nothing at all
-#   about Qt6. The guard could not skip what it did not know about, so the
-#   tests failed instead.
+#   about Qt6.
 # - "not run" stays distinguishable from "passed". A fixture whose tools are
 #   absent is explicitly unexecuted and does not count toward release evidence
 #   (#201 step 4).
@@ -29,162 +28,14 @@
 #
 # `provenance` records where the content came from. Everything here is written
 # for this repository — no vendored third-party source, no internal code.
+#
+# Since the R9 Rust cutover the register holds the ici-next wire documents the
+# Rust tests read and the Quality Zoo scenarios. The v0.13.x `examples/` fixture
+# trees and the pyz next dogfood fixture were removed with the Python product
+# tests that used them (see the v0.13.0 tag for their history). The register's
+# contract tests are stdlib unittest suites under scripts/tests/.
 
 schema_version = "ici.fixture-manifest/v1"
-
-# --------------------------------------------------------------------------
-# C++ text-analysis fixtures. These are read, not built, so they need nothing
-# beyond a checkout.
-# --------------------------------------------------------------------------
-
-[[fixture]]
-id = "cpp/cycle_pair"
-path = "examples/cpp-fixtures/cycle_pair"
-kind = "data"
-languages = ["cpp"]
-requires = []
-cost = "fast"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "CycleEngine reports WARN naming both a.hpp and b.hpp"
-exercised_by = ["tests/test_cpp_e2e.py::test_cycle_engine_detects_a_header_cycle"]
-
-[[fixture]]
-id = "cpp/complexity_hot"
-path = "examples/cpp-fixtures/complexity_hot"
-kind = "data"
-languages = ["cpp"]
-requires = []
-cost = "fast"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "ComplexityEngine reports WARN on a function named classify* with complexity > 15"
-exercised_by = ["tests/test_cpp_e2e.py::test_complexity_engine_detects_a_hot_function"]
-
-[[fixture]]
-id = "cpp/clone_pair"
-path = "examples/cpp-fixtures/clone_pair"
-kind = "data"
-languages = ["cpp"]
-requires = []
-cost = "fast"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "DuplicateEngine reports WARN: the two functions differ only in identifiers and literals"
-exercised_by = ["tests/test_cpp_e2e.py::test_duplicate_engine_detects_a_type_2_clone"]
-
-[[fixture]]
-id = "cpp/dtor_throw"
-path = "examples/cpp-fixtures/dtor_throw"
-kind = "data"
-languages = ["cpp"]
-requires = []
-cost = "fast"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "ExceptionSafetyEngine reports FAIL mentioning the destructor"
-exercised_by = ["tests/test_cpp_e2e.py::test_exception_engine_detects_a_throwing_destructor"]
-
-[[fixture]]
-id = "cpp/oversized_file"
-path = "examples/cpp-fixtures/oversized_file"
-kind = "data"
-languages = ["cpp"]
-requires = []
-cost = "fast"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "LineCountEngine reports WARN naming the 500 line threshold"
-exercised_by = ["tests/test_cpp_e2e.py::test_line_engine_detects_an_oversized_file"]
-
-# The control. A detector that fires here has gained a false positive, which is
-# why #201's acceptance criteria ask for a clean counterpart and not only
-# defect seeds.
-[[fixture]]
-id = "cpp/clean_baseline"
-path = "examples/cpp-fixtures/clean_baseline"
-kind = "data"
-languages = ["cpp"]
-requires = []
-cost = "fast"
-role = "control"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "every text engine reports PASS with no findings"
-exercised_by = ["tests/test_cpp_e2e.py::test_clean_baseline_produces_no_findings"]
-
-# --------------------------------------------------------------------------
-# C++ fixtures that need a real toolchain.
-# --------------------------------------------------------------------------
-
-[[fixture]]
-id = "cpp/asan_overflow"
-path = "examples/cpp-fixtures/asan_overflow"
-kind = "real-tool"
-languages = ["cpp"]
-requires = [{ executable = "g++" }]
-cost = "slow"
-safety = "compiles and runs the fixture under ASan/UBSan; the binary reads past the end of a buffer on purpose"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "SanitizeEngine reports FAIL with at least one finding"
-exercised_by = ["tests/test_cpp_e2e.py::test_sanitize_detects_a_heap_overflow"]
-
-[[fixture]]
-id = "cpp/cmake_elf_dead"
-path = "examples/cpp-fixtures/cmake_elf_dead"
-kind = "real-tool"
-languages = ["cpp"]
-requires = [{ executable = "cmake" }, { executable = "g++" }, { executable = "nm" }]
-cost = "slow"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "the linker dead-symbol pass reports the unreferenced symbol"
-exercised_by = ["tests/test_cpp_linker_dead_e2e.py"]
-
-# The fixture that motivated this manifest. Qt6 is a requirement of the
-# CMakeLists, not of cmake, and only cmake can answer whether it is reachable.
-[[fixture]]
-id = "cpp/cmake_project"
-path = "examples/cpp-fixtures/cmake_project"
-kind = "real-tool"
-languages = ["cpp"]
-requires = [
-  { executable = "cmake" },
-  { executable = "ctest" },
-  { executable = "gcov" },
-  { cmake_package = "Qt6", components = ["Core", "Test"] },
-]
-cost = "slow"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "configure, build and ctest succeed; coverage is 100% line, function and branch for src/counter.cpp"
-exercised_by = [
-  "tests/test_build_adapter_e2e.py::test_cmake_fixture_builds_and_tests_a_q_object",
-  "tests/test_build_adapter_e2e.py::test_cmake_fixture_reports_exact_gcov_values_and_geometry",
-]
-
-# qmake does not have the same problem: qmake ships with Qt, so finding the
-# program is enough to know the libraries are there. Recorded because the
-# asymmetry with cmake_project above is the whole point of the register.
-[[fixture]]
-id = "cpp/qmake_project"
-path = "examples/cpp-fixtures/qmake_project"
-kind = "real-tool"
-languages = ["cpp"]
-requires = [
-  { any_executable = ["qmake6", "qmake"] },
-  { executable = "make" },
-  { executable = "gcov" },
-]
-cost = "slow"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "a SUBDIRS build produces exactly one reported test, test_counter, and a compile_commands.json under build/ici-qmake-build"
-exercised_by = [
-  "tests/test_build_adapter_e2e.py::test_qmake_fixture_builds_and_tests_a_q_object",
-  "tests/test_build_adapter_e2e.py::test_qmake_fixture_captures_compilation_context",
-]
 
 # --------------------------------------------------------------------------
 # ici.next result and event documents (WP02 #200). Data only.
@@ -267,72 +118,6 @@ cost = "fast"
 provenance = "authored for ici against the ici.result/v3 schema"
 license = "same as repository"
 expectation = "the legacy reader converts it and names four structural limitations"
-
-# --------------------------------------------------------------------------
-# Python fixtures. Analysed by reading, so they need no toolchain.
-# --------------------------------------------------------------------------
-
-[[fixture]]
-id = "python/single_project"
-path = "examples/python-fixtures/single_project"
-kind = "data"
-languages = ["python"]
-requires = []
-cost = "fast"
-role = "control"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "src/ is discovered; every text engine reports PASS with no findings"
-exercised_by = ["tests/test_python_corpus.py"]
-
-# The pair that makes directory naming visible. The defect is in beta only, so
-# a finding attributed to alpha is a misattribution rather than a second
-# detection. Registered with the behaviour ici has today, not the one it should
-# have: see the expectation.
-[[fixture]]
-id = "python/multi_component"
-path = "examples/python-fixtures/multi_component"
-kind = "data"
-languages = ["python"]
-requires = []
-cost = "fast"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "components/ is not in DEFAULT_SOURCE_DIRS, so ici discovers zero source directories and every engine reports PASS over zero files; renaming the directory to packages/ finds beta's classify() at complexity 18"
-exercised_by = ["tests/test_python_corpus.py"]
-
-# The seeded-defect half of the Python corpus — one planted defect per
-# internal check, exaggerated past both paths' thresholds. The differential
-# test asserts parity per check and identical clone-occurrence coordinates;
-# defect code is intentionally lint/format-excluded (like quality-zoo).
-[[fixture]]
-id = "python/defect_bed"
-path = "examples/python-fixtures/defect_bed"
-kind = "data"
-languages = ["python"]
-requires = []
-cost = "fast"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "each internal check surfaces the planted defect on both paths: insecure.py (security), swallow.py (exception), hot.py (complexity/cognitive), dead.py (dead), leaky.py (resource), oversized.py (line), pkg/alpha+beta (cycle), clone_a+clone_b (dup occurrences)"
-exercised_by = ["tests/test_next_differential.py"]
-
-# The CI dogfood fixture: ci.yml runs the built dist/ici.pyz `next
-# plan/verify/report` in this directory, so the next path is exercised from
-# the shipped artifact, not only from source in pytest. ruff is the only
-# external tool it needs; the interpreter-dependent checks are disabled in
-# its ici.toml because a fixture with no .venv must not read as INCOMPLETE.
-[[fixture]]
-id = "ici-next/self-verify"
-path = "tests/fixtures/next-self-verify"
-kind = "real-tool"
-languages = ["python"]
-requires = [{ executable = "ruff" }]
-cost = "fast"
-provenance = "authored for ici"
-license = "same as repository"
-expectation = "next plan lists the python checks, verify exits 0 with 0 findings, report writes a self-contained page"
-exercised_by = [".github/workflows/ci.yml"]
 
 # --------------------------------------------------------------------------
 # Quality Zoo — the ici-owned known-answer corpus (#201, R13). Migrated from
