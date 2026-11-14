@@ -15,6 +15,11 @@
    verified 163 / difference_review 11, source unreviewed 76으로 거부됐다. **2026-11-14 base
    `5f1bf2b7`에서 통과**: requirements complete 847, source files mapped 282 / retired 8 /
    unsupported 1(291), CI run 43535919730 green on `998e69d2`(`5f1bf2b7`은 그 위의 원장 전용 commit).
+   이 첫 통과는 역사 checkpoint다. 원장 문구 정리에서 근거가 부족한 4행(config `command:ici line`,
+   validation `sanitize.py:838:12`, cpp `check:cpp.diagnostics`, binary_compat 선언 산출물 계열)을 다시 열었고,
+   root ruling 2026-11-14 (f)(g)의 frozen capture·이식 뒤 cutover tree의 통합 gate `f4f11373`(static·clippy,
+   rest 665, cli 810 `--include-ignored`, harness unittest 151)이 통과한 다음 원장 승격 commit에서
+   `--require-closed`가 다시 통과했다(complete 847, mapped 282 / retired 8 / unsupported 1).
 2. exact-main commit의 `candidate-artifact.yml` run이 success: pyz `build`와 `native` job
    (두 독립 build byte 동일, `check-native-release.sh`, `verify_artifact.py` 전체 통과).
    이 run이 GitHub-hosted runner의 첫 native 측정이다 — 그 전까지 문서의 지원 근거는 WSL2 실측뿐이며,

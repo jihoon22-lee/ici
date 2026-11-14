@@ -204,7 +204,8 @@ uv run --frozen --python 3.10 ruff check . && uv run --frozen --python 3.10 ruff
 - **2026-10-28 Rust 단일 제품 전환(구 §10)**: [실행 계획](docs/design/rust-replacement-execution-plan.md)
   R0–R9와 ADR-0008이 규범이었다. 전환 중 `src/ici`·Python 배포 경로에는 §3/§4/§6을 계속 적용했고, Python
   gate는 대응 Rust 기능·실제 검증이 모두 닫힌 뒤 R9에서만 제거했다(R8 원장 `--require-closed`: 요구 847개
-  complete, base `5f1bf2b7`). 19 descriptor + 36 check + 명령/옵션/config/report/비검사 기능 전체 원장의
+  complete. 최종 재종결은 통합 gate `f4f11373` 통과 뒤의 원장 승격 commit이다. `5f1bf2b7`의 첫 통과는
+  그 뒤 4행을 다시 연 역사 checkpoint다). 19 descriptor + 36 check + 명령/옵션/config/report/비검사 기능 전체 원장의
   미판정·회귀·누락 0이 R8 완료 조건이었다. R9 cutover의 적용 내역은
   [제거 체크리스트](docs/design/rust-replacement/r9-removal-checklist.md)에 있다. 시스템/사설 CA·proxy,
   no-root, Zero-CDN, 위치/범위/증거 분리, 원본 보존, 제한 probe 허용 목록과 shared host 규칙은 §3–§8에
