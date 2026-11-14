@@ -7,14 +7,29 @@
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-11-14
+
+0.14.0 공개 archive에 들어 있던 `zip` crate 8.6.0의 보안 수정을 배포하는 patch release입니다. 명령·설정·결과 계약과
+배포물 구성은 0.14.0과 같습니다.
+
 ### 보안
 
-- **wheel ZIP 판독 의존성 갱신**: `ici-analysis`가 wheel 검사에 쓰는 `zip` crate를 8.6.0에서 9.5.1로 올렸습니다
-  (GHSA-m665-v7pm-7grj, GHSA-q7v9-x93c-xqv3, GHSA-8hxf-qr8p-62x4, GHSA-hjqx-j4rw-g7xv, GHSA-9hj8-73fh-9963).
-  ici는 wheel을 풀어 쓰지 않고(`extract` 미사용) 자체 central-directory 사전검사로 symlink·특수 member를 거부한 뒤
-  member를 index로만 읽으므로 경로 쓰기·symlink 계열은 도달하지 않지만, 판독 경계의 header 불일치·크기 처리 수정을
-  받기 위해 갱신합니다. 연쇄로 `lzma-rust2` 0.25.0, `typed-path` 0.13.0, `zstd` 0.14.4가 올라가고
-  `constant_time_eq`·`nix`·`zeroize_derive`가 추가됩니다. 고지는 build의 Cargo metadata로 생성됩니다.
+- **wheel ZIP 판독 의존성 갱신**: `ici-analysis`가 wheel artifact 검사에 쓰는 `zip` crate를 8.6.0에서 9.5.1로
+  올렸습니다(GHSA-m665-v7pm-7grj, GHSA-q7v9-x93c-xqv3, GHSA-hjqx-j4rw-g7xv, GHSA-9hj8-73fh-9963,
+  GHSA-8hxf-qr8p-62x4; #301).
+  - ici와 관련된 항목은 GHSA-m665(local header와 central directory의 불일치)입니다. ici는 자체 central-directory
+    사전검사 뒤 member를 crate로 읽으므로, 조작된 wheel이면 ici의 digest·`RECORD` 검사가 installer가 쓰는 bytes와
+    다른 bytes를 볼 가능성이 있었습니다. ici에서 파일 쓰기나 코드 실행이 일어나는 경로는 확인되지 않았습니다.
+  - ici는 wheel을 풀어 쓰지 않고(`extract` 미사용) symlink·특수 member를 사전검사에서 거부하며, `aes-crypto`·
+    `legacy-zip` 기능을 켜지 않으므로 경로 쓰기·symlink·AES HMAC·legacy decoder 항목은 도달하지 않습니다.
+  - 연쇄 갱신: `lzma-rust2` 0.25.0, `typed-path` 0.13.0, `zstd` 0.14.4(`zstd-safe` 8.3.0, `zstd-sys` 2.1.3), 추가
+    `constant_time_eq` 0.6.1·`zeroize_derive` 1.5.0. 새 crate의 고지는 모두 보존되며 `missing_upstream_notice`는
+    0.14.0과 같습니다.
+
+### 업데이트
+
+- 새 archive를 받아 `install-native.sh --archive … --sha256 …` 또는 `ici setup --archive … --sha256 …`으로 설치합니다.
+  0.14.0 선택은 `ici setup --rollback`으로 되돌릴 수 있습니다.
 
 ## [0.14.0] - 2026-11-14
 
