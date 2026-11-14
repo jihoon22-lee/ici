@@ -7,6 +7,57 @@
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-14
+
+ici는 이 버전부터 **Rust native 단일 제품**입니다([ADR-0008](docs/design/ici-next/adr/0008-rust-native-replacement.md),
+[실행 계획](docs/design/rust-replacement-execution-plan.md) R0–R9). 명령·설정·결과 계약은 v0.13.0과 같고, 기능별
+동등성과 의도한 차이는 [이전 대응표](docs/design/rust-replacement/inventory.md)에 있습니다(R8 원장: 요구 847개 모두
+complete, source file 291개 판정). 이전 방법은 [pyz·uv·pip에서 이전하기](docs/migration-to-native.md),
+설치·업데이트·되돌리기는 [native 설치 가이드](docs/native-install.md), CI 설치는
+[CI 연동 가이드 §0](docs/ci-integration.md#0-native-ici-설치-r9-cutover-이후)에 있습니다.
+
+### 사용자에게 보이는 변경
+
+- **배포물**: GitHub Release에 `ici-0.14.0-x86_64-unknown-linux-musl.tar.gz`와 `.sha256`, `install-native.sh`,
+  `ici-0.14.0-THIRD-PARTY-NOTICES.txt`, `ici-0.14.0-release-check.json`, `ici-0.14.0-supporting.sha256`를 게시합니다.
+  archive는 정적 `bin/ici`, 검증된 native Ruff/ty(`tools/`), 모든 라이선스 고지를 담으며 Python 인터프리터·pyz·wheel·
+  Python 모듈을 담지 않습니다. 공개 bytes는 exact-main candidate(두 독립 build가 byte 동일, release 검사·배포 artifact
+  corpus·Quality Zoo native 인수 통과)와 같은 bytes이며 release workflow는 다시 build하지 않습니다.
+- **더 이상 발행하지 않는 것**: `ici.pyz`, Python wheel/sdist, `ici-package.sha256`, pyz self-report asset. 과거 공개판과
+  tag는 그대로이며 v0.13.0으로의 명시 복귀 방법은 [설치 가이드 §5](docs/native-install.md#5-되돌리기)에 있습니다.
+- **viewer asset**: `icirv`(Qt 없는 정적 CLI)와 `icirv-gui`(Qt 6 개발 환경용), `icirv-gui.README.txt`를 계속 게시하며
+  `viewer-assets.sha256`을 추가합니다. release workflow가 같은 검증 commit에서 cmake로 build합니다.
+- **설치**: `install-native.sh`와 `ici setup`은 root 없이 XDG 경로에 설치하고, 검증 전에는 현재 선택을 바꾸지 않으며,
+  `ici setup --rollback`은 사용자 설정·결과를 덮어쓰지 않습니다. 시스템/사설 CA와 proxy 설정을 따르고 TLS 검증을 끄지 않습니다.
+- **Python의 역할**: ici 자체는 Python 없이 실행됩니다. 프로젝트의 Python·pytest·coverage·mypy는 외부 검사 도구로만
+  실행합니다. `ICI_PYTHON`은 core 런타임 선택에 쓰지 않으며 legacy schema 명령에서만 프로젝트 인터프리터 후보로 읽습니다.
+- **종료 코드 3**: 필수 증거가 불완전하면(도구 부재·범위 누락·실행 실패) legacy `ici verify`와 엔진 명령도 3으로 끝납니다.
+  v0.13.0은 같은 suite ERROR에 1을 반환했습니다. 완료된 검사의 위반은 계속 1입니다([이전 안내 §6](docs/migration-to-native.md#6-종료-코드)).
+- **결과·cache 위치**: 새 결과와 cache는 `.ici/rust-v1/` namespace에 씁니다. 이전 Python 제품의 cache·결과·baseline은
+  자동으로 바꾸지 않으며, 비교 기준 baseline은 native로 새로 만듭니다([이전 안내 §8](docs/migration-to-native.md#8-baseline-다시-만들기)).
+- **지원 범위**: Linux/WSL x86_64는 측정한 범위의 `limited`입니다. aarch64·macOS·native Windows는 지원하지 않습니다.
+- **공개 JSON Schema 위치**: `ici.result/v3`, `ici.next.run` v1/v2, `ici.next.event` v1, `ici.auxiliary` v1,
+  compilation export v1 schema가 저장소 최상위 [`schemas/`](schemas/)로 옮겨졌습니다. 내용과 `$id`는 바뀌지 않았습니다.
+
+### 저장소·개발 변경
+
+- Python 제품 source(`src/ici`), pyz/wheel/bundle build·smoke script, Python 제품 시험(`tests/*.py`, `tests/next/`),
+  사용처가 없는 fixture(`examples/`, `tests/fixtures/config/`, `tests/fixtures/next-self-verify/`)를 제거했습니다.
+  frozen oracle(v0.13.0, `6fe3e405`)과 parity harness(`tests/rust-parity/`), `parity-fixtures/`, `quality-zoo/`,
+  `packaging/native/`, `viewer/`는 유지합니다.
+- `pyproject.toml`은 배포하지 않는 개발 harness(`ici-dev-harness`, `package = false`)입니다. Rust CLI 시험이 쓰는 프로젝트
+  도구(pytest, coverage, mypy, ruff)와 harness 의존성만 고정하며 `uv.lock`을 그에 맞게 다시 만들었습니다.
+- 저장소 자산 시험(candidate Merge Gate 감사, fixture register, corpus hygiene, workflow 모양)은 `scripts/tests/`의
+  stdlib `unittest`로 옮겨 CI에서 실행합니다.
+- CI: `Verify & Dogfood ici`는 `cargo build --release --locked -p ici-cli`로 만든 native ici로 저장소 루트,
+  viewer 정적 CLI 계약, viewer C++ gate를 검증합니다. PR/main report 게시는 신뢰된 base/main에서 build한 native ici의
+  `ici publish`로 합니다. tag push로 pyz를 게시하던 `release.yml`과 CPython bundle `bundle-smoke.yml`, pyz candidate job을
+  제거했고 `release-native.yml`(수동 실행)만 공개합니다.
+- 루트 `ici.toml`은 native schema(`schema_version = 2`) dogfood 설정입니다.
+- `scripts/build-native.sh`는 `ICI_BUILD_LOCK`이 설정된 경우에만 그 파일로 lock합니다.
+- 개발 규약([AGENTS.md](AGENTS.md))의 gate가 Rust gate(`cargo fmt`/`clippy -D warnings`/`test --locked`)로 바뀌었고,
+  Python 제품 규칙(§3/§4/§6의 stable·next 경로)은 역사 기록이 되었습니다.
+
 ### 이전 버전에서 바뀌는 점 (업그레이드 안내)
 
 - **`ici next verify`의 `cpp.tidy`(clang-tidy) 실행 단위**: v0.13.0처럼 component마다 `clang-tidy -p <compile DB 디렉터리> <source…>` 한 번만 실행하고, clang-tidy 기본 check와 프로젝트의 `.clang-tidy`를 그대로 씁니다. 이전 Rust 빌드는 source마다 따로 실행하며 `--checks=-*,bugprone-*,clang-analyzer-*,performance-*`와 별도 표준 라이브러리 경로를 붙였습니다. 여러 source를 읽은 정상 실행이 v0.13.0에서는 반복되는 `N warnings generated.` 요약 때문에 FAILED였지만 이제 finding을 보고하며, 공유 header의 같은 진단은 하나로 셉니다. 실패한 실행(0이 아닌 종료 코드)은 v0.13.0처럼 finding 없이 `app.cpp.tidy failed with exit code N`로 남습니다. clang-tidy가 검증 없이 읽게 되는 입력, 즉 workspace 위의 `.clang-tidy`, DB 옆 `compile_flags.txt`, `compile_commands.json`이 아닌 이름의 DB, ici가 거부한 행(workspace 밖 디렉터리 등) 중 실행할 source와 같은 파일을 가리키거나 출처를 알 수 없는 행이 있는 DB, clang-tidy가 통째로 읽지 못해 플래그 없이 분석하게 되는 DB(모르는 key 등)는 실행 전에 BLOCKED로 거부합니다(v0.13.0은 그대로 읽었습니다). 다른 source의 거부된 행은 실행을 막지 않습니다. compile 디렉터리가 workspace root가 아닌 batch에서 clang-tidy가 상대 경로로 낸 진단은 그 command 디렉터리 기준으로, 이번 실행이 읽은 파일 하나를 정확히 가리킬 때만 위치로 씁니다(v0.13.0은 root 기준의 없는 경로를 썼습니다). 둘 이상이거나 없으면 finding 없이 FAILED입니다. 같은 DB 항목이 반복되면 v0.13.0처럼 source를 항목마다 넘깁니다. 시간 초과·출력 한도 초과·signal·취소는 `app.cpp.tidy timed-out: no answer within 900s`처럼 v0.13.0 문구로 남깁니다(출력 한도는 문자 대신 byte로 표기). 요약 줄 뒤에 다른 문자가 붙는 등 clang-tidy의 정상 형식이 아닌 요약은 해석 실패로 처리합니다.

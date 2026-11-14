@@ -1,5 +1,12 @@
 # ici 시스템 아키텍처 및 상세 설계 (System Architecture Guide)
 
+> **역사 문서 (v0.13.x Python 제품).** v0.14.0의 R9 cutover로 ici는 Rust native 단일 제품이 되었고
+> 이 문서가 설명하는 `src/ici` 구현, ZipApp·Polyglot launcher·재현 pyz build는 저장소에서 제거됐다.
+> 현행 구조는 [ADR-0008](design/ici-next/adr/0008-rust-native-replacement.md)의 Cargo workspace 경계
+> (`crates/ici-*`), 배포는 [native 설치 가이드](native-install.md), 기능 대응은
+> [이전 대응표](design/rust-replacement/inventory.md)를 본다. 아래 본문의 `src/ici/...` 링크는
+> v0.13.0 tag를 가리킨다.
+
 > 2026-10-28 제품 전환: 일반 설치·정적 분석의 주 경로는
 > [범용 분석 가이드](general-analysis.md)의 `ici analyze`와 Python wheel입니다.
 > 아래 기존 verify/pyz 및 폐쇄망 설명·과거 릴리스 증거는 호환/환경별 문맥으로 읽습니다.

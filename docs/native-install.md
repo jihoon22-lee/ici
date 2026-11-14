@@ -32,6 +32,7 @@ GitHub Release `vX.Y.Z`에는 다음 파일이 있다.
 |`ici-X.Y.Z-THIRD-PARTY-NOTICES.txt`|archive 안의 `licenses/THIRD-PARTY-NOTICES.txt`와 같은 bytes|
 |`ici-X.Y.Z-release-check.json`|release workflow가 같은 bytes에 실행한 검사 결과|
 |`ici-X.Y.Z-supporting.sha256`|installer와 고지 파일의 SHA-256|
+|`icirv`, `icirv-gui`, `icirv-gui.README.txt`, `viewer-assets.sha256`|C++ report viewer(별도 소비자). `icirv`는 Qt 없는 정적 CLI, `icirv-gui`는 Qt 6 개발 환경용. release workflow가 같은 commit에서 build하며 native archive에는 들어가지 않는다|
 
 archive 구성:
 

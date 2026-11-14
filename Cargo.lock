@@ -806,7 +806,7 @@ dependencies = [
 
 [[package]]
 name = "ici-analysis"
-version = "0.14.0-dev.0"
+version = "0.14.0"
 dependencies = [
  "base64 0.22.1",
  "crc32fast",
@@ -832,7 +832,7 @@ dependencies = [
 
 [[package]]
 name = "ici-application"
-version = "0.14.0-dev.0"
+version = "0.14.0"
 dependencies = [
  "ici-config",
  "ici-domain",
@@ -847,7 +847,7 @@ dependencies = [
 
 [[package]]
 name = "ici-cli"
-version = "0.14.0-dev.0"
+version = "0.14.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -876,7 +876,7 @@ dependencies = [
 
 [[package]]
 name = "ici-config"
-version = "0.14.0-dev.0"
+version = "0.14.0"
 dependencies = [
  "globset",
  "ici-domain",
@@ -890,7 +890,7 @@ dependencies = [
 
 [[package]]
 name = "ici-cpp"
-version = "0.14.0-dev.0"
+version = "0.14.0"
 dependencies = [
  "ici-analysis",
  "ici-domain",
@@ -908,7 +908,7 @@ dependencies = [
 
 [[package]]
 name = "ici-distribution"
-version = "0.14.0-dev.0"
+version = "0.14.0"
 dependencies = [
  "flate2",
  "ici-domain",
@@ -924,7 +924,7 @@ dependencies = [
 
 [[package]]
 name = "ici-domain"
-version = "0.14.0-dev.0"
+version = "0.14.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -934,7 +934,7 @@ dependencies = [
 
 [[package]]
 name = "ici-execution"
-version = "0.14.0-dev.0"
+version = "0.14.0"
 dependencies = [
  "ici-domain",
  "nix",
@@ -948,7 +948,7 @@ dependencies = [
 
 [[package]]
 name = "ici-providers"
-version = "0.14.0-dev.0"
+version = "0.14.0"
 dependencies = [
  "ici-config",
  "ici-domain",
@@ -964,7 +964,7 @@ dependencies = [
 
 [[package]]
 name = "ici-reporting"
-version = "0.14.0-dev.0"
+version = "0.14.0"
 dependencies = [
  "chrono",
  "flate2",
@@ -983,7 +983,7 @@ dependencies = [
 
 [[package]]
 name = "ici-validation"
-version = "0.14.0-dev.0"
+version = "0.14.0"
 dependencies = [
  "flate2",
  "ici-analysis",

@@ -53,7 +53,7 @@ quality-zoo는 ici가 소유합니다. 소비자 [Lens](https://github.com/jihoo
 
 - `feature`·`test`·`refactor`·`docs` PR은 버전 변경이나 stable release를 자동으로 만들지 않습니다.
 - `patch`는 이미 공개된 stable artifact의 defect·security·compatibility 수정에만 사용합니다.
-- `minor`는 사용자에게 보이는 응집된 roadmap checkpoint이며, ici 전체 gate·실제 도구 E2E·candidate cross-repo/toy 검증·PR/main CI·Pages·문서/CHANGELOG가 모두 끝난 뒤에만 정합니다.
+- `minor`는 사용자에게 보이는 응집된 roadmap checkpoint이며, ici 전체 gate·실제 도구 E2E·candidate의 Quality Zoo 검증·PR/main CI·Pages·문서/CHANGELOG가 모두 끝난 뒤에만 정합니다. 공개 bytes는 검증한 exact-main native candidate와 같은 bytes입니다.
 - pre-release/candidate artifact는 stable이 아니며, 하나의 PR이 하나의 릴리스를 뜻하지 않습니다. `v0.10.1`과 공개된 `v0.10.2`는 공개 결함에 한정한 corrective stabilization입니다.
 - `v0.11.0`은 I4-4, real toy-projects/quality-zoo 검증(I5·I6·I7·I8·I9)을 닫은 뒤 냅니다. **I4-3은 두 항목이 열린 채로 남습니다** — C++ complexity/cognitive를 AST 기반으로 바꾸는 것과 whole-program dead-symbol reachability입니다. 둘 다 없는 같은 인프라(C++ AST 접근)를 필요로 하고, 둘 다 **없는 기능이 아니라 이미 내보내는 값의 정밀도** 문제라, 한계를 명시적으로 표시한 채 배포합니다: 해당 metric은 `bounded-cpp-tokens` estimate로 표기되고 `metric_confidence`로 등급이 함께 나가며, 전체 목록은 [한계 인벤토리](docs/engine-reference.md)에 있습니다. 이 두 항목이 닫히기 전까지 그 숫자를 exact 측정값으로 인용하면 안 됩니다.
 
@@ -69,7 +69,7 @@ quality-zoo는 ici가 소유합니다. 소비자 [Lens](https://github.com/jihoo
 | **🚀 사용자 가이드** | 빠른 시작, 설치, 전체 CLI 사용법 및 IDE 원클릭 점프 | [docs/user-guide.md](docs/user-guide.md) |
 | **📏 검증 엔진 레퍼런스** | 19개 엔진 descriptor (기본 fast 12 / standard 14 / deep 16, release contract opt-in 시 deep 19), TEM 스코어링 공식, `ici.toml` 정책 설정 *(현행 stable)* | [docs/engine-reference.md](docs/engine-reference.md) |
 | **⚙️ CI/CD 연동 가이드** | GitHub Actions, Step Summary, PR 어노테이션, 사내 폐쇄망 러너 *(현행 stable)* | [docs/ci-integration.md](docs/ci-integration.md) |
-| **🏛️ 시스템 아키텍처** | ZipApp 패키징, Polyglot 런처, 오케스트레이터 및 리포터 계층 설계 *(현행 stable)* | [docs/architecture.md](docs/architecture.md) |
+| **🏛️ 시스템 아키텍처** | v0.13.x Python 제품의 ZipApp·launcher·오케스트레이터·리포터 설계 *(역사 문서; 현행 구조는 ADR-0008)* | [docs/architecture.md](docs/architecture.md) |
 | **🐶 자체 검증 부채** | ici 자신의 `deep` 실행에 남은 WARN·SKIP과 각각을 받아들인 이유 | [docs/design/self-verification-debt.md](docs/design/self-verification-debt.md) |
 | **🗂️ 품질 분석기 실행 계획** | *(superseded — ici-next가 대체)* v0.11.0까지의 로드맵 기록 | [ici 마스터 계획](docs/superpowers/plans/2026-08-30-python-cpp-qt-quality-analyzer-master-plan.md) · [toy-projects 마스터 계획](https://github.com/jihoon22-lee/toy-projects/blob/main/docs/superpowers/plans/2026-08-30-product-portfolio-master-plan.md) |
 | **📋 변경 이력 (CHANGELOG)** | 버전별 상세 릴리스 노트 및 마일스톤 | [CHANGELOG.md](CHANGELOG.md) |
@@ -251,48 +251,31 @@ ici verify --baseline .ici/baseline.json --fail-on-new \
 
 ### 4. 분석 캐시
 
-`ici verify`는 기본적으로 사용자별 로컬 분석 캐시를 사용합니다. 캐시는 프로젝트 안에
-생기지 않으며, 동일한 프로젝트 입력·effective 설정·toolchain·엔진 구현·build variant에서만
-engine result를 재사용합니다. 결과를 항상 새로 계산해야 하는 CI/release 점검이나 캐시 영향을
-분리한 진단에는 다음 옵션을 사용합니다.
+native ici는 분석 관측을 cache해 같은 입력의 재실행을 줄입니다. 새 cache는 `.ici/rust-v1`
+namespace(프로젝트의 `.ici/rust-v1/`, 사용자 cache의 `ici/rust-v1`)에만 쓰며, 이전 Python 제품의
+cache는 읽어서 자기 cache로 쓰지 않습니다. 결과를 항상 새로 계산해야 하는 CI/release 점검이나
+cache 영향을 분리한 진단에는 다음 옵션을 사용합니다.
 
 ```bash
-# 이번 verify에서 cache read/write 모두 비활성화
+# 이번 실행에서 cache read/write 모두 비활성화
 ici verify --no-cache
+ici analyze --no-cache
 
-# cache 위치·유효 entry·손상 entry·크기 확인
+# cache 위치·유효 entry·손상 entry·크기와 key 계약 확인
 ici cache
 
-# ici가 소유한 exact entries-v1 아래 entry만 삭제
+# ici가 소유한 정확한 cache 디렉터리의 entry 파일만 삭제
 ici cache --clear
 ```
 
-`WARN`/`FAIL`이라도 timeout·truncation·tool error가 없고 artifact identity가 유효한 완료
-결과라면 재사용될 수 있습니다. `ERROR`/`SKIP`/`NOT_RUN`과 불완전하거나 invalid한 결과는
-성공 cache로 저장하지 않습니다. 캐시 hit 여부와 key digest는 v3 JSON의 optional
-engine-level `cache_hit`/`cache_key`로 확인할 수 있고, 기존 v3 JSON은 해당 필드 없이도
-계속 읽을 수 있습니다.
+cache key(`ici.native.observation/v1`)는 읽은 입력·설정 bytes, 정책, core와 도구 실행 파일 bytes,
+도구에 전달한 환경, provider 해석, task/build 범위를 포함합니다. 입력 closure가 확정되지 않은
+검사와 변경 작업(mutating)은 재사용하지 않습니다. 불완전·오류 결과는 성공 cache로 저장하지 않으며,
+손상되거나 알 수 없는 entry는 miss로 처리하고 그대로 둡니다. 캐시 hit 여부는 결과 JSON의
+engine-level `cache_hit`/`cache_key`와 `ici.next.run`의 `reused_task_ids`로 확인합니다.
 
-cache key(`ici.analysis-cache-key/v3`)는 canonical root, source/build-config content, effective config, toolchain,
-engine implementation, build variant와 ici version을 포함합니다. engine implementation identity는
-engine class의 module/qualname와 class source digest, 그리고 `CACHE_IMPLEMENTATION_MODULES`로
-명시한 helper/dependency module 이름의 sorted unique 목록과 각 module source digest를 포함합니다.
-import tree 전체를 암묵적으로 수집하지 않고 명시적으로 선언된 구현 의존성만 반영합니다.
-프로젝트 source digest에는 인식된 설정 이름 `.clang-tidy`가 포함되므로 그 내용·권한 변경은
-cache miss를 만들지만, 인식 목록에 없는 unrelated hidden file은 포함하지 않습니다.
-`verify_report.json`과
-engine별 `*_report.json`처럼 ici가 생성하는 report JSON은 source digest에서 제외됩니다.
-entry reader는 symlink·비정규 파일, duplicate JSON key, non-finite number와 32 MiB 초과
-payload를 신뢰하지 않으며, 손상·stale entry는 miss로 처리합니다. artifact manifest가
-있으면 store/load 양쪽에서 경로 containment와 실제 content·size·mode를 재검증합니다.
-
-로컬 cache 검증에서 전체 Python 3.10 run은 935 tests passed였고 targeted 테스트도
-통과했습니다. standard 첫 실행은 118.49초·hits 0, 두 번째는 2.38초·hits 12였으며,
-두 결과의 normalized SHA-256은 `95af9c5122442411da60da0371b0938b89ca2095b562e02b08fe05f5eeb5bd70`,
-findings는 각각 3,497건이었습니다. HTML은 4,095,550 bytes·외부 참조 0건, 재현성
-script 두 build는 SHA-256 `6a629f9b162fdacbe84a82cd861eac622aebc47f3a9cae00915387e53fc21c16`과
-project source status unchanged를 확인했습니다. 이 결과는 I2-4의 로컬 증거이며 PR/CI/Pages
-또는 release 완료를 뜻하지 않습니다.
+v0.13.x Python 제품의 cache 설계(`ici.analysis-cache-key/v3`, `entries-v1`)와 측정 기록은
+[v0.13.0 README](https://github.com/jihoon22-lee/ici/blob/v0.13.0/README.md#4-분석-캐시)에 남아 있습니다.
 
 ### 5. Issues-first 콘솔
 
@@ -315,10 +298,10 @@ clone group은 합치지 않습니다. HTML `Issues` 탭도 native v3 finding in
 표시 순서와 줄바꿈은 deterministic하게 유지하고, 80-column 터미널에서도 표와 상세 링크가
 한 글자씩 세로로 깨지지 않도록 회귀 테스트로 고정했습니다.
 
-다음 수치는 issues-first console을 도입한 PR #89 당시의 고정된 acceptance 기록입니다
-(`814679c` + `d80a027`). 당시 로컬 Python 3.10 전체 품질 게이트는 756/756 tests,
+다음 수치는 issues-first console을 도입한 PR #89 당시(v0.13.x 이전 Python 제품)의 고정된 acceptance
+기록입니다(`814679c` + `d80a027`). 당시 로컬 Python 3.10 전체 품질 게이트는 756/756 tests,
 focused console 테스트는 16개였습니다. 최종 안정 self verify에서
-built `dist/ici.pyz`가 exit 0으로 실행됐고 suite는 WARN을 반환했습니다. self verify 출력은
+당시 build한 `dist/ici.pyz`가 exit 0으로 실행됐고 suite는 WARN을 반환했습니다. self verify 출력은
 144 lines/15,288 bytes, HTML은 3,383,523 bytes였습니다. 해당 self verify 출력에 내장된
 test engine 수치는 756/756이며, local self verify line/function/branch coverage는 87.8%/96.6%/78.8%, TEM
 4.83, engines Pass 8/Warn 4/Fail 0/Error 0/Skip 0을 확인했습니다. complexity는 최대 23,
@@ -391,9 +374,9 @@ response file도 깊이 4, 파일/aggregate 4 MiB와 동일한 per-row argument 
 
 성공은 exit 0, 입력/경로 검증 실패·측정된 DB/usable unit 부재는 exit 2, fatal diagnostic이나
 직렬화·쓰기 오류는 exit 1입니다. stdout 모드의 성공 출력은 JSON만 포함하고 오류는 stderr로
-보냅니다. 기계 검증 계약은 배포 패키지에 포함되는
+보냅니다. 기계 검증 계약은
 [`ici-compilation-export-v1.schema.json`](schemas/ici-compilation-export-v1.schema.json)
-이며, `scripts/build-pyz.sh`가 ZipApp 구성 단계에서 공개 schema 포함을 확인합니다.
+이며, native 시험(`crates/ici-cli/tests/wire_schemas.rs`)이 실제 출력을 그 schema로 검증합니다.
 
 ## 📋 명령어 일람
 
