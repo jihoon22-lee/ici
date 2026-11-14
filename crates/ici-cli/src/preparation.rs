@@ -697,6 +697,58 @@ fn legacy_adapter_build_failure(
         observed.extra["metrics_summary"] =
             serde_json::json!(format!("Built into {}", build.output_root));
     }
+    // Frozen `BuildEngine.run` publishes `[build.artifacts]` after the adapter failed
+    // (build.py:109, `_publish_declared_artifacts`): the `config.artifacts` manifest and its
+    // DeclaredArtifacts PASS, or the 'Declared artifacts could not be recorded' BuildError
+    // joined into the summary (binary-compat-declared-artifacts-oracle.json `declared-*`,
+    // `glob-*`). Under `verify` only, whose sessions carry the shared analysis context; a
+    // component that also packages Python publishes it from that `python.artifact` build.
+    if prepared.legacy_projection
+        && !prepared.cpp.legacy_standalone
+        && !prepared.plan.checks.iter().any(|check| {
+            check.component_id == plan.component_id && check.check.id == "python.artifact"
+        })
+        && let Some(component) = prepared
+            .project
+            .components
+            .iter()
+            .find(|component| component.id == plan.component_id)
+    {
+        match crate::artifact_build::legacy_declared_manifest(&prepared.project, component) {
+            Ok(Some((count, manifest))) => {
+                match observed.extra.get_mut("legacy_artifact_manifests") {
+                    Some(serde_json::Value::Array(manifests)) => manifests.push(manifest),
+                    _ => {
+                        observed.extra["legacy_artifact_manifests"] = serde_json::json!([manifest])
+                    }
+                }
+                let mut target = ici_domain::InspectionTarget::at(".", 1);
+                target.target_name = "DeclaredArtifacts".into();
+                target.message = format!("Recorded {count} declared artifact(s)");
+                observed.targets.push(target);
+            }
+            Ok(None) => {}
+            Err(reason) => {
+                let message = format!("Declared artifacts could not be recorded: {reason}");
+                let failure =
+                    crate::cpp::build_failure(task_id, ".", "ici.toml", true, &message, &message);
+                observed.targets.extend(failure.targets);
+                observed
+                    .observation
+                    .findings
+                    .extend(failure.observation.findings);
+                observed
+                    .observation
+                    .limitations
+                    .extend(failure.observation.limitations);
+                observed.summary = if observed.summary.is_empty() {
+                    message
+                } else {
+                    format!("{}; {message}", observed.summary)
+                };
+            }
+        }
+    }
     let details: serde_json::Map<String, serde_json::Value> = observed
         .observation
         .findings
@@ -717,34 +769,38 @@ fn legacy_adapter_build_failure(
     }
 }
 
-/// Frozen `BinaryCompatibilityEngine.run` (binary_compat.py:96-117) after the legacy release
-/// build failed: no manifest was published, so with no `artifacts` selection the engine is the
-/// not-applicable SKIP (or, when required, the "no published executable or shared-library
-/// artifacts" ERROR). Frozen publishes manifests only from the build, test and sanitizer
-/// sessions, so this holds once every preparation of the run has failed or built nothing
-/// (`contexts`: the preparations that succeeded). `None` when a prepared session built
-/// executables or artifacts, or a declaration could still publish one (Python packaging,
-/// `[build.artifacts]`); those keep the blocked check.
+/// Frozen `BinaryCompatibilityEngine.run` (binary_compat.py:32-165) after the legacy release
+/// build failed. Frozen publishes manifests only from the build, test and sanitizer sessions
+/// and `[build.artifacts]` (`config.artifacts`); `_package_python` publishes none. Once every
+/// preparation of the run has failed or built nothing (`contexts`: the preparations that
+/// succeeded), the analysis context holds only the declared manifest, so: no selection is the
+/// not-applicable SKIP (declared kinds are never `_BINARY_KINDS`), or when required the "no
+/// published executable or shared-library artifacts" ERROR; a selection the declared manifest
+/// does not hold is the sorted `configured artifact was not published: …` ERROR; a selection of
+/// declared records is inspected (non-ELF FAIL, or the NonElf SKIP under `allow_non_elf`)
+/// (binary-compat-declared-artifacts-oracle.json, root ruling 2026-11-14 (g3)). `None` when a
+/// prepared session built executables or artifacts, or a selected declared record is an ELF
+/// object or unreadable (frozen runs readelf on it; not captured).
+/// What the legacy binary_compat check becomes beside a release preparation that published
+/// nothing.
+enum LegacyCompatBeside {
+    /// Frozen's verdict, decided here.
+    Decided(AnalysisOutput),
+    /// A selected declared record is an ELF object: the check's own planned readelf/ABI steps
+    /// (the built-artifact path) inspect the declared records, so it is not blocked.
+    Inspect,
+}
 fn legacy_binary_compat_without_manifests(
     prepared: &PreparedPlan,
     plan: &crate::export_context::ContextPreparationPlan,
     contexts: &[crate::export_context::PreparedContext],
-) -> Option<AnalysisOutput> {
+    environment: &BTreeMap<String, String>,
+) -> Option<LegacyCompatBeside> {
     if contexts.iter().any(|context| {
         !context.artifacts.is_empty()
             || context.test_executable.is_some()
             || !context.test_executables.is_empty()
-    }) || prepared
-        .plan
-        .checks
-        .iter()
-        .any(|check| check.check.id == "python.artifact")
-        || prepared
-            .project
-            .effective
-            .pointer("/build/artifacts")
-            .is_some()
-    {
+    }) {
         return None;
     }
     let check = prepared.plan.checks.iter().find(|check| {
@@ -756,21 +812,126 @@ fn legacy_binary_compat_without_manifests(
         .iter()
         .find(|component| component.id == plan.component_id)?;
     let settings = component.settings.pointer("/engines/binary_compat");
-    if settings
+    let selected: BTreeSet<&str> = settings
         .and_then(|settings| settings.get("artifacts"))
         .and_then(serde_json::Value::as_array)
-        .is_some_and(|artifacts| !artifacts.is_empty())
-    {
-        return None;
+        .map(|artifacts| {
+            artifacts
+                .iter()
+                .filter_map(serde_json::Value::as_str)
+                .collect()
+        })
+        .unwrap_or_default();
+    if selected.is_empty() {
+        let required = settings
+            .and_then(|settings| settings.get("required"))
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false);
+        return Some(LegacyCompatBeside::Decided(
+            crate::cpp::legacy_binary_compat_unavailable(
+                &check.task_id,
+                required.then_some("no published executable or shared-library artifacts"),
+            ),
+        ));
     }
-    let required = settings
-        .and_then(|settings| settings.get("required"))
+    // Frozen `_declared_artifact_paths` (globs included; a pattern that matched nothing
+    // publishes no manifest), recorded as `release:project:<path>` in path order.
+    // Frozen `ArtifactManifest.create` reads every declared file (`_file_digest`); a file it
+    // cannot read fails the publication, so no `config.artifacts` manifest holds anything.
+    let published: BTreeSet<String> =
+        match crate::artifact_build::legacy_declared_manifest(&prepared.project, component) {
+            Ok(Some((_, manifest))) => manifest["artifacts"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|record| record["path"].as_str().map(str::to_owned))
+                .collect(),
+            _ => BTreeSet::new(),
+        };
+    let records: Vec<&String> = published
+        .iter()
+        .filter(|path| {
+            selected.contains(path.as_str())
+                || selected.contains(format!("release:project:{path}").as_str())
+        })
+        .collect();
+    let mut missing: Vec<&str> = selected
+        .iter()
+        .copied()
+        .filter(|item| {
+            !records
+                .iter()
+                .any(|path| *item == path.as_str() || *item == format!("release:project:{path}"))
+        })
+        .collect();
+    missing.sort_unstable();
+    let maximum = settings
+        .and_then(|settings| settings.get("max_artifacts"))
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(64);
+    let error = if !missing.is_empty() {
+        Some(format!(
+            "configured artifact was not published: {}",
+            missing.join(", ")
+        ))
+    } else if records.len() as u64 > maximum {
+        Some(format!(
+            "binary artifact count exceeds configured maximum {maximum}"
+        ))
+    } else if !legacy_on_path(environment, "readelf") {
+        Some("readelf capability is unavailable".to_owned())
+    } else {
+        None
+    };
+    if let Some(error) = error {
+        return Some(LegacyCompatBeside::Decided(
+            crate::cpp::legacy_binary_compat_unavailable(&check.task_id, Some(&error)),
+        ));
+    }
+    // Frozen reads each record's first four bytes; an ELF object goes to readelf
+    // (binary_compat.py:166-198), which the check's planned readelf/ABI steps run over the same
+    // declared records (root ruling 2026-11-14 (g3), `declared-elf-truncated`).
+    for path in &records {
+        let mut magic = Vec::with_capacity(4);
+        if let Err(error) = std::fs::File::open(prepared.project.root.join(path)).and_then(|file| {
+            std::io::Read::read_to_end(&mut std::io::Read::take(file, 4), &mut magic)
+        }) {
+            // Frozen binary_compat.py:131-135.
+            return Some(LegacyCompatBeside::Decided(
+                crate::cpp::legacy_binary_compat_unavailable(
+                    &check.task_id,
+                    Some(&format!("artifact could not be read: {path}: {error}")),
+                ),
+            ));
+        }
+        if magic.starts_with(b"\x7fELF") {
+            return Some(LegacyCompatBeside::Inspect);
+        }
+    }
+    let allow_non_elf = settings
+        .and_then(|settings| settings.get("allow_non_elf"))
         .and_then(serde_json::Value::as_bool)
         .unwrap_or(false);
-    Some(crate::cpp::legacy_binary_compat_unavailable(
-        &check.task_id,
-        required.then_some("no published executable or shared-library artifacts"),
+    let paths: Vec<String> = records.into_iter().cloned().collect();
+    Some(LegacyCompatBeside::Decided(
+        crate::cpp::legacy_binary_compat_declared_non_elf(
+            &check.task_id,
+            &component.id,
+            &paths,
+            allow_non_elf,
+        ),
     ))
+}
+/// Frozen `shutil.which(name)` over the run's PATH: an executable regular file.
+fn legacy_on_path(environment: &BTreeMap<String, String>, name: &str) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    environment.get("PATH").is_some_and(|path| {
+        std::env::split_paths(path).any(|directory| {
+            std::fs::metadata(directory.join(name)).is_ok_and(|metadata| {
+                metadata.is_file() && metadata.permissions().mode() & 0o111 != 0
+            })
+        })
+    })
 }
 fn rebind(
     runtime: &Runtime<'_>,
@@ -901,6 +1062,9 @@ pub fn execute(
     let mut failures = vec![];
     let mut outputs = BTreeMap::new();
     let mut observed_failures = BTreeSet::new();
+    // Legacy binary_compat checks whose planned readelf/ABI steps inspect declared records
+    // beside a release preparation that published nothing (never blocked by that failure).
+    let mut legacy_declared_inspection: BTreeSet<String> = BTreeSet::new();
     // `cpp.artifact` checks whose configured legacy release build failed: their BuildEngine
     // result is that failure, so their own artifact preparation never runs.
     let mut adapter_failures = BTreeSet::new();
@@ -986,10 +1150,17 @@ pub fn execute(
             match result {
                 Ok(context) => {
                     if let Some(failure) = &context.build_failure {
-                        limitations.push(format!(
-                            "{} {} build failed; its configured compilation database is analysed like frozen, which never builds this shadow: {failure}",
-                            plan.component_id, plan.build.variant
-                        ));
+                        if plan.build.system == "qmake" {
+                            limitations.push(format!(
+                                "{} {} build failed; its captured compilation database is analysed like frozen's separate analysis capture: {failure}",
+                                plan.component_id, plan.build.variant
+                            ));
+                        } else {
+                            limitations.push(format!(
+                                "{} {} build failed; its configured compilation database is analysed like frozen, which never builds this shadow: {failure}",
+                                plan.component_id, plan.build.variant
+                            ));
+                        }
                     }
                     // Frozen BuildEngine `_compile_cpp`: the failed adapter build is its own
                     // `BuildAdapter` FAIL, beside the source checks that keep the database;
@@ -1011,7 +1182,7 @@ pub fn execute(
                                 && prepared.project.schema_family
                                     == ici_config::SchemaFamily::Legacy
                                 && plan.build.variant == "release"
-                                && plan.build.system == "cmake"
+                                && matches!(plan.build.system.as_str(), "cmake" | "qmake")
                             {
                                 legacy_adapter_build_failure(
                                     &mut observed,
@@ -1471,12 +1642,41 @@ pub fn execute(
             }
         }
         for plan in &compat_without_release {
-            if let Some(mut compat) =
-                legacy_binary_compat_without_manifests(&prepared, plan, &contexts)
-                && crate::execute::redact(&mut compat).is_ok()
-            {
-                observed_failures.insert(compat.observation.task_id.clone());
-                outputs.insert(compat.observation.task_id.clone(), compat);
+            match legacy_binary_compat_without_manifests(
+                &prepared,
+                plan,
+                &contexts,
+                runtime.environment,
+            ) {
+                Some(LegacyCompatBeside::Decided(mut compat)) => {
+                    if crate::execute::redact(&mut compat).is_ok() {
+                        observed_failures.insert(compat.observation.task_id.clone());
+                        outputs.insert(compat.observation.task_id.clone(), compat);
+                    }
+                }
+                Some(LegacyCompatBeside::Inspect) => {
+                    legacy_declared_inspection.extend(
+                        prepared
+                            .plan
+                            .checks
+                            .iter()
+                            .filter(|check| {
+                                check.component_id == plan.component_id
+                                    && check.check.id == "cpp.binary-compat"
+                            })
+                            .map(|check| check.task_id.clone()),
+                    );
+                }
+                None => {}
+            }
+        }
+        // The inspection reads only declared project files: it consumes no build prerequisite
+        // (like planning's decided binary-compat verdicts), so the failed build output does not
+        // gate it at execution.
+        for check in &mut prepared.plan.checks {
+            if legacy_declared_inspection.contains(&check.task_id) {
+                check.check.needs.clear();
+                prepared.graph.edges.remove(&check.task_id);
             }
         }
         // Frozen `_with_capture_coverage`: a qmake capture that missed a production translation
@@ -1854,7 +2054,9 @@ pub fn execute(
                 if legacy_linker_ids.contains(&check.task_id) {
                     continue;
                 }
-                if observed_failures.contains(&check.task_id) {
+                if observed_failures.contains(&check.task_id)
+                    || legacy_declared_inspection.contains(&check.task_id)
+                {
                     prepared.graph.blocked.remove(&check.task_id);
                     continue;
                 }

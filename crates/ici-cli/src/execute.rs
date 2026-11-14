@@ -922,7 +922,26 @@ pub fn execute(
                                 })
                                 .map(|directory| directory.to_string_lossy().into_owned())
                                 .unwrap_or_default();
-                            crate::cpp::legacy_binary_compat(&mut output, &shadow, "release");
+                            // Selected `config.artifacts` records keep frozen's project ids.
+                            let declared: BTreeSet<String> = prepared
+                                .project
+                                .components
+                                .iter()
+                                .find(|component| component.id == planned.component_id)
+                                .and_then(|component| {
+                                    crate::artifact_build::legacy_declared_publication(
+                                        &prepared.project,
+                                        component,
+                                    )
+                                })
+                                .map(|published| published.into_keys().collect())
+                                .unwrap_or_default();
+                            crate::cpp::legacy_binary_compat(
+                                &mut output,
+                                &shadow,
+                                "release",
+                                &declared,
+                            );
                             // Frozen BinaryCompatibilityEngine: one `readelf binary
                             // compatibility` record per inspected artifact, in run order.
                             let evidence: Vec<serde_json::Value> = plans

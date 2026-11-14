@@ -58,7 +58,48 @@ const COUNTERS: [&str; 7] = [
 /// same fixture under the same bound (the second name): its walk fails at the same bound with
 /// the same BuildAdapter FAIL and publishes nothing. The other engines keep comparing with the
 /// captured run; the suite counters are not part of these cases' view.
-const CORRECTED_BUILD: [(&str, &str); 1] = [("qmake-entry-limit", "qmake-entry-limit-uncaptured")];
+const CORRECTED_BUILD: [(&str, &str); 2] = [
+    ("qmake-entry-limit", "qmake-entry-limit-uncaptured"),
+    ("qmake-entry-limit-analysis", "qmake-entry-limit-uncaptured"),
+];
+
+/// Root ruling 2026-11-14 (g5): the qmake release session that fails its walk fails only the
+/// BuildEngine; the source engines keep the analysis capture's context, as frozen's separate
+/// capture session did (`qmake-entry-limit-analysis`). Compared: the analysis context's
+/// generator, origin, database presence and unit sources, compile_db's verdict and summary, and
+/// the verdict of the other context consumers.
+const ANALYSIS_SUMMARY: [&str; 1] = ["compile_db"];
+const ANALYSIS_VERDICT: [&str; 2] = ["cycle", "dead"];
+
+fn analysis_view(engines: &Value, compilation: &Value) -> Value {
+    let mut view = serde_json::Map::new();
+    for name in ANALYSIS_SUMMARY {
+        view.insert(
+            name.to_owned(),
+            pick(&engines[name], &["status", "evidence", "summary"]),
+        );
+    }
+    for name in ANALYSIS_VERDICT {
+        view.insert(
+            name.to_owned(),
+            pick(&engines[name], &["status", "evidence"]),
+        );
+    }
+    let sources: Vec<Value> = compilation["units"]
+        .as_array()
+        .map(|units| units.iter().map(|unit| unit["source"].clone()).collect())
+        .unwrap_or_default();
+    view.insert(
+        "compilation".to_owned(),
+        json!({
+            "generator": compilation["generator"],
+            "origin": compilation["origin"],
+            "database": compilation["database_path"].is_string(),
+            "sources": sources,
+        }),
+    );
+    Value::Object(view)
+}
 
 fn copy_tree(from: &Path, to: &Path) {
     fs::create_dir_all(to).unwrap();
@@ -398,6 +439,26 @@ fn run(oracle: &Value, name: &str, case: &Value, path: &str) -> Value {
         assert_eq!(uncaptured["status"], "FAIL");
         expected["engines"]["build"] = engine_view("build", uncaptured, &commit);
     }
+    if let Some(analysis) = case["frozen"].get("analysis") {
+        let all: serde_json::Map<String, Value> = report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|engine| {
+                (
+                    engine["engine_name"].as_str().unwrap().to_owned(),
+                    engine.clone(),
+                )
+            })
+            .collect();
+        native["analysis"] = analysis_view(&json!(all), &report["analysis_context"]["compilation"]);
+        expected["analysis"] = analysis_view(&analysis["engines"], &analysis["compilation"]);
+        assert_eq!(
+            expected["analysis"]["compilation"]["sources"],
+            json!(["tests/test_unit.cpp"]),
+            "{name}: frozen kept the analysis capture's unit"
+        );
+    }
     if native["exit_code"] != expected["exit_code"] {
         // Accepted policy (root decision recorded on descriptor:compile_db and command:ici
         // verify, as legacy_verify_matrix.rs asserts): a run whose required evidence stays
@@ -645,7 +706,7 @@ fn legacy_build_session_manifests_and_discovery_bounds_match_frozen() {
     assert_frozen_literals(&oracle);
     let host = host_tools::mirror(&host_tools::NO_LLVM);
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 7);
+    assert_eq!(cases.len(), 8);
     // A missing adapter tool is reported, and is a failure under ICI_REQUIRE_BUILD_ADAPTERS=1.
     let required = std::env::var("ICI_REQUIRE_BUILD_ADAPTERS").as_deref() == Ok("1");
     let available = |tool: &str| host_tools::version(&Path::new("/usr/bin").join(tool)).is_some();
