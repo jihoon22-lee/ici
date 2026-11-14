@@ -1,7 +1,9 @@
 # AGENTS.md R9 cutover 초안 (검토용, 미적용)
 
-- 상태: **draft for root review.** 이 파일은 R9 cutover 이후의 `AGENTS.md` 제안 전문이다.
-  현재 `AGENTS.md`는 바꾸지 않았다. 프로젝트 지침 파일 변경은 사용자 승인 아래 root가 적용한다.
+- 상태: **applied (2026-11-14, `feat/rust-cutover-final`).** 아래 본문을 기준으로 `AGENTS.md`를 교체했다.
+  적용 시 조정: 적용 범위 문단과 §9 역사 절에 당시 `AGENTS.md` §9(범용 제품 전환)·§10(Rust 단일 제품 전환)의
+  요지를 옮겼고, §6 gate의 `uvx ruff`를 harness venv의 `uv run --frozen --python 3.10 ruff`로 바꾸고
+  `scripts/tests` unittest를 넣었으며, §8에 `ICI_BUILD_LOCK`을 적었다. 적용본은 `AGENTS.md`가 정본이다.
 - 적용 방법: R9 cutover 변경에서 아래 `---` 사이의 본문으로 `AGENTS.md`를 교체한다.
   `tests/next/test_ici_next_inventory.py`의 `TestAgentsScoping`이 요구하는 문구
   ("적용 범위", "stable 경로", "next 경로", "Python 3.10 하한", "py3-none-any", "dist/ici.pyz",
