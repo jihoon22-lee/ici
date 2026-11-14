@@ -8,7 +8,8 @@
     "cargo test -p ici-application --test cache: passed; /tmp/ici-rust-replacement-20261028/w-runtime-cache.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_legacy_engine_cache.py --oracle /tmp/ici-rust-replacement-20261028/oracle --python /home/jihoon/projects/ici/.venv/bin/python -> tests/rust-parity/runtime/legacy-engine-cache-oracle.json; /tmp/ici-rust-replacement-20261028/w-rem2-f8-cache-capture.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --locked --test legacy_engine_cache`; EXIT 0, 1 passed; /tmp/ici-rust-replacement-20261028/w-rem2-f8-cache-tests.log",
-    "`cargo clippy -p ici-cli -p ici-reporting -p ici-analysis -p ici-application -p ici-validation --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-rem2-f8-clippy.log"
+    "`cargo clippy -p ici-cli -p ici-reporting -p ici-analysis -p ici-application -p ici-validation --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-rem2-f8-clippy.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -39,7 +40,8 @@
     "cargo test -p ici-execution; cargo test -p ici-cli --test execution; cargo test -p ici-application --test planning --test assemble; strict Clippy ici-execution/ici-application/ici-cli: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-cancel-final.log",
     "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
     "source opus-env.sh at 06603f4 (merged feat/rust-application): cargo test -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (assemble 3, baseline 4, cache 7, identity 4, planning 11, snapshot 6, suppressions 2, verification 6, process 12, redaction 1, scheduler 9, storage 10 passed); cargo test -p ici-cli --locked -j2 --test execution -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-dec-runtime-d5d6.log",
-    "Environment values a tool prints without their name (root, 2026-11-08, decisions.md \"도구 실행 환경\", parent rulings on 5e3717f6): each dispatch opens a command-scoped, thread-local redaction context holding its sensitive variables' values; scheduler workers enter the starting command's context; the command's error is masked inside it. Values of 6+ characters are masked literally, shorter ones as standalone tokens; text already masked is never rewritten (idempotent). crates/ici-execution/tests/redaction.rs (5 passed) and crates/ici-cli/tests/redaction_context.rs (2 passed: sequential dispatch error and success leave nothing behind, two concurrent dispatches 20 times each keep their own values)."
+    "Environment values a tool prints without their name (root, 2026-11-08, decisions.md \"도구 실행 환경\", parent rulings on 5e3717f6): each dispatch opens a command-scoped, thread-local redaction context holding its sensitive variables' values; scheduler workers enter the starting command's context; the command's error is masked inside it. Values of 6+ characters are masked literally, shorter ones as standalone tokens; text already masked is never rewritten (idempotent). crates/ici-execution/tests/redaction.rs (5 passed) and crates/ici-cli/tests/redaction_context.rs (2 passed: sequential dispatch error and success leave nothing behind, two concurrent dispatches 20 times each keep their own values).",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -83,7 +85,8 @@
     "cargo test -p ici-execution (scheduler 9, process 12, storage 10) and -p ici-application --test planning --test assemble: passed; /tmp/ici-rust-replacement-20261028/w-runtime-cancel-final.log",
     "Frozen 6fe3e40 vs native target/debug/ici `next plan --json --profile deep|standard` on a next-schema Python component with and without .venv/bin/python (PATH=/usr/bin:/bin): edges equal in all four, mutating/shared equal without an interpreter; /tmp/ici-rust-replacement-20261028/w-sweep-dag-plan.log",
     "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
-    "source opus-env.sh at 06603f4 (merged feat/rust-application): cargo test -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (assemble 3, baseline 4, cache 7, identity 4, planning 11, snapshot 6, suppressions 2, verification 6, process 12, redaction 1, scheduler 9, storage 10 passed); cargo test -p ici-cli --locked -j2 --test execution -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-dec-runtime-d5d6.log"
+    "source opus-env.sh at 06603f4 (merged feat/rust-application): cargo test -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (assemble 3, baseline 4, cache 7, identity 4, planning 11, snapshot 6, suppressions 2, verification 6, process 12, redaction 1, scheduler 9, storage 10 passed); cargo test -p ici-cli --locked -j2 --test execution -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-dec-runtime-d5d6.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -117,7 +120,8 @@
    "evidence": [
     "cargo test -p ici-application --test cache --test identity --test baseline; cargo test -p ici-cli --test execution warm; strict ici-application Clippy: passed; /tmp/ici-rust-replacement-20261028/w-runtime-cache.log",
     "Actual ESLint/tsc/Clippy replay: every unenumerated-closure check is evidence_complete=false and never reused; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-clean.log",
-    "R8 isolation: tests/rust-parity/perf/measure_budget.py gives every oracle/native child its own HOME and XDG cache/config (cancellation too) and scripts/smoke.sh runs `dist/ici.pyz verify` with ICI_CACHE_DIR=<mktemp> removed on exit; the real ~/.cache/ici/analysis/entries-v1 stayed at 17771 entries across a full measure_budget run and a smoke run (it had grown by the stable smoke's pyz verify during the R8 rehearsal); /tmp/ici-rust-replacement-20261028/w-runtime-r8-isolation.log"
+    "R8 isolation: tests/rust-parity/perf/measure_budget.py gives every oracle/native child its own HOME and XDG cache/config (cancellation too) and scripts/smoke.sh runs `dist/ici.pyz verify` with ICI_CACHE_DIR=<mktemp> removed on exit; the real ~/.cache/ici/analysis/entries-v1 stayed at 17771 entries across a full measure_budget run and a smoke run (it had grown by the stable smoke's pyz verify during the R8 rehearsal); /tmp/ici-rust-replacement-20261028/w-runtime-r8-isolation.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -156,7 +160,8 @@
     "R8 zoo: after `. opus-env.sh` under the heavy lock -j2: `cargo test -p ici-cli --test r8_legacy_parity --test doctor_commands --test legacy_doctor` (+ legacy_doctor --ignored 3 passed), `cargo test -p ici-analysis`; `cargo build --release -p ici-cli`; in a temporary corpus copy `python3.10 -m runner.bind_candidate --reference-sha256 c179986f… --ici-bin ../ici --name candidate-native-head` then `env -i HOME=<tmp> XDG_CACHE_HOME=<tmp> PATH=<tool-spike cpp bin>:/usr/bin:/bin LANG=C.UTF-8 QT_QPA_PLATFORM=offscreen python3.10 -m runner.run --manifest candidate-manifest.json --ici-bin ../ici --output-dir ../out --timeout-seconds 900` (16 scenarios: 7 PASS, 9 C++ FAIL); `cd quality-zoo && python3.10 -m unittest discover -s tests -t .`; /tmp/ici-rust-replacement-20261028/w-runtime-r8-zoo.log, w-runtime-r8-dedupe.log",
     "cd quality-zoo && python3.10 -m unittest discover -s tests -v (87 passed: candidate overrides, native intake, runner, contract, intake, binding); /tmp/ici-rust-replacement-20261028/w-runtime-zoo-runner.log",
     "python3.10 -m runner.native_intake on the musl and gnu scripts/build-native.sh R8 rehearsal archives (verified; wrong digest refused before extraction); /tmp/ici-rust-replacement-20261028/w-runtime-native-intake.log",
-    "runner.bind_candidate + flock <heavy lock> env -i HOME=<tmp>/home PATH=<tool-spike cpp bin>:/usr/bin:/bin LANG=C.UTF-8 QT_QPA_PLATFORM=offscreen python3.10 -m runner.run --manifest candidate-manifest.json --ici-bin <native release ELF> --timeout-seconds 900 (format native; 8 of 16 scenarios PASS, static-build-context PASS via the reviewed override; 8 C++ failures); /tmp/ici-rust-replacement-20261028/w-runtime-zoo-e2e.log"
+    "runner.bind_candidate + flock <heavy lock> env -i HOME=<tmp>/home PATH=<tool-spike cpp bin>:/usr/bin:/bin LANG=C.UTF-8 QT_QPA_PLATFORM=offscreen python3.10 -m runner.run --manifest candidate-manifest.json --ici-bin <native release ELF> --timeout-seconds 900 (format native; 8 of 16 scenarios PASS, static-build-context PASS via the reviewed override; 8 C++ failures); /tmp/ici-rust-replacement-20261028/w-runtime-zoo-e2e.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -192,7 +197,8 @@
    "comparison": "Frozen core/runner_win.py is the Windows Job Object helper used by core/runner.py only when os.name == 'nt' (suspended spawn, kill-on-close job, resume). The native product is built only for x86_64 Linux/WSL (ADR-0008: native Windows equivalence is not claimed); its process runner uses POSIX process groups (killpg) unconditionally, so no untested Windows runner can ship and a Windows bundle is refused at manifest formation.",
    "difference_reason": "Explicit unsupported disposition: native Windows execution is out of the approved Linux/WSL support scope; WSL is the supported route on Windows hosts. Not a silent removal: the refusal is tested.",
    "evidence": [
-    "cargo test -p ici-distribution --test distribution native_windows --locked: passed; Windows MSVC/GNU (and untested macOS) targets are refused with manifest-identity before any archive exists, Linux target passes identity; /tmp/ici-rust-replacement-20261028/w-runtime-windows.log and w-runtime-ecosystem-final.log"
+    "cargo test -p ici-distribution --test distribution native_windows --locked: passed; Windows MSVC/GNU (and untested macOS) targets are refused with manifest-identity before any archive exists, Linux target passes identity; /tmp/ici-rust-replacement-20261028/w-runtime-windows.log and w-runtime-ecosystem-final.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -221,7 +227,8 @@
     "cargo test -p ici-domain; cargo test -p ici-execution --test storage; cargo test -p ici-cli --test execution --test wire_schemas --test ecosystem_oracle --include-ignored: all passed; strict Clippy ici-domain/ici-providers/ici-cli passed; /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
     "Rendering gap closed by the reporting worker (commit c639aee, merged): `ici analyze` text mode prints the frozen root/scope announcement and verdict block, and `--json` writes the two announce lines to stderr with only the result on stdout; 13 frozen captures in tests/rust-parity/reporting/analyze-text-oracle.json (capture_analyze_text.py; /tmp/ici-rust-replacement-20261028/w-reporting2-analyze-capture.log).",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock` `cargo test -p ici-domain --locked -j2 --test wire`, `cargo test -p ici-execution --locked -j2 --test storage`, `cargo test -p ici-cli --locked -j2 --test execution --test wire_schemas --test ecosystem_oracle --test analyze_text --test report_commands --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 7 binaries, 43 passed, 0 failed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-reporting3-wire-events.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at cbb9e68a (feat/rust-application merged, incl. 181da76): `cargo test -p ici-cli --locked -j2 --test native_cpp --test legacy_sarif --test pytest_views --test compat_runtime_facts --test legacy_coverage_bound --test report_commands --test legacy_test_parity --test legacy_commands -- --include-ignored`, `cargo test -p ici-reporting --test legacy_sarif -- --include-ignored`, `cargo test -p ici-validation --test contracts -- --include-ignored`: all passed (native_cpp fixture 1, legacy_sarif 5+5, pytest_views 3, compat_runtime_facts 3, legacy_coverage_bound 2, report_commands 9, legacy_test_parity 8, legacy_commands 7, contracts 13); /tmp/ici-rust-replacement-20261028/w-rem-post-merge.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at cbb9e68a (feat/rust-application merged, incl. 181da76): `cargo test -p ici-cli --locked -j2 --test native_cpp --test legacy_sarif --test pytest_views --test compat_runtime_facts --test legacy_coverage_bound --test report_commands --test legacy_test_parity --test legacy_commands -- --include-ignored`, `cargo test -p ici-reporting --test legacy_sarif -- --include-ignored`, `cargo test -p ici-validation --test contracts -- --include-ignored`: all passed (native_cpp fixture 1, legacy_sarif 5+5, pytest_views 3, compat_runtime_facts 3, legacy_coverage_bound 2, report_commands 9, legacy_test_parity 8, legacy_commands 7, contracts 13); /tmp/ici-rust-replacement-20261028/w-rem-post-merge.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -261,7 +268,8 @@
     "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored --test-threads=2: 20 + 14 passed (actual ESLint/tsc/Clippy/compilers); /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log",
     "cargo test -p ici-cli --test execution --test wire_schemas --test ecosystem_oracle --locked -- --include-ignored: all passed, actual ESLint/tsc/Clippy CLI findings and fingerprints equal the frozen analyze golden; strict Clippy for ici-domain/ici-providers/ici-cli passed; /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
     "cargo test -p ici-providers --test resolution --locked: 7 passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-final.log",
-    "Clean-project replay added to ecosystem-e2e-oracle.json: frozen and native both PASS/exit 0 with identical check states and no findings; native evidence_complete=false limits cache reuse/resolution only, not the gate; cargo test -p ici-cli --test ecosystem_oracle --include-ignored passed and strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-clean.log"
+    "Clean-project replay added to ecosystem-e2e-oracle.json: frozen and native both PASS/exit 0 with identical check states and no findings; native evidence_complete=false limits cache reuse/resolution only, not the gate; cargo test -p ici-cli --test ecosystem_oracle --include-ignored passed and strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-clean.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -295,7 +303,8 @@
     "Frozen captures tests/rust-parity/providers/ecosystem-oracle.json and ecosystem-e2e-oracle.json (actual cargo clippy 0.1.99: clippy.clippy::needless_return with identical attributed fingerprint); /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
     "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log",
     "Clean-project replay added to ecosystem-e2e-oracle.json: frozen and native both PASS/exit 0 with identical check states and no findings; native evidence_complete=false limits cache reuse/resolution only, not the gate; cargo test -p ici-cli --test ecosystem_oracle --include-ignored passed and strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-clean.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-config --test resolution`, `-p ici-application --test planning`, `-p ici-providers --test planning --test diagnostics`, `-p ici-providers --test native -- --include-ignored clippy typescript` all passed, plus the R8 zero-config Cargo workspace (members=[\"crates/foo\"]) end-to-end run (exit 1 FAIL with clippy.clippy::let_and_return at crates/foo/src/lib.rs:1, one .ici/rust-v1/cargo-target at the workspace root, no crates/foo/.ici); /tmp/ici-rust-replacement-20261028/w-runtime-r8-ids.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-config --test resolution`, `-p ici-application --test planning`, `-p ici-providers --test planning --test diagnostics`, `-p ici-providers --test native -- --include-ignored clippy typescript` all passed, plus the R8 zero-config Cargo workspace (members=[\"crates/foo\"]) end-to-end run (exit 1 FAIL with clippy.clippy::let_and_return at crates/foo/src/lib.rs:1, one .ici/rust-v1/cargo-target at the workspace root, no crates/foo/.ici); /tmp/ici-rust-replacement-20261028/w-runtime-r8-ids.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -329,7 +338,8 @@
    "evidence": [
     "Same frozen captures (tests/rust-parity/providers/ecosystem-oracle.json, ecosystem-e2e-oracle.json): actual ESLint on TypeScript sources yields eslint.no-unused-vars and the eslint.parse fatal finding with identical attributed fingerprints in frozen and native analyze; /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
     "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log",
-    "Clean-project replay added to ecosystem-e2e-oracle.json: frozen and native both PASS/exit 0 with identical check states and no findings; native evidence_complete=false limits cache reuse/resolution only, not the gate; cargo test -p ici-cli --test ecosystem_oracle --include-ignored passed and strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-clean.log"
+    "Clean-project replay added to ecosystem-e2e-oracle.json: frozen and native both PASS/exit 0 with identical check states and no findings; native evidence_complete=false limits cache reuse/resolution only, not the gate; cargo test -p ici-cli --test ecosystem_oracle --include-ignored passed and strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-clean.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -361,7 +371,8 @@
     "Frozen captures tests/rust-parity/providers/ecosystem-oracle.json (chained diagnostic, global TS5058, clean) and ecosystem-e2e-oracle.json (actual tsc 7.0.2: tsc.2741 and tsc.2322 with identical attributed fingerprints); /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
     "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log",
     "Clean-project replay added to ecosystem-e2e-oracle.json: frozen and native both PASS/exit 0 with identical check states and no findings; native evidence_complete=false limits cache reuse/resolution only, not the gate; cargo test -p ici-cli --test ecosystem_oracle --include-ignored passed and strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-clean.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-config --test resolution`, `-p ici-application --test planning`, `-p ici-providers --test planning --test diagnostics`, `-p ici-providers --test native -- --include-ignored clippy typescript` all passed, plus the R8 zero-config Cargo workspace (members=[\"crates/foo\"]) end-to-end run (exit 1 FAIL with clippy.clippy::let_and_return at crates/foo/src/lib.rs:1, one .ici/rust-v1/cargo-target at the workspace root, no crates/foo/.ici); /tmp/ici-rust-replacement-20261028/w-runtime-r8-ids.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-config --test resolution`, `-p ici-application --test planning`, `-p ici-providers --test planning --test diagnostics`, `-p ici-providers --test native -- --include-ignored clippy typescript` all passed, plus the R8 zero-config Cargo workspace (members=[\"crates/foo\"]) end-to-end run (exit 1 FAIL with clippy.clippy::let_and_return at crates/foo/src/lib.rs:1, one .ici/rust-v1/cargo-target at the workspace root, no crates/foo/.ici); /tmp/ici-rust-replacement-20261028/w-runtime-r8-ids.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -395,7 +406,8 @@
     "cargo test -p ici-cli --test native_validation --test python_coverage_scope --test legacy_gcov_cli --test legacy_test_metrics --test pytest_next_parity --test native_preparation -- --include-ignored and -p ici-validation --test native_python -- --include-ignored: all passed; /tmp/ici-rust-replacement-20261028/w-rem2-plan-text-ignored.log; clippy -p ici-cli -p ici-application -p ici-validation --all-targets -D warnings: /tmp/ici-rust-replacement-20261028/w-rem2-e6-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --locked --test plan_text_oracle --test legacy_python_engines -- --include-ignored` after f28bb585 (plan-text-only rewrite); EXIT 0, 5 passed; /tmp/ici-rust-replacement-20261028/w-rem2-reason-fix-tests.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --locked --test analyze_text --test cli_options --test execution --test plan_commands --test plan_engines --test plan_text_oracle --test run_tem --test verify_cutover --test verify_exit_floor --test legacy_python_inventory --test legacy_sarif --no-fail-fast`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-rem2-f5-text-tests.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2, planning naming a tool found nowhere `<tool> is not available`: `cargo test -p ici-cli --locked -j2 --no-fail-fast --test analyze_text --test plan_text_oracle --test plan_commands --test plan_engines --test config_oracle --test cli_gaps --test cli_options --test legacy_python_engines --test legacy_lint_branches --test legacy_sarif --test execution --test python_modern_tools_parity --test python_modern_parity --test legacy_python_inventory -- --include-ignored` (/tmp/ici-rust-replacement-20261028/w-runtime-tool-wording-tests.log; the tools-missing gate correction became unnecessary and was removed, rerun passed in w-runtime-wheel-bounds-tests.log) and `--test native_cpp --test doctor_commands --test legacy_doctor --test verify_cutover --test run_tem --test legacy_commands --test legacy_cpp_metrics -- --include-ignored` (/tmp/ici-rust-replacement-20261028/w-runtime-tool-wording-tests2.log): all passed"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2, planning naming a tool found nowhere `<tool> is not available`: `cargo test -p ici-cli --locked -j2 --no-fail-fast --test analyze_text --test plan_text_oracle --test plan_commands --test plan_engines --test config_oracle --test cli_gaps --test cli_options --test legacy_python_engines --test legacy_lint_branches --test legacy_sarif --test execution --test python_modern_tools_parity --test python_modern_parity --test legacy_python_inventory -- --include-ignored` (/tmp/ici-rust-replacement-20261028/w-runtime-tool-wording-tests.log; the tools-missing gate correction became unnecessary and was removed, rerun passed in w-runtime-wheel-bounds-tests.log) and `--test native_cpp --test doctor_commands --test legacy_doctor --test verify_cutover --test run_tem --test legacy_commands --test legacy_cpp_metrics -- --include-ignored` (/tmp/ici-rust-replacement-20261028/w-runtime-tool-wording-tests2.log): all passed",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -429,7 +441,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -458,7 +471,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -487,7 +501,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -517,7 +532,8 @@
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
     "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
-    "Frozen capture `/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_r8_legacy.py` -> tests/rust-parity/runtime/r8-legacy-oracle.json (v0.13.0 6fe3e405, empty HOME/XDG_CACHE_HOME, PATH=/usr/bin:/bin); after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 under the heavy lock -j2: `cargo test -p ici-cli --test r8_legacy_parity` (2 passed), `-p ici-analysis --lib historical_explicit_producer_details`, `-p ici-reporting --test rendering --test limits`, the legacy ici-cli binaries legacy_report_keys/legacy_analysis_context/legacy_doctor with --include-ignored and legacy_baseline_gate/verify_matrix/sarif/commands/exit_policy/engine_cache/publish/sweep/python_inventory/doctor_commands all passed; /tmp/ici-rust-replacement-20261028/w-runtime-r8-legacy.log"
+    "Frozen capture `/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_r8_legacy.py` -> tests/rust-parity/runtime/r8-legacy-oracle.json (v0.13.0 6fe3e405, empty HOME/XDG_CACHE_HOME, PATH=/usr/bin:/bin); after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 under the heavy lock -j2: `cargo test -p ici-cli --test r8_legacy_parity` (2 passed), `-p ici-analysis --lib historical_explicit_producer_details`, `-p ici-reporting --test rendering --test limits`, the legacy ici-cli binaries legacy_report_keys/legacy_analysis_context/legacy_doctor with --include-ignored and legacy_baseline_gate/verify_matrix/sarif/commands/exit_policy/engine_cache/publish/sweep/python_inventory/doctor_commands all passed; /tmp/ici-rust-replacement-20261028/w-runtime-r8-legacy.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -548,7 +564,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -577,7 +594,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -607,7 +625,8 @@
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
     "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
-    "Frozen capture `/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_r8_legacy.py` -> tests/rust-parity/runtime/r8-legacy-oracle.json (v0.13.0 6fe3e405, empty HOME/XDG_CACHE_HOME, PATH=/usr/bin:/bin); after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 under the heavy lock -j2: `cargo test -p ici-cli --test r8_legacy_parity` (2 passed), `-p ici-analysis --lib historical_explicit_producer_details`, `-p ici-reporting --test rendering --test limits`, the legacy ici-cli binaries legacy_report_keys/legacy_analysis_context/legacy_doctor with --include-ignored and legacy_baseline_gate/verify_matrix/sarif/commands/exit_policy/engine_cache/publish/sweep/python_inventory/doctor_commands all passed; /tmp/ici-rust-replacement-20261028/w-runtime-r8-legacy.log"
+    "Frozen capture `/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_r8_legacy.py` -> tests/rust-parity/runtime/r8-legacy-oracle.json (v0.13.0 6fe3e405, empty HOME/XDG_CACHE_HOME, PATH=/usr/bin:/bin); after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 under the heavy lock -j2: `cargo test -p ici-cli --test r8_legacy_parity` (2 passed), `-p ici-analysis --lib historical_explicit_producer_details`, `-p ici-reporting --test rendering --test limits`, the legacy ici-cli binaries legacy_report_keys/legacy_analysis_context/legacy_doctor with --include-ignored and legacy_baseline_gate/verify_matrix/sarif/commands/exit_policy/engine_cache/publish/sweep/python_inventory/doctor_commands all passed; /tmp/ici-rust-replacement-20261028/w-runtime-r8-legacy.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -638,7 +657,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -667,7 +687,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -697,7 +718,8 @@
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
     "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02, after merging fffa9e9e): `cargo test -p ici-domain --test descriptors --test event_identity`, `cargo test -p ici-reporting --lib test_aggregation_tests`, `cargo test -p ici-cli --test legacy_test_metrics --test legacy_mode_scope --test legacy_commands -- --include-ignored`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-rows-rerun.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02, after merging fffa9e9e): `cargo test -p ici-domain --test descriptors --test event_identity`, `cargo test -p ici-reporting --lib test_aggregation_tests`, `cargo test -p ici-cli --test legacy_test_metrics --test legacy_mode_scope --test legacy_commands -- --include-ignored`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-rows-rerun.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -726,7 +748,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -755,7 +778,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -784,7 +808,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -813,7 +838,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -843,7 +869,8 @@
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
     "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
-    "Frozen capture `/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_r8_legacy.py` -> tests/rust-parity/runtime/r8-legacy-oracle.json (v0.13.0 6fe3e405, empty HOME/XDG_CACHE_HOME, PATH=/usr/bin:/bin); after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 under the heavy lock -j2: `cargo test -p ici-cli --test r8_legacy_parity` (2 passed), `-p ici-analysis --lib historical_explicit_producer_details`, `-p ici-reporting --test rendering --test limits`, the legacy ici-cli binaries legacy_report_keys/legacy_analysis_context/legacy_doctor with --include-ignored and legacy_baseline_gate/verify_matrix/sarif/commands/exit_policy/engine_cache/publish/sweep/python_inventory/doctor_commands all passed; /tmp/ici-rust-replacement-20261028/w-runtime-r8-legacy.log"
+    "Frozen capture `/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_r8_legacy.py` -> tests/rust-parity/runtime/r8-legacy-oracle.json (v0.13.0 6fe3e405, empty HOME/XDG_CACHE_HOME, PATH=/usr/bin:/bin); after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 under the heavy lock -j2: `cargo test -p ici-cli --test r8_legacy_parity` (2 passed), `-p ici-analysis --lib historical_explicit_producer_details`, `-p ici-reporting --test rendering --test limits`, the legacy ici-cli binaries legacy_report_keys/legacy_analysis_context/legacy_doctor with --include-ignored and legacy_baseline_gate/verify_matrix/sarif/commands/exit_policy/engine_cache/publish/sweep/python_inventory/doctor_commands all passed; /tmp/ici-rust-replacement-20261028/w-runtime-r8-legacy.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -874,7 +901,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -903,7 +931,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -933,7 +962,8 @@
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
     "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
-    "Frozen capture `/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_r8_legacy.py` -> tests/rust-parity/runtime/r8-legacy-oracle.json (v0.13.0 6fe3e405, empty HOME/XDG_CACHE_HOME, PATH=/usr/bin:/bin); after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 under the heavy lock -j2: `cargo test -p ici-cli --test r8_legacy_parity` (2 passed), `-p ici-analysis --lib historical_explicit_producer_details`, `-p ici-reporting --test rendering --test limits`, the legacy ici-cli binaries legacy_report_keys/legacy_analysis_context/legacy_doctor with --include-ignored and legacy_baseline_gate/verify_matrix/sarif/commands/exit_policy/engine_cache/publish/sweep/python_inventory/doctor_commands all passed; /tmp/ici-rust-replacement-20261028/w-runtime-r8-legacy.log"
+    "Frozen capture `/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_r8_legacy.py` -> tests/rust-parity/runtime/r8-legacy-oracle.json (v0.13.0 6fe3e405, empty HOME/XDG_CACHE_HOME, PATH=/usr/bin:/bin); after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 under the heavy lock -j2: `cargo test -p ici-cli --test r8_legacy_parity` (2 passed), `-p ici-analysis --lib historical_explicit_producer_details`, `-p ici-reporting --test rendering --test limits`, the legacy ici-cli binaries legacy_report_keys/legacy_analysis_context/legacy_doctor with --include-ignored and legacy_baseline_gate/verify_matrix/sarif/commands/exit_policy/engine_cache/publish/sweep/python_inventory/doctor_commands all passed; /tmp/ici-rust-replacement-20261028/w-runtime-r8-legacy.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -964,7 +994,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -989,7 +1020,8 @@
   "finding_site:src/ici/adapters/providers/ecosystem.py:127:15": {
    "comparison": "Dynamic rule family '<tool>.<native rule>' (eslint.*, tsc.TS*, clippy.*) resolved against the frozen parse oracle (tests/rust-parity/providers/ecosystem-oracle.json) and frozen `ici analyze` on real ESLint 10.13.0, tsc 7.0.2, clippy 0.1.99: same rule ids, native_rule_id, locations and fingerprints; frozen-refused outputs are refused natively.",
    "evidence": [
-    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log"
+    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -1010,7 +1042,8 @@
   "finding_site:src/ici/core/cache_codec.py:182:11": {
    "comparison": "Cached InspectionTarget target_name/metrics are pass-through of what the producing check stored (no fixed family); native keeps them byte-for-byte (unicode name, metric map), refuses malformed or escaping entries as misses.",
    "evidence": [
-    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log"
+    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -1031,7 +1064,8 @@
   "finding_site:src/ici/core/cache_codec.py:255:11": {
    "comparison": "Cached Finding rule_id/tool_rule_id/metrics are pass-through of the stored observation; native strict decode rejects malformed entries as corrupt misses instead of a wrong hit.",
    "evidence": [
-    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log"
+    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -1053,7 +1087,8 @@
    "comparison": "No behaviour to preserve: unreachable from every frozen entry point (console script ici = ici.__main__:main; src/ici/domain/legacy.py is imported only by frozen tests). Proven by scripts/rust_migration_inventory.py --check, which recomputes the static import closure (function-local and relative imports included) from the git-archived oracle and requires it to equal tests/rust-parity/oracle/import-closure-oracle.json. User-visible legacy intake and baseline comparison are closed under their own reporting/identity rows (ici-reporting migration.rs, ici-application baseline.rs), not by this site.",
    "evidence": [
     "python3 scripts/rust_migration_inventory.py --check: import closure equals tests/rust-parity/oracle/import-closure-oracle.json (oracle 6fe3e405, 274 reachable modules, 9 unreachable Python modules including this file)",
-    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS"
+    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -1076,7 +1111,8 @@
    "comparison": "No behaviour to preserve: unreachable from every frozen entry point (console script ici = ici.__main__:main; src/ici/domain/legacy.py is imported only by frozen tests). Proven by scripts/rust_migration_inventory.py --check, which recomputes the static import closure (function-local and relative imports included) from the git-archived oracle and requires it to equal tests/rust-parity/oracle/import-closure-oracle.json. User-visible legacy intake and baseline comparison are closed under their own reporting/identity rows (ici-reporting migration.rs, ici-application baseline.rs), not by this site.",
    "evidence": [
     "python3 scripts/rust_migration_inventory.py --check: import closure equals tests/rust-parity/oracle/import-closure-oracle.json (oracle 6fe3e405, 274 reachable modules, 9 unreachable Python modules including this file)",
-    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS"
+    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -1098,7 +1134,8 @@
   "finding_site:src/ici/domain/serialization.py:301:11": {
    "comparison": "rule_id/native_rule_id read from the stored run (e.g. ICI-LINT-001/F401 in tests/fixtures/ici-next/run-code-fail.json, published by the frozen product) round-trip without loss; unknown or inconsistent fields are refused.",
    "evidence": [
-    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log"
+    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -1120,7 +1157,8 @@
   "finding_site:src/ici/domain/serialization.py:454:15": {
    "comparison": "Run metrics (name/unit/value/numerator/denominator/evidence, e.g. line-coverage 446/500) are pass-through measurements; the frozen-published goldens and tests/rust-parity/domain/run-v2.json round-trip exactly.",
    "evidence": [
-    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log"
+    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -1142,7 +1180,8 @@
    "comparison": "No behaviour to preserve: unreachable from every frozen entry point (console script ici = ici.__main__:main; src/ici/execution/legacy_reader.py is imported only by frozen tests). Proven by scripts/rust_migration_inventory.py --check, which recomputes the static import closure (function-local and relative imports included) from the git-archived oracle and requires it to equal tests/rust-parity/oracle/import-closure-oracle.json. User-visible legacy intake and baseline comparison are closed under their own reporting/identity rows (ici-reporting migration.rs, ici-application baseline.rs), not by this site.",
    "evidence": [
     "python3 scripts/rust_migration_inventory.py --check: import closure equals tests/rust-parity/oracle/import-closure-oracle.json (oracle 6fe3e405, 274 reachable modules, 9 unreachable Python modules including this file)",
-    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS"
+    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -1165,7 +1204,8 @@
    "comparison": "No behaviour to preserve: unreachable from every frozen entry point (console script ici = ici.__main__:main; src/ici/execution/legacy_reader.py is imported only by frozen tests). Proven by scripts/rust_migration_inventory.py --check, which recomputes the static import closure (function-local and relative imports included) from the git-archived oracle and requires it to equal tests/rust-parity/oracle/import-closure-oracle.json. User-visible legacy intake and baseline comparison are closed under their own reporting/identity rows (ici-reporting migration.rs, ici-application baseline.rs), not by this site.",
    "evidence": [
     "python3 scripts/rust_migration_inventory.py --check: import closure equals tests/rust-parity/oracle/import-closure-oracle.json (oracle 6fe3e405, 274 reachable modules, 9 unreachable Python modules including this file)",
-    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS"
+    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -1188,7 +1228,8 @@
    "comparison": "No behaviour to preserve: unreachable from every frozen entry point (console script ici = ici.__main__:main; src/ici/execution/legacy_reader.py is imported only by frozen tests). Proven by scripts/rust_migration_inventory.py --check, which recomputes the static import closure (function-local and relative imports included) from the git-archived oracle and requires it to equal tests/rust-parity/oracle/import-closure-oracle.json. User-visible legacy intake and baseline comparison are closed under their own reporting/identity rows (ici-reporting migration.rs, ici-application baseline.rs), not by this site.",
    "evidence": [
     "python3 scripts/rust_migration_inventory.py --check: import closure equals tests/rust-parity/oracle/import-closure-oracle.json (oracle 6fe3e405, 274 reachable modules, 9 unreachable Python modules including this file)",
-    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS"
+    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -1211,7 +1252,8 @@
    "comparison": "No behaviour to preserve: unreachable from every frozen entry point (console script ici = ici.__main__:main; src/ici/execution/snapshot.py is imported only by frozen tests). Proven by scripts/rust_migration_inventory.py --check, which recomputes the static import closure (function-local and relative imports included) from the git-archived oracle and requires it to equal tests/rust-parity/oracle/import-closure-oracle.json. User-visible legacy intake and baseline comparison are closed under their own reporting/identity rows (ici-reporting migration.rs, ici-application baseline.rs), not by this site.",
    "evidence": [
     "python3 scripts/rust_migration_inventory.py --check: import closure equals tests/rust-parity/oracle/import-closure-oracle.json (oracle 6fe3e405, 274 reachable modules, 9 unreachable Python modules including this file)",
-    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS"
+    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "fixtures": {
     "failure": [
@@ -1265,7 +1307,8 @@
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --locked --test next_output_options`; EXIT 0, 3 passed; /tmp/ici-rust-replacement-20261028/w-rem2-f7-tests.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-cli --locked -j2 --no-fail-fast --test next_output_options --test report_commands --test cli_options --test config_commands --test analyze_text --test execution --test cli_gaps -- --include-ignored` all passed (analyze_text rerun after its page expectation moved to .ici/rust-v1/details/), `cargo clippy -p ici-cli --all-targets --locked -- -D warnings` passed; /tmp/ici-rust-replacement-20261028/w-runtime-placement-tests.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-config --test resolution`, `-p ici-application --test planning`, `-p ici-providers --test planning --test diagnostics`, `-p ici-providers --test native -- --include-ignored clippy typescript` all passed, plus the R8 zero-config Cargo workspace (members=[\"crates/foo\"]) end-to-end run (exit 1 FAIL with clippy.clippy::let_and_return at crates/foo/src/lib.rs:1, one .ici/rust-v1/cargo-target at the workspace root, no crates/foo/.ici); /tmp/ici-rust-replacement-20261028/w-runtime-r8-ids.log",
-    "Frozen capture tests/rust-parity/runtime/capture_r8_legacy.py (nested/legacy-config-above, legacy-config-above-package, checkout-without-config, no-checkout); `cargo test -p ici-cli --test r8_legacy_parity --test config_oracle`, all ici-config tests and the ici-cli analyze/config/plan/report/doctor/execution binaries passed under the heavy lock -j2; /tmp/ici-rust-replacement-20261028/w-runtime-r8-nested.log"
+    "Frozen capture tests/rust-parity/runtime/capture_r8_legacy.py (nested/legacy-config-above, legacy-config-above-package, checkout-without-config, no-checkout); `cargo test -p ici-cli --test r8_legacy_parity --test config_oracle`, all ici-config tests and the ici-cli analyze/config/plan/report/doctor/execution binaries passed under the heavy lock -j2; /tmp/ici-rust-replacement-20261028/w-runtime-r8-nested.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "comparison": "Runtime facet (F7): `--output` is frozen's alias of `--result` (cli/next_common._RESULT_OPTION) and `--no-cache` runs without reusing stored observations. Replayed through the built binary against frozen `ici analyze --output out/a.json`, `--output out/b.json --no-cache` and `--result out/c.json --no-cache` on a configured workspace (tool checks disabled, PATH=/usr/bin:/bin): exit codes (0 PASS / 1 FAIL), every frozen verdict-block line in order, exactly frozen's files outside .ici/ (only the named result; the analyze page of an explicit result lives under .ici/rust-v1/details/<file>/<run>/page.html since 2026-11-02, root decision E2 — earlier builds wrote `out/a.html` beside it and failed after saving when a user's own `out/a.html` existed), the saved gate and finding count, and an empty reused_task_ids under --no-cache equal frozen. R8 (runtime facet of zero-config discovery): frozen automatic() produced one `project` component; native partitions by package and now derives result identifiers from the package directory (`crates/foo` -> `crates-foo`, `project` for the root, an 8-hex directory-digest suffix for empty, reserved or colliding slugs), and any declared component id the result scope cannot record is refused with exit 2 and frozen's message by the resolver (frozen ici.workspace.build require_identifier, applied by every frozen next command) and again by planning, before a tool runs — previously clippy ran and the save failed with exit 2. R8 (nested directory): frozen `discover` passes over an enclosing `ici.toml` that declares no [workspace] and refuses (`found ici.toml above <cwd> but none declares a [workspace]: <file> (the search stopped at the checkout root <root>) …`, exit 2, nothing written); native rooted the run at that enclosing project and wrote its result there. Native now passes over such a historical file above the working directory exactly like frozen (a [workspace]/schema_version file further up still roots the run) and refuses with frozen's detail; without a file above, both root at the checkout, or at the working directory when there is none (r8-legacy-oracle.json nested/*).",
    "difference_reason": "Reviewed native additions, each matched by name in next_output_options.rs (any other line fails): `ici analyze` also writes the offline page and prints `HTML: …` and the finding preview after `saved` (execution plan §2.1 analyze flow, the reporting area's accepted difference; root decision D4 is the `next verify` counterpart, which writes no page) — beside the default result in .ici/rust-v1/, under .ici/rust-v1/details/ for an explicit --result (E2); the source-identity note for a `.git` without HEAD; the native observation cache reuses in-process checks between runs without --no-cache (`  cache: reused N stored result(s)`), where frozen application/identity.py never cached them ('internal checks run in-process; there is nothing to cache') — with --no-cache both reuse nothing. Native default artifacts live in .ici/rust-v1 where frozen used .ici/next (accepted namespace). OS error texts are the platform library's (Python `[Errno 2] …`, Rust `(os error 2)`); class, file and prefix are frozen's. Discovered component ids are package-directory slugs (frozen had only `project`); a declared id that is not a result identifier (uppercase, `/`) is refused at planning with exit 2 instead of after tools ran. The nested refusal is prefixed by native's located origin (`<cwd>:1:1: workspace:`); the recorded acceptance of a historical ici.toml in the working directory itself (cpp.json command:ici analyze (3)) is unchanged."
@@ -1289,7 +1332,8 @@
    },
    "evidence": [
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_next_output_options.py --oracle /tmp/ici-rust-replacement-20261028/oracle --python /home/jihoon/projects/ici/.venv/bin/python -> tests/rust-parity/runtime/next-output-options-oracle.json (frozen v0.13.0 6fe3e405, HOME=<tmp>, PATH=/usr/bin:/bin); /tmp/ici-rust-replacement-20261028/w-rem2-f7-capture.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --locked --test next_output_options`; EXIT 0, 3 passed; /tmp/ici-rust-replacement-20261028/w-rem2-f7-tests.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --locked --test next_output_options`; EXIT 0, 3 passed; /tmp/ici-rust-replacement-20261028/w-rem2-f7-tests.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "comparison": "Runtime facet (F7): `ici next diff <baseline> --output|--result <current>` (frozen cmd_diff) replayed against frozen: the outcome line `N new, N unchanged, N resolved, N carried (baseline a.json → b.json)`, the carried note when a component the newer run did not select carries its findings, the `  gate: PASS → FAIL` / `FAIL → PASS` line, both option spellings, and the missing current refusal (`diff: <path> cannot be read: …`, exit 2) equal frozen line for line and exit code for exit code.",
    "difference_reason": "OS error text after `cannot be read: ` is the platform library's (Rust `(os error 2)` where Python printed `[Errno 2] …`); class, file and exit are frozen's."
@@ -1313,7 +1357,8 @@
    },
    "evidence": [
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_next_output_options.py --oracle /tmp/ici-rust-replacement-20261028/oracle --python /home/jihoon/projects/ici/.venv/bin/python -> tests/rust-parity/runtime/next-output-options-oracle.json (frozen v0.13.0 6fe3e405, HOME=<tmp>, PATH=/usr/bin:/bin); /tmp/ici-rust-replacement-20261028/w-rem2-f7-capture.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --locked --test next_output_options`; EXIT 0, 3 passed; /tmp/ici-rust-replacement-20261028/w-rem2-f7-tests.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --locked --test next_output_options`; EXIT 0, 3 passed; /tmp/ici-rust-replacement-20261028/w-rem2-f7-tests.log",
+    "Root batch 998e69d2 (static; cli 806; py 4294/18 host skips; rest 664 at 1d21ea93) and CI 43535919730 green on the exact SHA; /tmp logs cited here are scratch."
    ],
    "comparison": "Runtime facet (F7): `--output`/`--result` name the result and `--out` the page (frozen cmd_publish, _PAGE_OPTION `--out`). Offline against frozen: `--output out/a.json` with the default page refuses `publish: no page at <default page> — run `ici next report` first` (exit 2), `--result out/missing.json` refuses `publish: cannot read result <path>: …` (exit 2) before the page is looked at, and `--output out/a.json --out out/none.html` names that page; frozen and native agree line for line and on exit codes. Successful HTTPS publication stays the distribution facet.",
    "difference_reason": "The default page is .ici/rust-v1/result.html (accepted native namespace; frozen .ici/next/result.html); OS error text after the path is the platform library's."
