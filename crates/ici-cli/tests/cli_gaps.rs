@@ -431,10 +431,11 @@ fn doctor_export_and_publish_read_only_the_working_directory_configuration() {
     assert_eq!(replay("subdirectory"), 6);
 }
 
-/// Native-only (frozen v0.13.0 has no schema_version = 2): a historical command below a native
-/// v2 root reads only its working directory, like every other historical command, so a v2 file
-/// above it — here an invalid one that refuses the command at the root — is not consulted.
-/// Recorded for the root as `global.native_v2_subdirectory` in cli-gaps-differences.json.
+/// Root ruling 2026-11-14 (f1), follow frozen: a historical command below a native v2 root reads
+/// only its working directory, like every other historical command, so a v2 file above it —
+/// here an invalid one that refuses the command at the root — is not consulted
+/// (`global.native_v2_subdirectory` in cli-gaps-differences.json; the frozen captures are
+/// replayed by legacy_v2_subdirectory.rs).
 #[test]
 fn historical_commands_below_a_native_v2_root_ignore_the_file_above() {
     let differences = fixture("cli-gaps-differences.json");

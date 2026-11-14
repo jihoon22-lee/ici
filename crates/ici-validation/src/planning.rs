@@ -648,18 +648,28 @@ pub(crate) fn task(request: &ValidationRequest, suffix: &str, args: Vec<String>)
 }
 /// Frozen passes `SUITE_TIMEOUT` (1200 s) to `run_process` for the coverage run, plain pytest and
 /// unittest calls, under its default bound of 1,000,000 bytes per stream. The plain pytest task
-/// is cloned from the covered suite, so it inherits these.
+/// is cloned from the covered suite, so it inherits these. The ResourceWarning suite
+/// (`_check_python_resource_warnings`, _sanitize_python_scope.py:115) passes neither, so it runs
+/// under run_process's defaults, 300 s and 1,000,000 per stream (core/runner.py:478-480; root
+/// ruling 2026-11-14 (f2), python-sanitize-incomplete-oracle.json).
 pub(crate) fn legacy_suite_bounds(task: &mut TaskSpec, request: &ValidationRequest) {
-    if request.options.legacy_pytest_result
-        && matches!(
-            request.kind,
-            ValidationKind::PythonTest | ValidationKind::PythonCoverage
-        )
-    {
-        task.timeout_seconds = Some(1200.0);
-        task.output_limit_bytes = Some(1_000_000);
+    if !request.options.legacy_pytest_result {
+        return;
+    }
+    match request.kind {
+        ValidationKind::PythonTest | ValidationKind::PythonCoverage => {
+            task.timeout_seconds = Some(1200.0);
+            task.output_limit_bytes = Some(1_000_000);
+        }
+        ValidationKind::PythonSanitize => {
+            task.timeout_seconds = Some(LEGACY_SANITIZE_TIMEOUT_SECONDS);
+            task.output_limit_bytes = Some(1_000_000);
+        }
+        _ => {}
     }
 }
+/// Frozen run_process's default deadline, which the legacy ResourceWarning suite runs under.
+pub const LEGACY_SANITIZE_TIMEOUT_SECONDS: f64 = 300.0;
 pub(crate) fn completed(outcome: &TaskOutcome) -> bool {
     outcome.state == TaskState::Succeeded
         && !outcome.cancelled

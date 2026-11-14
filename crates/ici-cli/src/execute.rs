@@ -2719,7 +2719,10 @@ fn legacy_python_tool_evidence(
             };
             let mut record = python_record(name, &task.argv, outcome);
             if sanitize && record["error"] == "" {
-                record["error"] = json!(ici_validation::legacy_evidence_error(outcome));
+                record["error"] = json!(ici_validation::legacy_evidence_error(
+                    outcome,
+                    task.timeout_seconds,
+                ));
             }
             Some(record)
         })

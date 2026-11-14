@@ -60,6 +60,29 @@ pub fn find_workspace_root(start: &Path) -> Option<PathBuf> {
     None
 }
 
+/// The nearest `[workspace]` declaration frozen `find_workspace_root` takes, at or above `start`
+/// and not past the checkout root, and whether it is a `schema_version = 2` file. Frozen v0.13.0
+/// has no v2 schema, so it claims a v2 file that declares `[workspace]` like any other (root
+/// ruling 2026-11-14 (f1), `tests/rust-parity/config/v2-subdirectory-oracle.json`);
+/// [`find_workspace_root`] passes over it.
+pub fn find_workspace_declaration(start: &Path) -> Option<(PathBuf, bool)> {
+    let start = start.canonicalize().ok()?;
+    for directory in start.ancestors() {
+        let candidate = directory.join("ici.toml");
+        if candidate.is_file()
+            && let Ok(parsed) = Parsed::read(&candidate, false, "root")
+            && parsed.value.get("workspace").is_some()
+        {
+            let v2 = parsed.value.get("schema_version").and_then(|v| v.as_i64()) == Some(2);
+            return Some((directory.into(), v2));
+        }
+        if VCS.iter().any(|marker| directory.join(marker).exists()) {
+            return None;
+        }
+    }
+    None
+}
+
 /// `walk = false` is the frozen historical loader (`load_config(base=cwd)`): only the working
 /// directory's own configuration is read and the working directory is the project root.
 pub(crate) fn select(
