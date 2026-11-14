@@ -187,18 +187,18 @@ fn legacy_verify_traces_only_production_units_of_a_qt_automoc_build_like_frozen(
 /// complexity engine passes measured, as frozen. Failure class it guards: `function boundary
 /// source is unavailable: <shadow>/..._autogen/mocs_compilation.cpp` (CI run 43566463718).
 #[test]
-#[ignore = "explicit actual CMake/ctest/g++/Qt 6 AUTOMOC runs with clang-tidy 21 (ICI_TEST_CLANG_TIDY, LLVM 21.1.6): /usr/bin/cmake (4.2.3), ctest, /usr/bin/g++ and Qt 6 Core development files"]
+#[ignore = "explicit actual CMake/ctest/g++/Qt 6 AUTOMOC runs with clang-tidy (ICI_TEST_CLANG_TIDY_21_1_6, the captured LLVM 21.1.6, the ubuntu-26.04 apt release; not the LLVM 21.1.8 ICI_TEST_CLANG_TIDY): /usr/bin/cmake (4.2.3), ctest, /usr/bin/g++ and Qt 6 Core development files"]
 fn legacy_verify_replays_boundaries_only_for_production_units_of_a_qt_automoc_build_like_frozen() {
     let oracle = oracle();
-    let tidy =
-        std::env::var("ICI_TEST_CLANG_TIDY").expect("ICI_TEST_CLANG_TIDY names clang-tidy 21");
+    let tidy = std::env::var("ICI_TEST_CLANG_TIDY_21_1_6")
+        .expect("ICI_TEST_CLANG_TIDY_21_1_6 names clang-tidy 21.1.6");
     let tidy = Path::new(&tidy).canonicalize().unwrap();
     let version = Command::new(&tidy).arg("--version").output().unwrap();
     assert!(
         String::from_utf8(version.stdout)
             .unwrap()
             .contains(oracle["clang_tidy"].as_str().unwrap()),
-        "ICI_TEST_CLANG_TIDY must be the captured clang-tidy"
+        "ICI_TEST_CLANG_TIDY_21_1_6 must be the captured clang-tidy"
     );
     let directory = tidy.parent().unwrap().display().to_string();
     replay(&oracle, "clang-tidy", Some(&directory));

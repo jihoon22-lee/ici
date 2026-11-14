@@ -1,6 +1,6 @@
 """Development-only frozen legacy `ici verify` over a Qt AUTOMOC CMake project; never called by Rust.
 
-    ICI_TEST_CLANG_TIDY=/path/to/clang-tidy python -I -B capture_qt_automoc_verify.py
+    ICI_TEST_CLANG_TIDY_21_1_6=/path/to/clang-tidy python -I -B capture_qt_automoc_verify.py
 
 parity-fixtures/cpp/qt-automoc is a legacy CMake project (`source_dirs = ['src']`) whose library
 and test targets set `CMAKE_AUTOMOC`, so every build tree's compilation database also records the
@@ -10,8 +10,10 @@ so the cycle engine traces `src/counter.cpp` alone and clang-tidy and the compil
 complexity boundaries replay it alone (frozen `_cpp_lint` syntax checks still compile the Qt
 generated units). Only the lint, test, cycle and complexity engines run. Two cases: `plain` with
 PATH=/usr/bin:/bin (no clang-tidy: lexical complexity) and `clang-tidy` with the directory of
-`$ICI_TEST_CLANG_TIDY` first on PATH (frozen boundary mode). Records the exit code, the suite
-status and per engine the status, evidence, summary, targets and the cycle/boundary counters.
+`$ICI_TEST_CLANG_TIDY_21_1_6` (LLVM 21.1.6, the ubuntu-26.04 apt release, not the LLVM 21.1.8
+`$ICI_TEST_CLANG_TIDY` of the other captures) first on PATH (frozen boundary mode). Records the
+exit code, the suite status and per engine the status, evidence, summary, targets and the
+cycle/boundary counters.
 The project path is stored as {root}; the frozen checkout is `$ICI_FROZEN_ORACLE` (6fe3e405).
 """
 
@@ -67,7 +69,7 @@ assert (
 )
 for tool in ("clang-tidy", "clazy-standalone"):
     assert shutil.which(tool, path="/usr/bin:/bin") is None, f"{tool} must be absent"
-TIDY = Path(os.environ["ICI_TEST_CLANG_TIDY"]).resolve()
+TIDY = Path(os.environ["ICI_TEST_CLANG_TIDY_21_1_6"]).resolve()
 CMAKE = subprocess.check_output(["/usr/bin/cmake", "--version"], text=True).splitlines()[0]
 TIDY_VERSION = next(
     line.strip()
