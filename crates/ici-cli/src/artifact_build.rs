@@ -1522,6 +1522,40 @@ pub fn legacy_declared_publication(
         .legacy_publication()
         .ok()
 }
+/// Frozen `_publish_declared_artifacts` beside a failed legacy adapter build: `None` without a
+/// declaration, the record count and the legacy `config.artifacts` manifest
+/// (`ArtifactManifest.create`: path order, `release:project:<path>` ids, file-name targets), or
+/// the reason frozen records no manifest.
+pub fn legacy_declared_manifest(
+    project: &ResolvedProject,
+    component: &Component,
+) -> Result<Option<(usize, serde_json::Value)>, String> {
+    if project.effective.pointer("/build/artifacts").is_none() {
+        return Ok(None);
+    }
+    let published =
+        declarations::Declarations::collect(project, component)?.legacy_publication()?;
+    let mut records = vec![];
+    for (path, kind) in &published {
+        use std::os::unix::fs::PermissionsExt;
+        let file = project.root.join(path);
+        let bytes = std::fs::read(&file)
+            .map_err(|error| format!("artifact file could not be resolved: {path}: {error}"))?;
+        let mode = std::fs::metadata(&file)
+            .map_err(|error| error.to_string())?
+            .permissions()
+            .mode()
+            & 0o777;
+        records.push(json!({"path":path,"scope":"project","kind":kind,
+            "sha256":ici_domain::sha256(&bytes),"size":bytes.len(),"mode":mode,
+            "producer":"config.artifacts","id":format!("release:project:{path}"),
+            "target":path.rsplit('/').next().unwrap_or(path),"command":[]}));
+    }
+    Ok(Some((
+        records.len(),
+        json!({"shadow_root":null,"variant":"release","artifacts":records}),
+    )))
+}
 /// Existing files selected by typed configuration declarations, using their canonical identities.
 pub fn declared_outputs(
     project: &ResolvedProject,

@@ -697,6 +697,58 @@ fn legacy_adapter_build_failure(
         observed.extra["metrics_summary"] =
             serde_json::json!(format!("Built into {}", build.output_root));
     }
+    // Frozen `BuildEngine.run` publishes `[build.artifacts]` after the adapter failed
+    // (build.py:109, `_publish_declared_artifacts`): the `config.artifacts` manifest and its
+    // DeclaredArtifacts PASS, or the 'Declared artifacts could not be recorded' BuildError
+    // joined into the summary (binary-compat-declared-artifacts-oracle.json `declared-*`,
+    // `glob-*`). Under `verify` only, whose sessions carry the shared analysis context; a
+    // component that also packages Python publishes it from that `python.artifact` build.
+    if prepared.legacy_projection
+        && !prepared.cpp.legacy_standalone
+        && !prepared.plan.checks.iter().any(|check| {
+            check.component_id == plan.component_id && check.check.id == "python.artifact"
+        })
+        && let Some(component) = prepared
+            .project
+            .components
+            .iter()
+            .find(|component| component.id == plan.component_id)
+    {
+        match crate::artifact_build::legacy_declared_manifest(&prepared.project, component) {
+            Ok(Some((count, manifest))) => {
+                match observed.extra.get_mut("legacy_artifact_manifests") {
+                    Some(serde_json::Value::Array(manifests)) => manifests.push(manifest),
+                    _ => {
+                        observed.extra["legacy_artifact_manifests"] = serde_json::json!([manifest])
+                    }
+                }
+                let mut target = ici_domain::InspectionTarget::at(".", 1);
+                target.target_name = "DeclaredArtifacts".into();
+                target.message = format!("Recorded {count} declared artifact(s)");
+                observed.targets.push(target);
+            }
+            Ok(None) => {}
+            Err(reason) => {
+                let message = format!("Declared artifacts could not be recorded: {reason}");
+                let failure =
+                    crate::cpp::build_failure(task_id, ".", "ici.toml", true, &message, &message);
+                observed.targets.extend(failure.targets);
+                observed
+                    .observation
+                    .findings
+                    .extend(failure.observation.findings);
+                observed
+                    .observation
+                    .limitations
+                    .extend(failure.observation.limitations);
+                observed.summary = if observed.summary.is_empty() {
+                    message
+                } else {
+                    format!("{}; {message}", observed.summary)
+                };
+            }
+        }
+    }
     let details: serde_json::Map<String, serde_json::Value> = observed
         .observation
         .findings
@@ -820,10 +872,11 @@ fn legacy_binary_compat_without_manifests(
     // Frozen reads each record's first four bytes; an ELF object goes to readelf, which this
     // path does not run, so such a selection keeps the blocked check.
     for path in &records {
-        let mut magic = [0u8; 4];
-        let read = std::fs::File::open(prepared.project.root.join(path))
-            .and_then(|mut file| std::io::Read::read(&mut file, &mut magic));
-        if read.is_err() || magic == *b"\x7fELF" {
+        let mut magic = Vec::with_capacity(4);
+        let read = std::fs::File::open(prepared.project.root.join(path)).and_then(|file| {
+            std::io::Read::read_to_end(&mut std::io::Read::take(file, 4), &mut magic)
+        });
+        if read.is_err() || magic.starts_with(b"\x7fELF") {
             return None;
         }
     }

@@ -78,8 +78,23 @@ fn view(engines: &BTreeMap<String, Value>, manifests: &Value) -> Value {
                 .collect()
         })
         .unwrap_or_default();
+    // The build engine's `[build.artifacts]` publication after the failed configure (the
+    // configure's own BuildError is compared by the preparation-failure replays).
+    let declared: Vec<Value> = engines["build"]["targets"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|target| {
+            target["target_name"] == "DeclaredArtifacts"
+                || target["message"]
+                    .as_str()
+                    .is_some_and(|message| message.starts_with("Declared artifacts"))
+        })
+        .map(|target| pick(target, &TARGET_FIELDS))
+        .collect();
     json!({
         "build": engines["build"]["status"],
+        "declared": declared,
         "binary_compat": {
             "status": compat["status"],
             "evidence": compat["evidence"],
