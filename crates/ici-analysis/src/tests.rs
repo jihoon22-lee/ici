@@ -839,10 +839,11 @@ fn wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_su
         let mut member = old.by_index(index).unwrap();
         let mut payload = vec![];
         member.read_to_end(&mut payload).unwrap();
-        if member.name().ends_with("/RECORD") {
+        let name = member.name().unwrap().into_owned();
+        if name.ends_with("/RECORD") {
             payload.extend_from_slice(b"demo/large.dat,sha256=placeholder,33554432\n");
         }
-        writer.start_file(member.name(), options).unwrap();
+        writer.start_file(name, options).unwrap();
         writer.write_all(&payload).unwrap();
     }
     writer.start_file("demo/large.dat", options).unwrap();

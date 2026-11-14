@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+### 보안
+
+- **wheel ZIP 판독 의존성 갱신**: `ici-analysis`가 wheel 검사에 쓰는 `zip` crate를 8.6.0에서 9.5.1로 올렸습니다
+  (GHSA-m665-v7pm-7grj, GHSA-q7v9-x93c-xqv3, GHSA-8hxf-qr8p-62x4, GHSA-hjqx-j4rw-g7xv, GHSA-9hj8-73fh-9963).
+  ici는 wheel을 풀어 쓰지 않고(`extract` 미사용) 자체 central-directory 사전검사로 symlink·특수 member를 거부한 뒤
+  member를 index로만 읽으므로 경로 쓰기·symlink 계열은 도달하지 않지만, 판독 경계의 header 불일치·크기 처리 수정을
+  받기 위해 갱신합니다. 연쇄로 `lzma-rust2` 0.25.0, `typed-path` 0.13.0, `zstd` 0.14.4가 올라가고
+  `constant_time_eq`·`nix`·`zeroize_derive`가 추가됩니다. 고지는 build의 Cargo metadata로 생성됩니다.
+
 ## [0.14.0] - 2026-11-14
 
 ici는 이 버전부터 **Rust native 단일 제품**입니다([ADR-0008](docs/design/ici-next/adr/0008-rust-native-replacement.md),

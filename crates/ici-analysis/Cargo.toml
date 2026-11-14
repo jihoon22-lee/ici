@@ -15,7 +15,7 @@ sha1 = "0.10"
 regex = "1"
 pep440_rs = "=0.7.3"
 toml_edit = { version = "=0.25.13", features = ["serde"] }
-zip = { version = "=8.6.0", default-features = false, features = ["deflate", "bzip2", "lzma", "zstd"] }
+zip = { version = "=9.5.1", default-features = false, features = ["deflate", "bzip2", "lzma", "zstd"] }
 base64 = "=0.22.1"
 csv = "=1.4.0"
 crc32fast = "=1.5.3"
