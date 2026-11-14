@@ -107,6 +107,8 @@ selects an independent compilation directory, with source/cache/build/SDK paths
 normalized. It can be used to compare independent builds from frozen inputs.
 `--allow-dirty` records a development source snapshot and is not a release claim.
 The wrapper installs or downloads no compiler/tool implicitly.
+Set `ICI_BUILD_LOCK=<path>` to serialise heavy builds through one `flock` lock file on a
+shared host; without it the build takes no lock.
 
 Native Rust notices include the exact source catalogues for the observed Ruff
 Rust 1.97.1 and ty Rust 1.99.0 compilers, their referenced terms, musl's full

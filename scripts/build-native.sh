@@ -60,8 +60,10 @@ if [[ ${ICI_NATIVE_SCRIPT_SNAPSHOT:-0} != 1 ]]; then
     [[ $ici_actual == "$ici_script_sha" ]] || { echo 'Private native build launcher does not match its source digest' >&2; exit 2; }
     exec env ICI_NATIVE_SCRIPT_SNAPSHOT=1 ICI_NATIVE_REPO_ROOT="$ici_repo" bash "$ici_launcher" "${ici_original_arguments[@]}"
 fi
-if [[ ${ICI_NATIVE_LOCK_HELD:-0} != 1 ]]; then
-    exec flock /tmp/paseo-products-20261028-heavy.lock env ICI_NATIVE_LOCK_HELD=1 "$0" "${ici_original_arguments[@]}"
+# A host that shares its build capacity can serialise heavy builds through one
+# lock file: set ICI_BUILD_LOCK to its path. Unset, the build takes no lock.
+if [[ -n ${ICI_BUILD_LOCK:-} && ${ICI_NATIVE_LOCK_HELD:-0} != 1 ]]; then
+    exec flock -- "$ICI_BUILD_LOCK" env ICI_NATIVE_LOCK_HELD=1 "$0" "${ici_original_arguments[@]}"
 fi
 ici_script_sha=$(sha256sum "${BASH_SOURCE[0]}"); ici_script_sha=${ici_script_sha%% *}
 ici_actual=$(sha256sum "$ici_repo/scripts/build-native.sh"); ici_actual=${ici_actual%% *}
