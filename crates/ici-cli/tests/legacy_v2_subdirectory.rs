@@ -149,8 +149,19 @@ fn strings(value: &Value) -> Vec<String> {
 /// A frozen verify suite that ran: a required engine ERROR with NOT_RUN evidence (here sanitize
 /// without a tests directory) is native exit 3 where frozen exited 1 (decisions.md "legacy 종료
 /// 코드 3의 범위").
+///
+/// A frozen publish that crashed without a verify_report.json (PUBLISH_CRASH, exit 1) is native's
+/// skip line with exit 0: cli-gaps-differences.json `subdir_publish_invalid_root`.
 fn native_exit(name: &str, frozen: &Value) -> i64 {
     let exit = frozen["exit_code"].as_i64().unwrap();
+    let stderr = frozen["stderr"]
+        .as_str()
+        .unwrap()
+        .replace(GLOBAL_DEFAULT, "");
+    if frozen["argv"][0] == "publish" && stderr == PUBLISH_CRASH {
+        assert_eq!(exit, 1, "{name}: frozen exit");
+        return 0;
+    }
     let Some(suite) = frozen["reports"].get("verify_report.json") else {
         return exit;
     };
