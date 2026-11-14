@@ -71,8 +71,7 @@ HEAD = "[project]\ntype='cpp'\nsource_dirs=['src']\n"
 OFF = "".join(f"[engines.{name}]\nenabled=false\n" for name in OFF_ENGINES)
 MARKER = "mutation-ran"
 MUTATION = (
-    "[engines.test.quality.mutation]\nenabled=true\ntool='mutmut'\n"
-    f"command=['touch', '{MARKER}']\n"
+    f"[engines.test.quality.mutation]\nenabled=true\ntool='mutmut'\ncommand=['touch', '{MARKER}']\n"
 )
 QUALITY = (
     "[engines.test.quality]\nenabled=true\nmode='warn'\nrepeat_runs=3\ntimeout=30\n"
