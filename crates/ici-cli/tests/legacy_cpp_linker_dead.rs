@@ -313,7 +313,27 @@ fn compare(name: &str, exact: bool) -> bool {
     let rpath = RUN_PATH_CASES.contains(&name);
     let oracle = oracle();
     let expected = &oracle["cases"][name];
-    let (exit_code, report) = run(name);
+    let (exit_code, mut report) = run(name);
+    // Root ruling 2026-11-14 (b13), decisions.md 'native C++ shadow build 위치': the refused
+    // unity analysis database is native's `.ici/rust-v1/build/legacy-<digest>/release/` shadow
+    // where frozen prepared `build/ici-cmake-build/`; only that location is mapped.
+    if name.starts_with("unity-unused-") || name == "verify-unity-unused-auto" {
+        let frozen_database = "build/ici-cmake-build/compile_commands.json";
+        let shadow = |value: &mut Value| {
+            if value.as_str().is_some_and(|path| {
+                path.starts_with(".ici/rust-v1/build/legacy-")
+                    && path.ends_with("/release/compile_commands.json")
+            }) {
+                *value = json!(frozen_database);
+            }
+        };
+        for target in report["targets"].as_array_mut().into_iter().flatten() {
+            shadow(&mut target["file_path"]);
+        }
+        for finding in report["findings"].as_array_mut().into_iter().flatten() {
+            shadow(&mut finding["primary_location"]["path"]);
+        }
+    }
     let Some(extra_reads) = assert_tool_evidence(name, &report, expected) else {
         return false;
     };
@@ -427,13 +447,8 @@ fn compare(name: &str, exact: bool) -> bool {
     };
     // decisions.md "legacy 종료 코드 3의 범위" under `verify` only: the required dead engine stays
     // ERROR/NOT_RUN on both sides, frozen ended exactly 1, and the saved gate names only the
-    // failed replay (or the refused unity database). Standalone `ici dead` has no such allowance
-    // and is compared as is.
-    let exit_code = if matches!(
-        name,
-        "verify-unused-replay-fails" | "verify-unity-unused-auto"
-    ) && exit_code == 3
-    {
+    // failed replay. Standalone `ici dead` has no such allowance and is compared as is.
+    let exit_code = if name == "verify-unused-replay-fails" && exit_code == 3 {
         assert_eq!(expected["exit_code"], 1, "{name}: frozen exit");
         for (side, engine) in [("frozen", expected), ("native", &report)] {
             assert_eq!(

@@ -108,6 +108,7 @@
 
 ### 변경
 
+- **legacy `ici dead`의 CMake unity build**: `CMakeLists.txt`의 `set(CMAKE_UNITY_BUILD ON)`처럼 cache에 남지 않는 unity 설정도 ici가 준비한 분석 database의 unity unit(`…/Unity/unity_0_cxx.cxx`)으로 알아보고, compiler unused-function 범위를 v0.13.0처럼 database 위치의 ERROR `C++ unused-function analysis cannot prove source ownership through a unity build` 하나로 거절합니다. 이전 Rust 빌드의 단독 `ici dead`는 source마다 `No exact translation-unit configuration covers this production source`를 보고했습니다.
 - **legacy C++ CTest 결과 문구**: `ici test`의 `[C++] <test>` 대상은 v0.13.0처럼 ctest JUnit 문구를 씁니다. `SKIP_REGULAR_EXPRESSION`으로 건너뛴 test는 `Execution skipped: SKIP_REGULAR_EXPRESSION_MATCHED`, SIGFPE·SIGILL·SIGABRT·SIGBUS·이름 없는 signal로 끝난 test는 `Execution Failed: NUMERICAL`·`ILLEGAL`·`Subprocess aborted`·`Bus error`·`SIGUSR1`입니다(legacy `ici sanitize`의 `Sanitizer run failed: …`도 같습니다). 이전 Rust 빌드는 ctest 표준 출력 문구(`Skipped`, `Exception: Numerical` 등)를 보였습니다.
 - **legacy `project.compile_database`의 절대 경로**: 프로젝트 root 안을 가리키는 절대 경로(`/…/project/build/compile_commands.json`)를 v0.13.0처럼 받아들이고 그 database를 읽습니다. 이전 Rust 빌드는 `absolute project path is not portable`로 설정을 거부했습니다(종료 2). root 밖 경로는 계속 거부합니다.
 - **`ici next doctor --json`의 C++ `compile_inputs`**: `generated`는 v0.13.0처럼 compilation database가 기록한 build 생성 source(연결된 build 디렉터리 아래, component source 밖의 unit)를 정렬해 나열하고, `expected`는 선택한 translation unit 수입니다. `schema_version = 1`의 `prepare`는 v0.13.0의 안내 문구(`build '<id>' declares no approved configure command — …`)입니다. 이전 Rust 빌드가 내던 준비된 생성 root와 준비 기록은 새 키 `generated_roots`·`preparations`로 옮겼습니다.
