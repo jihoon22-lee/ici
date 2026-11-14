@@ -40,7 +40,7 @@
 테스트가 그 사실을 고정한다.
 
 > **발행됨 (WP02 PR B)**: 정식 스키마는
-> [`src/ici/schemas/ici-next-run-v1.schema.json`](../../../src/ici/schemas/ici-next-run-v1.schema.json)이고
+> [`schemas/ici-next-run-v1.schema.json`](../../../schemas/ici-next-run-v1.schema.json)이고
 > 코덱은 [`ici/domain/serialization.py`](../../../src/ici/domain/serialization.py)다.
 > 완전한 fixture 5종(성공·코드 FAIL·필수 미완료·부분 선택·취소)이
 > [`tests/fixtures/ici-next/`](../../../tests/fixtures/ici-next)에 있으며 **축약 예시를 golden
@@ -51,7 +51,7 @@
 source path map·tool evidence·normalization/parser version·policy exceptions·result digest도 정식
 스키마에 포함한다.
 
-**v2 완료 범위 계약**: [ici-next-run-v2.schema.json](../../../src/ici/schemas/ici-next-run-v2.schema.json)의
+**v2 완료 범위 계약**: [ici-next-run-v2.schema.json](../../../schemas/ici-next-run-v2.schema.json)의
 `checks`는 필수 필드다. 배열의 각 항목은 `task_id`, `check_id`, `component_id`, `language`,
 `scope_digest`, `state`, `evidence_complete`, nullable `analysis_unit_id`·`variant`를 갖는다.
 `evidence_complete=true`는 `state=SUCCEEDED`에서만 가능하다. `checks=null`은 과거 결과를
@@ -86,8 +86,8 @@ INCOMPLETE이며 사유 있는 root 정책으로 허용한 empty suite만 별도
 > 반드시 갖고, 미완료 run은 PASS를 낼 수 없고, **INCOMPLETE가 FAIL보다 exit code에서 우선한다**
 > (미완료를 완료된 판정으로 보고하지 않기 위해). 게시 상태는 판정에 영향을 주지 않는다.
 > **외부 JSON Schema는 구현됐다** —
-> [`ici-next-run-v1.schema.json`](../../../src/ici/schemas/ici-next-run-v1.schema.json)과
-> [`ici-next-event-v1.schema.json`](../../../src/ici/schemas/ici-next-event-v1.schema.json).
+> [`ici-next-run-v1.schema.json`](../../../schemas/ici-next-run-v1.schema.json)과
+> [`ici-next-event-v1.schema.json`](../../../schemas/ici-next-event-v1.schema.json).
 >
 > **보존할 현행 자산 (확인됨)**: `EvidenceState`의 4개 값(MEASURED/ESTIMATED/NOT_RUN/
 > NOT_APPLICABLE)이 이미 존재하고(`src/ici/core/models.py:22`), `aggregate_suite_status`(`:321`)가
@@ -204,7 +204,7 @@ mapping을 이용한다. 실제 idk 코드 수정은 idk 저장소의 별도 이
 producer와 fixture consumer 계약을 완료한다.
 
 > **구현 시작됨 (WP02 PR B)**: 스키마는
-> [`ici-next-event-v1.schema.json`](../../../src/ici/schemas/ici-next-event-v1.schema.json),
+> [`ici-next-event-v1.schema.json`](../../../schemas/ici-next-event-v1.schema.json),
 > 모델은 [`ici/domain/events.py`](../../../src/ici/domain/events.py), 코덱은
 > [`eventstream.py`](../../../src/ici/domain/eventstream.py)다.
 > `RunEvent`는 **gate도 finding도 갖지 않는다** — 최종 result가 authoritative이므로,

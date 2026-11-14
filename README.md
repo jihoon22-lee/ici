@@ -149,7 +149,7 @@ quality-zoo는 ici가 소유합니다. 소비자 [Lens](https://github.com/jihoo
 6. **안정적인 `ici.result/v3` 품질 데이터 계약**:
    - 기존 위치 inventory인 `targets`와 함께 rule/category/severity/confidence, 관련 위치, 개선안, suppression, 단위 metric을 갖춘 `findings`를 제공합니다.
    - project-relative 위치와 symbol/region으로 만든 fingerprint는 checkout 경로와 Windows/Linux separator가 달라도 동일합니다.
-   - v2 리포트 migration과 viewer 하위 호환을 제공하며, JSON Schema는 [`src/ici/schemas/ici-result-v3.schema.json`](src/ici/schemas/ici-result-v3.schema.json)에 있습니다.
+   - v2 리포트 migration과 viewer 하위 호환을 제공하며, JSON Schema는 [`schemas/ici-result-v3.schema.json`](schemas/ici-result-v3.schema.json)에 있습니다.
    - 모든 출력 형식은 공통 redaction 경계를 거쳐 engine message·snippet·도구 argv/output·remediation·metric과 파일 경로에 섞인 credential을 마스킹합니다. 일반 경로는 그대로 유지됩니다.
    - `--write-baseline`으로 현재 finding inventory를 보관하고 `--baseline`으로 다음 실행과 비교할 수 있습니다. `--fail-on-new`는 새 actionable finding 또는 severity/suppression regression만 gate에 반영합니다.
    - 기준선 비교 결과는 JSON·HTML·Markdown Summary·콘솔에 표시되고, 신뢰된 publish job의 sticky PR 댓글에는 새 finding·regression·gate·호환성 warning 요약이 포함됩니다.
@@ -392,7 +392,7 @@ response file도 깊이 4, 파일/aggregate 4 MiB와 동일한 per-row argument 
 성공은 exit 0, 입력/경로 검증 실패·측정된 DB/usable unit 부재는 exit 2, fatal diagnostic이나
 직렬화·쓰기 오류는 exit 1입니다. stdout 모드의 성공 출력은 JSON만 포함하고 오류는 stderr로
 보냅니다. 기계 검증 계약은 배포 패키지에 포함되는
-[`ici-compilation-export-v1.schema.json`](src/ici/schemas/ici-compilation-export-v1.schema.json)
+[`ici-compilation-export-v1.schema.json`](schemas/ici-compilation-export-v1.schema.json)
 이며, `scripts/build-pyz.sh`가 ZipApp 구성 단계에서 공개 schema 포함을 확인합니다.
 
 ## 📋 명령어 일람

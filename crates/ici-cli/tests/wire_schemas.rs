@@ -1,4 +1,4 @@
-//! Native wire documents against the frozen v0.13.0 JSON Schemas (`src/ici/schemas/`):
+//! Native wire documents against the frozen v0.13.0 JSON Schemas (`schemas/`):
 //! next run v1/v2, the JSONL event stream v1, the compilation export v1, the auxiliary import
 //! envelope v1 and the legacy ici.result/v3 suite and engine reports; and the native-only
 //! `native_capability_evidence` of a legacy suite against its own closed schema
@@ -18,16 +18,16 @@ use std::{collections::BTreeMap, fs, path::Path};
 
 fn schema(name: &str) -> Value {
     let text = match name {
-        "ici-next-run-v1" => include_str!("../../../src/ici/schemas/ici-next-run-v1.schema.json"),
-        "ici-next-run-v2" => include_str!("../../../src/ici/schemas/ici-next-run-v2.schema.json"),
+        "ici-next-run-v1" => include_str!("../../../schemas/ici-next-run-v1.schema.json"),
+        "ici-next-run-v2" => include_str!("../../../schemas/ici-next-run-v2.schema.json"),
         "ici-next-event-v1" => {
-            include_str!("../../../src/ici/schemas/ici-next-event-v1.schema.json")
+            include_str!("../../../schemas/ici-next-event-v1.schema.json")
         }
         "ici-compilation-export-v1" => {
-            include_str!("../../../src/ici/schemas/ici-compilation-export-v1.schema.json")
+            include_str!("../../../schemas/ici-compilation-export-v1.schema.json")
         }
-        "ici-auxiliary-v1" => include_str!("../../../src/ici/schemas/ici-auxiliary-v1.schema.json"),
-        "ici-result-v3" => include_str!("../../../src/ici/schemas/ici-result-v3.schema.json"),
+        "ici-auxiliary-v1" => include_str!("../../../schemas/ici-auxiliary-v1.schema.json"),
+        "ici-result-v3" => include_str!("../../../schemas/ici-result-v3.schema.json"),
         // Native-only, beside a legacy suite's capability_inventory (not a frozen schema).
         "ici-native-capability-evidence-v1" => {
             include_str!("../schemas/ici-native-capability-evidence-v1.schema.json")

@@ -23,7 +23,7 @@ def main() -> None:
     disagreements, counted = [], 0
     for directory in sorted(samples.iterdir()):
         # Frozen schemas, then the native-only ones (crates/ici-cli/schemas).
-        path = ROOT / "src/ici/schemas" / f"{directory.name}.schema.json"
+        path = ROOT / "schemas" / f"{directory.name}.schema.json"
         if not path.is_file():
             path = ROOT / "crates/ici-cli/schemas" / f"{directory.name}.schema.json"
         schema = json.loads(path.read_text(encoding="utf-8"))

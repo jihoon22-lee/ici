@@ -4201,7 +4201,7 @@ complexity는 148건·최대 CC 24, 중복률 3.4%로 **둘 다 기준선 그대
 ### Added
 - **Standalone compilation-context export**: `ici export-compilation-context` now emits a
   deterministic, redacted `ici.compilation-export/v1` JSON snapshot for downstream consumers.
-  The packaged contract is [`ici-compilation-export-v1.schema.json`](src/ici/schemas/ici-compilation-export-v1.schema.json).
+  The packaged contract is [`ici-compilation-export-v1.schema.json`](schemas/ici-compilation-export-v1.schema.json).
 
 ### Security and compatibility
 - The default export path is process-free and read-only: it parses the selected compilation

@@ -575,7 +575,7 @@ ici verify --report --html verify_report.html --open
 - `--open`: 검증 완료 후 기본 브라우저(`firefox`, `chrome`, `xdg-open` 등)로 리포트를 즉시 띄웁니다.
 - `--report`: 파이프라인 데이터 연동용 `verify_report.json`을 `ici.result/v3` 형식으로 저장합니다.
   기존 `targets`와 canonical `findings`를 함께 포함하며, 기계 검증용 JSON Schema는
-  [`src/ici/schemas/ici-result-v3.schema.json`](../src/ici/schemas/ici-result-v3.schema.json)입니다.
+  [`schemas/ici-result-v3.schema.json`](../schemas/ici-result-v3.schema.json)입니다.
   프로젝트 언어·Qt 발견 결과와 엔진별 mode/tool/fallback/evidence/confidence를 담은
   `support_matrix`도 함께 저장됩니다. 단독 엔진 리포트에는 그 엔진의 두 언어 행만 들어갑니다.
 - `--sarif <path>`: 같은 canonical finding inventory를 SARIF 2.1.0으로 저장합니다. source-relative
@@ -656,7 +656,7 @@ ici export-compilation-context --prepare \
 분해합니다. duplicate JSON key, `NaN`/`Infinity`, 비정상 파일, symlink 탈출, malformed row,
 읽는 중 변경은 실행하거나 추측하지 않고 bounded diagnostic으로 처리합니다.
 
-출력 계약은 [`ici-compilation-export-v1.schema.json`](../src/ici/schemas/ici-compilation-export-v1.schema.json)의
+출력 계약은 [`ici-compilation-export-v1.schema.json`](../schemas/ici-compilation-export-v1.schema.json)의
 `ici.compilation-export/v1`입니다. key를 정렬한 UTF-8 JSON으로 `evidence`는 실제 DB를 읽거나
 준비했다는 `MEASURED`를 뜻합니다. `source_bytes_digest`는 선택된 DB 원본 바이트의 SHA-256이고,
 `semantic_digest`와 unit별 `configuration_digest`는 redacted·정규화된 origin, generator,
@@ -682,8 +682,8 @@ payload를 만들지 않고 exit 1로 닫힙니다. 그 밖의 측정 결과는 
 | `2` | 옵션/경로 검증 실패, 측정된 DB 또는 usable unit 부재, 보호된 출력 대상 |
 
 stdout 모드에서 오류 메시지는 stderr로만 출력되고, `--output` 파일 모드에서는 성공 stdout이
-비어 있습니다. schema는 `src/ici/schemas/` 아래 package data로 wheel/ZipApp에 함께 포함되며,
-`scripts/build-pyz.sh`가 ZipApp 구성 전에 두 공개 schema의 존재를 확인합니다.
+비어 있습니다. 공개 schema는 저장소 최상위 `schemas/`에 있으며, native 시험
+(`crates/ici-cli/tests/wire_schemas.rs`)이 실제 출력을 그 schema로 검증합니다.
 
 #### C++ compile database gate
 
