@@ -833,7 +833,12 @@ fn execute_native_preparation(
         );
         output.observation.exit_code = Some(0);
         output.extra["process_evidence"] = json!(process_evidence);
-        if plan.configured_context_on_build_failure {
+        // A legacy qmake release preparation is also the analysis capture: frozen ran that
+        // capture as its own session before the BuildEngine's release session, whose walk is
+        // the only one to fail, so the source checks keep the captured context (root ruling
+        // 2026-11-14 (g5), artifact-manifest-bounds-oracle.json `qmake-entry-limit-analysis`).
+        let qmake_release = plan.legacy_discovery_bounds && plan.build.system == "qmake";
+        if plan.configured_context_on_build_failure || qmake_release {
             // The BuildEngine release session failed; frozen's configure-only analysis
             // database is unaffected, so the source checks still analyse it.
             return Ok(PreparedContext {

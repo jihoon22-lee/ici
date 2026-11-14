@@ -216,6 +216,12 @@ impl Declarations {
             .into_iter()
             .collect()
     }
+    /// Frozen `_publish_declared_artifacts` over the project's own files: the recorded paths
+    /// and kinds (the manifest lists them sorted by path), or `Err` when frozen records no
+    /// `config.artifacts` manifest (a pattern matched nothing, or the declaration is refused).
+    pub(super) fn legacy_publication(&self) -> Result<BTreeMap<String, String>, String> {
+        self.select(&[], false)
+    }
     /// Only frozen aliases and planned generated paths participate; no filesystem lookup here.
     pub(super) fn select(
         &self,

@@ -4969,7 +4969,69 @@ pub fn legacy_binary_compat_unavailable(id: &str, error: Option<&str>) -> Analys
 /// `BinaryCompatibility:<variant>:shadow:<path>` target per inspected artifact at its shadow
 /// path, `BinaryCompatibility:NonElf` SKIP for allowed non-ELF files, and the
 /// "ELF compatibility: N checked, V violation(s), S skipped" summary.
-pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: &str) {
+/// Frozen `BinaryCompatibilityEngine.run` over selected `config.artifacts` records that are not
+/// ELF objects (binary_compat.py:130-165), beside a legacy build that published no session
+/// manifest: each record (`release:project:<path>`, manifest order) is the non-ELF FAIL with its
+/// `ici.binary.non-elf` finding, or with `allow_non_elf` the NonElf SKIP; nothing is checked, so
+/// the summary is `ELF compatibility: 0 checked, <findings> violation(s), <skipped> skipped`
+/// (binary-compat-declared-artifacts-oracle.json `declared-selected-*`, `glob-selected-declared`,
+/// `python-selected-declared`; root ruling 2026-11-14 (g3)).
+pub fn legacy_binary_compat_declared_non_elf(
+    id: &str,
+    component_id: &str,
+    paths: &[String],
+    allow_non_elf: bool,
+) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(id, "binarycompat");
+    let mut skipped = 0usize;
+    for path in paths {
+        let mut target = InspectionTarget::at(path, 1);
+        if allow_non_elf {
+            skipped += 1;
+            target.target_name = "BinaryCompatibility:NonElf".into();
+            target.status = "SKIP".into();
+            target.message = "Manifest artifact is not ELF and policy allows it".into();
+            output.targets.push(target);
+            continue;
+        }
+        let message = "Selected binary manifest artifact is not an ELF object";
+        target.target_name = format!("BinaryCompatibility:release:project:{path}");
+        target.status = "FAIL".into();
+        target.message = message.into();
+        output.targets.push(target);
+        let rule = "ici.binary.non-elf";
+        let mut item = Finding::new(rule, message, SourceSpan::line(path, 1), "binarycompat");
+        item.task_id = Some(id.into());
+        item.component_id = Some(component_id.into());
+        item.native_rule_id = "elf.magic".into();
+        item.category = "compatibility".into();
+        item.confidence = "exact".into();
+        item.severity = "high".into();
+        item.fingerprint = sha256(format!("binarycompat\0{rule}\0{path}\0{}\0{message}", 1));
+        output.extra["finding_details"][&item.fingerprint] = json!({
+            "legacy_rule_id":item.rule_id,"legacy_category":"compatibility","legacy_confidence":"exact",
+            "legacy_severity":"high","legacy_label":"","tool_name":"readelf","tool_rule_id":item.native_rule_id,
+            "explanation":"The linked binary contract is incompatible with the configured deployment policy.",
+            "remediation":"Relink with compatible dependencies, ABI floors, and loader paths."
+        });
+        output.observation.findings.push(item);
+    }
+    let violations = output.observation.findings.len();
+    output.status = if violations > 0 { "FAIL" } else { "PASS" }.into();
+    output.summary =
+        format!("ELF compatibility: 0 checked, {violations} violation(s), {skipped} skipped");
+    output.extra["elf"] = json!({"state":"MEASURED","artifacts_checked":0,"facts":[]});
+    output
+}
+/// `declared`: the project paths of the `config.artifacts` records (frozen ids
+/// `<variant>:project:<path>`, located at the project path); every other target is a shadow
+/// record (`<variant>:shadow:<relative>`).
+pub fn legacy_binary_compat(
+    output: &mut AnalysisOutput,
+    shadow: &str,
+    variant: &str,
+    declared: &BTreeSet<String>,
+) {
     let prefix = if shadow.is_empty() || shadow == "." {
         String::new()
     } else {
@@ -4983,7 +5045,7 @@ pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: 
         None
     };
     if let Some((message, location)) = unavailable {
-        reshape_elf_targets(output, &prefix, variant);
+        reshape_elf_targets(output, &prefix, variant, declared);
         let mut target = InspectionTarget::at(&location, 1);
         target.target_name = "BinaryCompatibility:AnalysisUnavailable".into();
         target.status = "ERROR".into();
@@ -4998,7 +5060,7 @@ pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: 
     {
         return;
     }
-    let (checked, skipped) = reshape_elf_targets(output, &prefix, variant);
+    let (checked, skipped) = reshape_elf_targets(output, &prefix, variant, declared);
     output.summary = format!(
         "ELF compatibility: {checked} checked, {} violation(s), {skipped} skipped",
         output.observation.findings.len()
@@ -5053,7 +5115,12 @@ fn unavailable_binary_compat(summary: &str, prefix: &str) -> Option<(String, Str
 
 /// Frozen one-target-per-artifact view of the inspected ELF artifacts; returns how many were
 /// checked and how many allowed non-ELF artifacts were skipped.
-fn reshape_elf_targets(output: &mut AnalysisOutput, prefix: &str, variant: &str) -> (usize, usize) {
+fn reshape_elf_targets(
+    output: &mut AnalysisOutput,
+    prefix: &str,
+    variant: &str,
+    declared: &BTreeSet<String>,
+) -> (usize, usize) {
     let (mut checked, mut skipped) = (0usize, 0usize);
     let findings = output.observation.findings.clone();
     for target in &mut output.targets {
@@ -5061,8 +5128,13 @@ fn reshape_elf_targets(output: &mut AnalysisOutput, prefix: &str, variant: &str)
             continue;
         }
         let path = target.file_path.clone();
-        let relative = path.strip_prefix(prefix).unwrap_or(&path).to_owned();
-        let identity = format!("{variant}:shadow:{relative}");
+        let (relative, identity) = if declared.contains(&path) {
+            (path.clone(), format!("{variant}:project:{path}"))
+        } else {
+            let relative = path.strip_prefix(prefix).unwrap_or(&path).to_owned();
+            let identity = format!("{variant}:shadow:{relative}");
+            (relative, identity)
+        };
         target.file_path = relative;
         if target.message == "selected artifact is not ELF" {
             if target.status == "SKIP" {
