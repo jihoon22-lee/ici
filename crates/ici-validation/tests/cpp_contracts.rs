@@ -152,6 +152,88 @@ fn ctest_terminal_count_leaves_disabled_tests_out_like_actual_ctest() {
         "{output:?}"
     );
 }
+/// CTest 4.4.5 (the ubuntu-26.04 runner's) prints "100% tests passed out of N" without the
+/// ", 0 tests failed" clause 4.2.3 printed; with a failure it keeps the clause. Frozen never
+/// reads the summary line, so an all-passing 4.4.5 run is complete evidence (CI run
+/// 43566463718 refused the viewer's 7 passing cases as a terminal-count mismatch).
+#[test]
+fn ctest_4_4_5_terminal_count_without_a_failure_clause_matches_case_evidence() {
+    let root = tempfile::tempdir().unwrap();
+    let planned = plan(&request(root.path(), ValidationKind::Ctest)).unwrap();
+    let id = planned.tasks[0].id.clone();
+    // The viewer's run with ctest 4.4.5 (`ctest --test-dir <tree> --output-on-failure`).
+    let viewer = "Test project /work/viewer/build\n\
+        \x20   Start 1: test_json_parser\n\
+        1/7 Test #1: test_json_parser ........................   Passed    0.00 sec\n\
+        \x20   Start 2: test_report_model\n\
+        2/7 Test #2: test_report_model .......................   Passed    0.31 sec\n\
+        \x20   Start 3: test_summary\n\
+        3/7 Test #3: test_summary ............................   Passed    0.34 sec\n\
+        \x20   Start 4: test_cli_support_matrix_scope\n\
+        4/7 Test #4: test_cli_support_matrix_scope ...........   Passed    0.00 sec\n\
+        \x20   Start 5: test_cli_support_matrix_header\n\
+        5/7 Test #5: test_cli_support_matrix_header ..........   Passed    0.00 sec\n\
+        \x20   Start 6: test_cli_support_matrix_framework_row\n\
+        6/7 Test #6: test_cli_support_matrix_framework_row ...   Passed    0.00 sec\n\
+        \x20   Start 7: test_main_window\n\
+        7/7 Test #7: test_main_window ........................   Passed    1.05 sec\n\
+        \n\
+        100% tests passed out of 7\n\
+        \n\
+        Total Test time (real) =   1.72 sec\n";
+    let output = observe(
+        &planned,
+        &BTreeMap::from([(id.clone(), outcome(&id, viewer, "", 0))]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert!(output.observation.findings.is_empty());
+    assert_eq!(output.summary, "7/7 CTest suites passed");
+    assert_eq!(
+        output
+            .targets
+            .iter()
+            .filter(|target| target.status == "PASS")
+            .count(),
+        7
+    );
+    // ctest 4.4.5 with a pass, a failure, SKIP_RETURN_CODE, DISABLED and a missing executable
+    // (`--parallel 2`, completion order): DISABLED stays out of "out of 4".
+    let mixed = "1/5 Test #1: a ................................   Passed    0.00 sec\n\
+        2/5 Test #3: c ................................***Skipped   0.00 sec\n\
+        3/5 Test #4: d ................................***Not Run (Disabled)   0.00 sec\n\
+        Unable to find executable: /nonexistent/x\n\
+        4/5 Test #5: e ................................***Not Run   0.00 sec\n\
+        5/5 Test #2: b ................................***Failed    0.01 sec\n\
+        \n\
+        50% tests passed, 2 tests failed out of 4\n";
+    let mut legacy = request(root.path(), ValidationKind::Ctest);
+    legacy.options.ctest_not_run_measured = true;
+    let legacy = plan(&legacy).unwrap();
+    let output = observe(
+        &legacy,
+        &BTreeMap::from([(id.clone(), outcome(&id, mixed, "", 8))]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert_eq!(output.observation.findings.len(), 1);
+    // Negative: the 4.4.5 form still has to agree with the case lines.
+    let miscounted = viewer.replace("out of 7", "out of 8");
+    let output = observe(
+        &planned,
+        &BTreeMap::from([(id.clone(), outcome(&id, &miscounted, "", 0))]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(output.observation.state, TaskState::Failed, "{output:?}");
+    assert!(
+        output
+            .observation
+            .limitations
+            .iter()
+            .any(|item| item.contains("terminal count does not match")),
+        "{output:?}"
+    );
+}
 #[test]
 fn qtest_retains_following_failure_location_and_validates_totals() {
     let root = tempfile::tempdir().unwrap();

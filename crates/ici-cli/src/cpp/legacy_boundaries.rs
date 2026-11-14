@@ -227,15 +227,13 @@ impl CppPlans {
             Ok(directories) => directories,
             Err(error) => return Some(super::blocked(error)),
         };
-        // Frozen `selected_units` over the production sources, in context order.
+        // Frozen `_cpp_tooling.selected_units` over the production sources, in context order.
         let mut units: Vec<(usize, ici_cpp::CompilationUnit)> = context
             .units
             .iter()
             .cloned()
             .enumerate()
-            .filter(|(_, unit)| {
-                !context.unity_build || matches!(unit.language.as_str(), "c" | "c++")
-            })
+            .filter(|(_, unit)| super::legacy_selected_unit(context, unit))
             .filter(|(_, unit)| !super::config_scope::excluded(&unit.source, &externals))
             .collect();
         units.sort_by_cached_key(|(_, unit)| {
