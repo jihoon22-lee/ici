@@ -723,8 +723,9 @@ fn legacy_adapter_build_failure(
 /// artifacts" ERROR). Frozen publishes manifests only from the build, test and sanitizer
 /// sessions, so this holds once every preparation of the run has failed or built nothing
 /// (`contexts`: the preparations that succeeded). `None` when a prepared session built
-/// executables or artifacts, or a declaration could still publish one (Python packaging,
-/// `[build.artifacts]`); those keep the blocked check.
+/// executables or artifacts, Python packaging could still publish one, or a selection names
+/// only declared `[build.artifacts]` records (or a glob declaration); those keep the blocked
+/// check.
 fn legacy_binary_compat_without_manifests(
     prepared: &PreparedPlan,
     plan: &crate::export_context::ContextPreparationPlan,
@@ -739,14 +740,14 @@ fn legacy_binary_compat_without_manifests(
         .checks
         .iter()
         .any(|check| check.check.id == "python.artifact")
-        || prepared
-            .project
-            .effective
-            .pointer("/build/artifacts")
-            .is_some()
     {
         return None;
     }
+    // `[build.artifacts]` declares only `python-wheel` and `report` outputs (frozen
+    // `DECLARED_ARTIFACT_KINDS`), never one of `_BINARY_KINDS`: without a selection frozen
+    // `_records` skips them, so the published `config.artifacts` manifest changes nothing
+    // (binary-compat-declared-artifacts-oracle.json `declared-report`).
+    let declared = prepared.project.effective.pointer("/build/artifacts");
     let check = prepared.plan.checks.iter().find(|check| {
         check.component_id == plan.component_id && check.check.id == "cpp.binary-compat"
     })?;
@@ -756,12 +757,58 @@ fn legacy_binary_compat_without_manifests(
         .iter()
         .find(|component| component.id == plan.component_id)?;
     let settings = component.settings.pointer("/engines/binary_compat");
-    if settings
+    let mut selected: Vec<&str> = settings
         .and_then(|settings| settings.get("artifacts"))
         .and_then(serde_json::Value::as_array)
-        .is_some_and(|artifacts| !artifacts.is_empty())
-    {
-        return None;
+        .map(|artifacts| {
+            artifacts
+                .iter()
+                .filter_map(serde_json::Value::as_str)
+                .collect()
+        })
+        .unwrap_or_default();
+    if !selected.is_empty() {
+        // Frozen `_records` with no session manifest: a selection the `config.artifacts`
+        // manifest does not hold (by `release:project:<path>` id or path) is missing; the missing
+        // ones are joined in sorted order (`configured artifact was not published: …`), whatever
+        // `required` says (binary-compat-declared-artifacts-oracle.json `selected-*`,
+        // `declared-selected-missing`, `declared-selected-mixed`; root ruling 2026-11-14 (g3)).
+        let mut published: BTreeSet<String> = BTreeSet::new();
+        for patterns in declared
+            .and_then(serde_json::Value::as_object)
+            .into_iter()
+            .flat_map(|kinds| kinds.values())
+        {
+            for pattern in patterns.as_array()? {
+                let pattern = pattern.as_str()?;
+                // A glob or a non-normal path is expanded by frozen `_declared_artifact_paths`,
+                // which is not reproduced here: keep the blocked check.
+                if pattern.contains(['*', '?', '[']) || !legacy_plain_relative(pattern) {
+                    return None;
+                }
+                // A declared file that does not exist publishes no manifest in frozen.
+                if prepared.project.root.join(pattern).is_file() {
+                    published.insert(pattern.to_owned());
+                    published.insert(format!("release:project:{pattern}"));
+                }
+            }
+        }
+        selected.sort_unstable();
+        selected.dedup();
+        selected.retain(|item| !published.contains(*item));
+        if selected.is_empty() {
+            // Every selection names a declared record: frozen inspects it with readelf
+            // (`declared-selected-declared`, a non-ELF FAIL), which this path does not port.
+            return None;
+        }
+        let message = format!(
+            "configured artifact was not published: {}",
+            selected.join(", ")
+        );
+        return Some(crate::cpp::legacy_binary_compat_unavailable(
+            &check.task_id,
+            Some(&message),
+        ));
     }
     let required = settings
         .and_then(|settings| settings.get("required"))
@@ -772,6 +819,15 @@ fn legacy_binary_compat_without_manifests(
         required.then_some("no published executable or shared-library artifacts"),
     ))
 }
+/// A relative path with only normal components (no `.`, `..`, empty or absolute part).
+fn legacy_plain_relative(path: &str) -> bool {
+    !path.is_empty()
+        && !path.starts_with('/')
+        && path
+            .split('/')
+            .all(|part| !part.is_empty() && part != "." && part != "..")
+}
+
 fn rebind(
     runtime: &Runtime<'_>,
     project: ici_config::ResolvedProject,
@@ -986,10 +1042,17 @@ pub fn execute(
             match result {
                 Ok(context) => {
                     if let Some(failure) = &context.build_failure {
-                        limitations.push(format!(
-                            "{} {} build failed; its configured compilation database is analysed like frozen, which never builds this shadow: {failure}",
-                            plan.component_id, plan.build.variant
-                        ));
+                        if plan.build.system == "qmake" {
+                            limitations.push(format!(
+                                "{} {} build failed; its captured compilation database is analysed like frozen's separate analysis capture: {failure}",
+                                plan.component_id, plan.build.variant
+                            ));
+                        } else {
+                            limitations.push(format!(
+                                "{} {} build failed; its configured compilation database is analysed like frozen, which never builds this shadow: {failure}",
+                                plan.component_id, plan.build.variant
+                            ));
+                        }
                     }
                     // Frozen BuildEngine `_compile_cpp`: the failed adapter build is its own
                     // `BuildAdapter` FAIL, beside the source checks that keep the database;
@@ -1011,7 +1074,7 @@ pub fn execute(
                                 && prepared.project.schema_family
                                     == ici_config::SchemaFamily::Legacy
                                 && plan.build.variant == "release"
-                                && plan.build.system == "cmake"
+                                && matches!(plan.build.system.as_str(), "cmake" | "qmake")
                             {
                                 legacy_adapter_build_failure(
                                     &mut observed,

@@ -27,6 +27,10 @@ successful CMake/qmake build session of `ici verify` and fails the session throu
   capture, like `qmake-deep-build-uncaptured`): the release session itself reaches its walk and
   fails it (cpp36: the frozen golden for native's release session under the bound, parent ruling
   2026-11-14).
+- `qmake-entry-limit-analysis`: `qmake-entry-limit` with the analysis view kept too (root ruling
+  2026-11-14 (g5)): the release session fails only the BuildEngine; every source engine keeps
+  the analysis capture's context. `analysis` keeps every other engine's status, evidence and
+  summary and the analysis context's compilation record.
 
 Each case keeps the exit code, the suite counters, the build/test/sanitize/thread_sanitize/
 binary_compat engines (status, evidence, summary, targets, findings, tool evidence names,
@@ -95,7 +99,10 @@ CASES = {
         BUILD,
         3,
     ),
+    "qmake-entry-limit-analysis": ("test-qmake", QMAKE_BASE, "verify", DEEP, BUILD, 3),
 }
+# Cases that also keep the analysis view (root ruling 2026-11-14 (g5)).
+ANALYSIS = {"qmake-entry-limit-analysis"}
 ENGINES = {"build", "test", "sanitize", "thread_sanitize", "binary_compat"}
 COUNTERS = [
     "suite_status",
@@ -236,6 +243,24 @@ def run(name, fixture, base, command, args, config, bound) -> dict:
         },
         "context_manifests": shape(context.get("artifact_manifests")),
         **({"transcript": transcript} if transcript is not None else {}),
+        **(
+            {
+                "analysis": {
+                    "engines": {
+                        engine["engine_name"]: {
+                            "status": engine.get("status"),
+                            "evidence": engine.get("evidence"),
+                            "summary": engine.get("summary"),
+                        }
+                        for engine in engines
+                        if engine["engine_name"] not in ENGINES
+                    },
+                    "compilation": shape(context.get("compilation")),
+                }
+            }
+            if name in ANALYSIS
+            else {}
+        ),
     }
 
 
