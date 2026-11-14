@@ -266,8 +266,9 @@ fn diagnostics(value: &Value, root: &Path, unit: bool) -> Vec<Value> {
 }
 
 /// Frozen `unity_build` of the context: `cmake-unity-build` of the canonical preparation (the
-/// cache's setting or a unity-named unit), else the CMake cache beside a database CMake prepared.
-/// Native's `CompilationContext::unity_build` reads unit names by its own, wider rule.
+/// cache's setting or a unity-named unit), else, for a database ici's own CMake preparation wrote,
+/// that cache or a unity-named unit. Native's `CompilationContext::unity_build` reads unit names
+/// by its own, wider rule.
 pub(crate) fn frozen_unity_build(root: &Path, context: &ici_cpp::CompilationContext) -> bool {
     let codes = || context.diagnostics.iter().map(|item| item.code.as_str());
     if codes().any(|code| code == "cmake-unity-build") {
@@ -276,22 +277,23 @@ pub(crate) fn frozen_unity_build(root: &Path, context: &ici_cpp::CompilationCont
     if codes().any(|code| matches!(code, "cmake-cache-missing" | "cmake-cache-invalid")) {
         return false;
     }
-    context
+    // A database ici's own CMake preparation wrote: frozen `prepare_cmake_compilation_context`
+    // marks it unity when the cache sets CMAKE_UNITY_BUILD or a unit is unity-named
+    // (`_has_unity_units`; a `set(CMAKE_UNITY_BUILD ON)` in CMakeLists.txt leaves no cache entry).
+    let Some(directory) = context
         .database_path
         .as_deref()
-        .and_then(|database| Path::new(database).parent().map(Path::to_path_buf))
-        .filter(|_| {
-            context
-                .database_path
-                .as_deref()
-                .is_some_and(|database| database.starts_with(".ici/"))
-        })
-        .and_then(|directory| {
-            std::fs::read_to_string(root.join(directory).join("CMakeCache.txt")).ok()
-        })
+        .filter(|database| database.starts_with(".ici/"))
+        .and_then(|database| Path::new(database).parent())
+    else {
+        return false;
+    };
+    std::fs::read_to_string(root.join(directory).join("CMakeCache.txt"))
+        .ok()
         .as_deref()
         .and_then(crate::export_context::cmake_unity_build)
-        .unwrap_or(false)
+        == Some(true)
+        || crate::export_context::cmake_analysis::has_unity_units(context)
 }
 /// Frozen `_serialize_compilation_unit` over one native compilation unit.
 fn unit(value: &Value, root: &Path) -> Value {
