@@ -1,6 +1,6 @@
 # R9 cutover — Python 제품 제거 체크리스트
 
-- 상태: **applying on `feat/rust-cutover-final`.** 2026-11-14 root 지시로 §5의 2–7단계를 이 branch에서
+- 상태: **§5의 2–7단계 적용됨(`feat/rust-cutover-final`, §5.1). 8단계 대기.** 2026-11-14 root 지시로 §5의 2–7단계를 이 branch에서
   적용한다. 8단계(사후 검증·PR·병합 후 candidate/zoo/release)는 root가 수행한다
   ([실행 계획 §8](../rust-replacement-execution-plan.md), [ADR-0008](../ici-next/adr/0008-rust-native-replacement.md)).
 - 측정 기준: base `5f1bf2b7`(`fix/rust-root-audits`, R8 closed)의 tracked tree. 2026-11-14에 §1의 명령으로
@@ -174,6 +174,24 @@ grep -rln "](\(\.\./\)*src/ici" --include=*.md .   # 문서 링크
 8. 사후 검증(§6) 후 PR. 병합 후 exact-main candidate → zoo native → `release-native.yml`(draft) →
    공개 asset을 새로 내려받아 digest·설치·`ici --version`·오프라인 분석·rollback 확인 → draft 해제.
 
+### 5.1 적용 기록 (2026-11-14, `feat/rust-cutover-final`, base `5f1bf2b7`)
+
+|단계|commit|내용|
+|---|---|---|
+|2|cherry-pick `bcc17aa6`…`180d1bab`, `91970ac9`|rehearsal 9 commit을 root에 다시 적용(충돌 없음), §0–§2 재측정|
+|3|`df2c7b5c`|schema 6개 → `schemas/`, `wire_schemas.rs` 6곳·`validate_wire_schemas.py`·문서 링크. compilation export `$id`는 wire 식별자라 그대로|
+|4|`1489a200`, `028c46b5`|저장소 자산 시험 3개 → `scripts/tests/`(unittest), 그다음 `src/ici`·`tools/ici`·§2-C script·§2-D 시험과 fixture 삭제, register 14행 정리|
+|5|`6ff9a62f`|`pyproject.toml` dev harness(`ici-dev-harness`, `package = false`), `uv lock --offline`(17 package), `uv sync --frozen --python 3.10 --dry-run` 확인|
+|6|`a9bf4cfb`|ci.yml native dogfood·publish, `release.yml`·`bundle-smoke.yml`·pyz candidate/zoo job 삭제, release-native viewer job, workflow 모양 시험(`scripts/tests/test_workflows.py`)|
+|7|`6a8351e5`, `f26e8a73`, `02be6926`, `e05c27df`, `922718cb`|native root `ici.toml`, `ICI_BUILD_LOCK`, 0.14.0·CHANGELOG·README, 문서 링크(v0.13.0 tag)와 CI 문서, AGENTS 적용|
+
+이 branch에서 실행한 검사: `cargo check --workspace --all-targets --locked`(shared check target, 1회 exit 0),
+`cargo fmt --all -- --check`, harness Ruff check/format, `rust_migration_inventory.py --self-test`와
+`--check --require-closed`, `scripts/tests`·`quality-zoo/tests` unittest, `actionlint`, `shellcheck scripts/*.sh`,
+§6의 두 grep, root `ici.toml`로 native debug build(`5f1bf2b7`)의 `ici verify --report --html … --github-summary`
+(7/7 PASS, exit 0). 실행하지 않은 것: `cargo clippy`/`cargo test`, native distribution build와 release 검사,
+viewer dogfood(`viewer/`의 두 설정은 `ici doctor`가 읽는 것만 확인), CI. 이들은 §5 8단계에서 root가 실행한다.
+
 ## 6. 사후 검증
 
 ```bash
@@ -183,7 +201,8 @@ cargo test --workspace --locked
 python3 scripts/rust_migration_inventory.py --self-test
 python3 scripts/rust_migration_inventory.py --check --require-closed
 (cd quality-zoo && python3.10 -m unittest discover -s tests -v)
-uvx ruff check . && uvx ruff format --check .
+.venv/bin/python -m unittest discover -s scripts/tests -v
+uv run --frozen --python 3.10 ruff check . && uv run --frozen --python 3.10 ruff format --check .
 actionlint .github/workflows/*.yml
 shellcheck scripts/*.sh
 git ls-files | grep -E '\.pyz$|^src/ici/' && echo 'Python product still tracked' && exit 1
