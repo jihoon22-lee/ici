@@ -561,8 +561,11 @@ pub(crate) fn observe_ctest(
     );
     let cases = Regex::new(r"Test\s+#(\d+):\s+(.+?)\s*\.{3,}\s*(.+?)\s+[\d.]+\s*sec\b")
         .expect("constant regex");
-    let summary =
-        Regex::new(r"\d+% tests passed,\s*\d+ tests failed out of (\d+)").expect("constant regex");
+    // CTest 4.4.5 (unlike 4.2.3) drops the ", 0 tests failed" clause when nothing failed ("100%
+    // tests passed out of 7"); with a failure it still prints "50% tests passed, 2 tests failed
+    // out of 4". Frozen never reads this line; both forms keep the native count check.
+    let summary = Regex::new(r"\d+% tests passed(?:,\s*\d+ tests failed)? out of (\d+)")
+        .expect("constant regex");
     let mut passed = 0;
     let mut total = 0;
     let mut skipped = 0;
