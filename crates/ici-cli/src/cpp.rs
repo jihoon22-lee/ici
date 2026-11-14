@@ -975,8 +975,14 @@ impl CppPlans {
         id: &str,
         environment: &BTreeMap<String, String>,
     ) -> Work {
+        // Frozen `_cpp_include_graph._selected_units`.
+        let mut units: Vec<CompilationUnit> = context
+            .units
+            .iter()
+            .filter(|unit| legacy_selected_unit(context, unit))
+            .cloned()
+            .collect();
         // Frozen `load_compilation_context` orders units by (source, directory, configuration).
-        let mut units = context.units.clone();
         units.sort_by_cached_key(|unit| {
             (
                 unit.source.clone(),
@@ -1987,9 +1993,15 @@ impl CppPlans {
             .diagnostics
             .iter()
             .any(|diagnostic| diagnostic.level == "error");
-        // Frozen `load_compilation_context` order: (source, directory, configuration digest).
-        let mut units: Vec<(usize, CompilationUnit)> =
-            context.units.iter().cloned().enumerate().collect();
+        // Frozen `_clang_tidy._selected_context_units` / `_clazy` over `selected_units`, in
+        // frozen `load_compilation_context` order: (source, directory, configuration digest).
+        let mut units: Vec<(usize, CompilationUnit)> = context
+            .units
+            .iter()
+            .cloned()
+            .enumerate()
+            .filter(|(_, unit)| legacy_selected_unit(context, unit))
+            .collect();
         units.sort_by_cached_key(|(_, unit)| {
             (
                 unit.source.clone(),
@@ -3522,6 +3534,19 @@ pub fn legacy_cmake_artifact_manifest(
         .ok()
         .map(|path| path.to_string_lossy().into_owned());
     Some(json!({"variant": variant, "shadow_root": shadow_root, "artifacts": artifacts}))
+}
+
+/// Frozen `_cpp_tooling.selected_units` (clang-tidy, Clazy, compiler boundaries) and
+/// `_cpp_include_graph._selected_units` (compiler include traces): a unity build keeps every C/C++
+/// unit, otherwise only the units of selected production sources. A build-generated unit (an
+/// AUTOMOC `<target>_autogen/mocs_compilation.cpp` of the legacy shadow build tree, which the
+/// linked build directory keeps in the context) is not one.
+fn legacy_selected_unit(context: &CompilationContext, unit: &CompilationUnit) -> bool {
+    if context.unity_build {
+        matches!(unit.language.as_str(), "c" | "c++")
+    } else {
+        context.selected_sources.contains(&unit.source)
+    }
 }
 
 /// Frozen `compile_db` configuration identity of one recorded unit (`canonical_digest` of the

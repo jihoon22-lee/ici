@@ -1,0 +1,372 @@
+{
+ "cases": {
+  "clang-tidy": {
+   "frozen": {
+    "engines": {
+     "complexity": {
+      "evidence": "MEASURED",
+      "extra": {
+       "cpp_boundary_configurations_checked": 1,
+       "cpp_boundary_errors": [],
+       "cpp_boundary_mode": "exact",
+       "cpp_boundary_sources_checked": 1,
+       "cpp_estimated_boundaries": 0,
+       "cpp_exact_boundaries": 3
+      },
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 3 functions (0 issues)",
+      "targets": [
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Complexity: 1, Nesting: 0",
+        "start_line": 3,
+        "status": "PASS",
+        "target_name": "Counter()"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Complexity: 1, Nesting: 0",
+        "start_line": 5,
+        "status": "PASS",
+        "target_name": "value()"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Complexity: 2, Nesting: 1",
+        "start_line": 7,
+        "status": "PASS",
+        "target_name": "step()"
+       }
+      ]
+     },
+     "cycle": {
+      "evidence": "MEASURED",
+      "extra": {
+       "cpp_configurations_checked": 1,
+       "cpp_cycles": 0,
+       "cpp_include_resolution": "compiler_trace"
+      },
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected",
+      "targets": [
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Compiler include tracing completed for this translation-unit configuration.",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "CppIncludeTrace"
+       }
+      ]
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "extra": {
+       "clang_tidy_configurations_checked": 1,
+       "clang_tidy_sources_checked": 1,
+       "violations_count": 1
+      },
+      "status": "WARN",
+      "summary": "clazy is unavailable or incompletely probed",
+      "targets": [
+       {
+        "file_path": "build/ici-cmake-build/counter_autogen/mocs_compilation.cpp",
+        "message": "Compiler syntax analysis completed without diagnostics.",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "C++Syntax:8ab756214c72"
+       },
+       {
+        "file_path": "build/ici-cmake-build/test_counter_autogen/mocs_compilation.cpp",
+        "message": "Compiler syntax analysis completed without diagnostics.",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "C++Syntax:f34af0bb4737"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Compiler syntax analysis completed without diagnostics.",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "C++Syntax:79ffd8b3a8a7"
+       },
+       {
+        "file_path": "src/counter.h",
+        "message": "moc output moc_counter.cpp is linked by successfully replayed unit build/ici-cmake-build/counter_autogen/mocs_compilation.cpp.",
+        "start_line": 5,
+        "status": "PASS",
+        "target_name": "QtMocLinkage"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Qt 6 API compatibility passed an exact sanitized compile replay.",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "QtCompatibility:Qt6"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "clang-tidy completed without diagnostics.",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "ClangTidy:79ffd8b3a8a7"
+       },
+       {
+        "file_path": ".",
+        "message": "clazy is unavailable or incompletely probed",
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "ClazyUnavailable"
+       }
+      ]
+     },
+     "test": {
+      "evidence": "MEASURED",
+      "extra": {},
+      "status": "PASS",
+      "summary": "1/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_counter.cpp",
+        "message": "C++ Test Passed",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_counter"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "File line coverage 100.0% meets the configured minimum 80.0%",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Function Counter::Counter(QObject*) was exercised by the aggregate project test suite",
+        "start_line": 3,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Counter::Counter(QObject*)"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Function Counter::value() const was exercised by the aggregate project test suite",
+        "start_line": 5,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Counter::value() const"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Function Counter::step(int) was exercised by the aggregate project test suite",
+        "start_line": 7,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Counter::step(int)"
+       }
+      ]
+     }
+    },
+    "exit_code": 0,
+    "suite_status": "WARN"
+   },
+   "path": "{clang-tidy-dir}:/usr/bin:/bin"
+  },
+  "plain": {
+   "frozen": {
+    "engines": {
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "extra": {
+       "cpp_boundary_configurations_checked": 0,
+       "cpp_boundary_errors": [],
+       "cpp_boundary_mode": "heuristic",
+       "cpp_boundary_sources_checked": 0,
+       "cpp_estimated_boundaries": 3,
+       "cpp_exact_boundaries": 0
+      },
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 3 functions (0 issues)",
+      "targets": [
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Complexity: 1, Nesting: 0",
+        "start_line": 3,
+        "status": "PASS",
+        "target_name": "Counter::Counter()"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Complexity: 1, Nesting: 0",
+        "start_line": 5,
+        "status": "PASS",
+        "target_name": "Counter::value()"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Complexity: 2, Nesting: 1",
+        "start_line": 7,
+        "status": "PASS",
+        "target_name": "Counter::step()"
+       }
+      ]
+     },
+     "cycle": {
+      "evidence": "MEASURED",
+      "extra": {
+       "cpp_configurations_checked": 1,
+       "cpp_cycles": 0,
+       "cpp_include_resolution": "compiler_trace"
+      },
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected",
+      "targets": [
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Compiler include tracing completed for this translation-unit configuration.",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "CppIncludeTrace"
+       }
+      ]
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "extra": {
+       "clang_tidy_configurations_checked": 0,
+       "clang_tidy_sources_checked": 0,
+       "violations_count": 2
+      },
+      "status": "WARN",
+      "summary": "clang-tidy is unavailable or incompletely probed; clazy is unavailable or incompletely probed",
+      "targets": [
+       {
+        "file_path": "build/ici-cmake-build/counter_autogen/mocs_compilation.cpp",
+        "message": "Compiler syntax analysis completed without diagnostics.",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "C++Syntax:acffc9537782"
+       },
+       {
+        "file_path": "build/ici-cmake-build/test_counter_autogen/mocs_compilation.cpp",
+        "message": "Compiler syntax analysis completed without diagnostics.",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "C++Syntax:23caffb647f7"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Compiler syntax analysis completed without diagnostics.",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "C++Syntax:e740ba4cb82a"
+       },
+       {
+        "file_path": "src/counter.h",
+        "message": "moc output moc_counter.cpp is linked by successfully replayed unit build/ici-cmake-build/counter_autogen/mocs_compilation.cpp.",
+        "start_line": 5,
+        "status": "PASS",
+        "target_name": "QtMocLinkage"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Qt 6 API compatibility passed an exact sanitized compile replay.",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "QtCompatibility:Qt6"
+       },
+       {
+        "file_path": ".",
+        "message": "clang-tidy is unavailable or incompletely probed",
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "ClangTidyUnavailable"
+       },
+       {
+        "file_path": ".",
+        "message": "clazy is unavailable or incompletely probed",
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "ClazyUnavailable"
+       }
+      ]
+     },
+     "test": {
+      "evidence": "MEASURED",
+      "extra": {},
+      "status": "PASS",
+      "summary": "1/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_counter.cpp",
+        "message": "C++ Test Passed",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_counter"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "File line coverage 100.0% meets the configured minimum 80.0%",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Function Counter::Counter(QObject*) was exercised by the aggregate project test suite",
+        "start_line": 3,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Counter::Counter(QObject*)"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Function Counter::value() const was exercised by the aggregate project test suite",
+        "start_line": 5,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Counter::value() const"
+       },
+       {
+        "file_path": "src/counter.cpp",
+        "message": "Function Counter::step(int) was exercised by the aggregate project test suite",
+        "start_line": 7,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Counter::step(int)"
+       }
+      ]
+     }
+    },
+    "exit_code": 0,
+    "suite_status": "WARN"
+   },
+   "path": "/usr/bin:/bin"
+  }
+ },
+ "clang_tidy": "LLVM version 21.1.6",
+ "cmake": "cmake version 4.2.3",
+ "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.line]\nenabled=false\n[engines.compile_db]\nenabled=false\n[engines.type]\nenabled=false\n[engines.python_compat]\nenabled=false\n[engines.sanitize]\nenabled=false\n[engines.thread_sanitize]\nenabled=false\n[engines.dead]\nenabled=false\n[engines.dup]\nenabled=false\n[engines.exception]\nenabled=false\n[engines.cognitive]\nenabled=false\n[engines.security]\nenabled=false\n[engines.resource]\nenabled=false\n[engines.binary_compat]\nenabled=false\n[engines.integration]\nenabled=false\n",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}
